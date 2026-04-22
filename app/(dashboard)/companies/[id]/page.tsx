@@ -21,7 +21,7 @@ import { FacilitiesSection } from "@/components/company/sections/facilities-sect
 import { VehicleModelsSection } from "@/components/company/sections/vehicle-models-section";
 import { NotesSection } from "@/components/company/sections/notes-section";
 import { FlagIssueDialog } from "@/components/company/flag-issue-dialog";
-import { useCompany, useCompanyNotes } from "@/lib/hooks/use-companies";
+import { useCompany, useCompanyAllNotes } from "@/lib/hooks/use-companies";
 
 const TABS = [
   { value: "exposures", label: "Exposures" },
@@ -34,16 +34,6 @@ const TABS = [
 ] as const;
 
 type TabValue = (typeof TABS)[number]["value"];
-
-const SECTION_LABELS: Record<TabValue, string> = {
-  exposures: "Exposures",
-  relationships: "Relationships",
-  regulations: "Regulations",
-  events: "Events",
-  facilities: "Facilities",
-  vehicles: "Vehicle Models",
-  notes: "Notes",
-};
 
 export default function CompanyDetailPage({
   params,
@@ -88,7 +78,13 @@ export default function CompanyDetailPage({
         action={
           <FlagIssueDialog
             companyId={id}
-            sectionLabel={SECTION_LABELS[tab]}
+            sectionLabel="Company"
+            trigger={
+              <Button variant="outline" size="sm">
+                <Flag className="h-3.5 w-3.5" />
+                Flag company
+              </Button>
+            }
           />
         }
       />
@@ -103,19 +99,6 @@ export default function CompanyDetailPage({
             </TabsTrigger>
           ))}
         </TabsList>
-
-        <div className="mt-4 flex items-center justify-end">
-          <FlagIssueDialog
-            companyId={id}
-            sectionLabel={SECTION_LABELS[tab]}
-            trigger={
-              <Button variant="outline" size="sm">
-                <Flag className="h-3.5 w-3.5" />
-                Flag this {SECTION_LABELS[tab].toLowerCase()}
-              </Button>
-            }
-          />
-        </div>
 
         <TabsContent value="exposures" className="mt-3">
           <ExposuresSection companyId={id} />
@@ -144,7 +127,7 @@ export default function CompanyDetailPage({
 }
 
 function FlaggedIssuesPanel({ companyId }: { companyId: string }) {
-  const { data = [] } = useCompanyNotes(companyId);
+  const { data = [] } = useCompanyAllNotes(companyId);
   const [open, setOpen] = useState(true);
   if (data.length === 0) return null;
 

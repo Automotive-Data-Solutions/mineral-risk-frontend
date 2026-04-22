@@ -51,10 +51,24 @@ export function useCreateEntityNote(
 ) {
   const client = useApiClient();
   const qc = useQueryClient();
+  const externalOnSuccess = options?.onSuccess;
+  const externalOnError = options?.onError;
+
   return useMutation<AnalystNoteRead, unknown, EntityNoteCreate>({
+    ...options,
     mutationFn: (body) =>
       createEntityNote(client, entityType, entityId, body, parentId),
-    onSuccess: (data, vars, ctx) => {
+    onSuccess: (data, vars, onMutateResult, ctx) => {
+      // Update the visible notes list immediately so side sheets reflect the
+      // newly created note without needing a manual refresh/reopen.
+      qc.setQueryData<AnalystNoteRead[]>(
+        entityNoteKeys.list(entityType, entityId, parentId),
+        (prev) => {
+          if (!prev || prev.length === 0) return [data];
+          if (prev.some((note) => note.id === data.id)) return prev;
+          return [data, ...prev];
+        },
+      );
       qc.invalidateQueries({
         queryKey: entityNoteKeys.list(entityType, entityId, parentId),
       });
@@ -67,9 +81,10 @@ export function useCreateEntityNote(
           queryKey: ["companies", "detail", entityId, "notes"],
         });
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (options?.onSuccess as any)?.(data, vars, ctx);
+      externalOnSuccess?.(data, vars, onMutateResult, ctx);
     },
-    ...options,
+    onError: (error, vars, onMutateResult, ctx) => {
+      externalOnError?.(error, vars, onMutateResult, ctx);
+    },
   });
 }

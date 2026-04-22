@@ -50,6 +50,7 @@ type FormValues = z.infer<typeof schema>;
 const ENTITY_LABELS: Record<FlaggableEntityType, string> = {
   company: "company",
   material: "material",
+  company_material_exposure: "company exposure",
   hs_code_material_mapping: "HS-code mapping",
   regulation: "regulation",
   risk_event: "risk event",
@@ -63,9 +64,9 @@ export interface EntityFlagIssueDialogProps {
   /** Entity primary key (UUIDs and ints both serialized as string). */
   entityId: string;
   /**
-   * Required for ``hs_code_material_mapping`` entities — the parent
-   * material's id, used to build the nested
-   * ``/materials/{material_id}/hs-code-mappings/{mapping_id}/notes`` URL.
+   * Required for nested note routes:
+   * - ``hs_code_material_mapping`` (parent material id)
+   * - ``company_material_exposure`` (parent company id)
    */
   parentId?: string;
   /** Human-readable name shown in the dialog header (e.g. "Lithium"). */

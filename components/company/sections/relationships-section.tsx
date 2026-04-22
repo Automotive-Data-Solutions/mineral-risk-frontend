@@ -1,18 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { CheckCircle2, Flag } from "lucide-react";
 import { DataTable } from "@/components/data-table/data-table";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { StageBadge } from "@/components/shared/stage-badge";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
+import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dialog";
+import { Button } from "@/components/ui/button";
+import {
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { SideSheet, SideSheetContent } from "@/components/ui/side-sheet";
+import { Separator } from "@/components/ui/separator";
 import { useCompanyRelationships } from "@/lib/hooks/use-companies";
+import { useToggleRelationshipVerified } from "@/lib/hooks/use-verified";
 import type { RelationshipRead } from "@/lib/types";
 import { formatDate, formatPercent, humanize } from "@/lib/utils/format";
 
 type Side = "buyer" | "supplier";
 
-function useColumns(side: Side): ColumnDef<RelationshipRead, unknown>[] {
+function useColumns(
+  side: Side,
+  onRowClick: (row: RelationshipRead) => void,
+): ColumnDef<RelationshipRead, unknown>[] {
   return useMemo(
     () => [
       {
@@ -23,6 +38,7 @@ function useColumns(side: Side): ColumnDef<RelationshipRead, unknown>[] {
             <Link
               href={`/companies/${row.original.counterparty.id}`}
               className="font-medium hover:underline"
+              onClick={(e) => e.stopPropagation()}
             >
               {row.original.counterparty.canonical_name}
             </Link>
@@ -70,53 +86,198 @@ function useColumns(side: Side): ColumnDef<RelationshipRead, unknown>[] {
           return `${formatDate(valid_from)} → ${valid_to ? formatDate(valid_to) : "present"}`;
         },
       },
+      {
+        id: "actions",
+        header: () => <span className="sr-only">Actions</span>,
+        cell: ({ row }) => (
+          <div className="flex items-center justify-end gap-1.5">
+            <VerifiedBadge verified={row.original.verified ?? false} />
+          </div>
+        ),
+      },
     ],
     [side],
   );
 }
 
 export function RelationshipsSection({ companyId }: { companyId: string }) {
+  const [selected, setSelected] = useState<RelationshipRead | null>(null);
   const { data, isLoading, error, refetch } = useCompanyRelationships(companyId);
-  const asBuyerCols = useColumns("buyer");
-  const asSupplierCols = useColumns("supplier");
+  const asBuyerCols = useColumns("buyer", setSelected);
+  const asSupplierCols = useColumns("supplier", setSelected);
 
   const asBuyer = data?.as_buyer ?? [];
   const asSupplier = data?.as_supplier ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h3 className="mb-2 text-sm font-semibold">
-          Upstream suppliers{" "}
-          <span className="ml-1 text-xs font-normal text-muted-foreground">
-            (this company buys from)
-          </span>
-        </h3>
-        <DataTable
-          data={asBuyer}
-          columns={asBuyerCols}
-          isLoading={isLoading}
-          error={error}
-          onRetry={() => refetch()}
-          emptyTitle="No upstream supplier relationships"
-        />
+    <>
+      <div className="flex flex-col gap-6">
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">
+            Upstream suppliers{" "}
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              (this company buys from)
+            </span>
+          </h3>
+          <DataTable
+            data={asBuyer}
+            columns={asBuyerCols}
+            isLoading={isLoading}
+            error={error}
+            onRetry={() => refetch()}
+            onRowClick={setSelected}
+            emptyTitle="No upstream supplier relationships"
+          />
+        </div>
+        <div>
+          <h3 className="mb-2 text-sm font-semibold">
+            Downstream buyers{" "}
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              (this company sells to)
+            </span>
+          </h3>
+          <DataTable
+            data={asSupplier}
+            columns={asSupplierCols}
+            isLoading={isLoading}
+            error={error}
+            onRetry={() => refetch()}
+            onRowClick={setSelected}
+            emptyTitle="No downstream buyer relationships"
+          />
+        </div>
       </div>
-      <div>
-        <h3 className="mb-2 text-sm font-semibold">
-          Downstream buyers{" "}
-          <span className="ml-1 text-xs font-normal text-muted-foreground">
-            (this company sells to)
-          </span>
-        </h3>
-        <DataTable
-          data={asSupplier}
-          columns={asSupplierCols}
-          isLoading={isLoading}
-          error={error}
-          onRetry={() => refetch()}
-          emptyTitle="No downstream buyer relationships"
-        />
-      </div>
+      <RelationshipSideSheet
+        companyId={companyId}
+        relationship={selected}
+        open={Boolean(selected)}
+        onOpenChange={(open) => {
+          if (!open) setSelected(null);
+        }}
+      />
+    </>
+  );
+}
+
+function RelationshipSideSheet({
+  companyId,
+  relationship,
+  open,
+  onOpenChange,
+}: {
+  companyId: string;
+  relationship: RelationshipRead | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const verifyToggle = useToggleRelationshipVerified(companyId);
+
+  return (
+    <SideSheet open={open} onOpenChange={onOpenChange}>
+      <SideSheetContent>
+        <div className="space-y-5 p-6">
+          <DialogHeader className="space-y-2 text-left">
+            <DialogTitle>
+              {relationship?.counterparty.canonical_name ?? "Relationship details"}
+            </DialogTitle>
+            <DialogDescription>
+              Supply chain relationship details for this company.
+            </DialogDescription>
+          </DialogHeader>
+          {relationship ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={verifyToggle.isPending}
+                onClick={() =>
+                  verifyToggle.mutate({
+                    relationshipId: relationship.id,
+                    verified: !(relationship.verified ?? false),
+                  })
+                }
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {relationship.verified ? "Remove verification" : "Mark as verified"}
+              </Button>
+              <EntityFlagIssueDialog
+                entityType="company"
+                entityId={companyId}
+                entityLabel={relationship.counterparty.canonical_name}
+                sectionLabel="Relationships"
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Flag className="h-3.5 w-3.5" />
+                    Flag relationship
+                  </Button>
+                }
+              />
+            </div>
+          ) : null}
+          {relationship ? (
+            <div className="grid gap-2 rounded-md border bg-muted/20 p-3 text-sm">
+              <KeyValue
+                label="Counterparty"
+                value={
+                  <Link
+                    href={`/companies/${relationship.counterparty.id}`}
+                    className="font-medium hover:underline"
+                  >
+                    {relationship.counterparty.canonical_name}
+                  </Link>
+                }
+              />
+              <KeyValue
+                label="Relationship type"
+                value={humanize(relationship.relationship_type)}
+              />
+              <KeyValue
+                label="Material"
+                value={relationship.material_name ?? "—"}
+              />
+              <KeyValue
+                label="Volume share"
+                value={formatPercent(relationship.volume_share_pct, 1)}
+              />
+              <KeyValue
+                label="Confidence"
+                value={<ConfidenceBadge value={relationship.data_confidence} />}
+              />
+              <KeyValue
+                label="Valid period"
+                value={
+                  relationship.valid_from || relationship.valid_to
+                    ? `${formatDate(relationship.valid_from)} → ${
+                        relationship.valid_to
+                          ? formatDate(relationship.valid_to)
+                          : "present"
+                      }`
+                    : "—"
+                }
+              />
+            </div>
+          ) : null}
+
+          <Separator />
+
+          
+        </div>
+      </SideSheetContent>
+    </SideSheet>
+  );
+}
+
+function KeyValue({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[160px_minmax(0,1fr)] items-start gap-3">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="min-w-0 break-words font-medium">{value}</span>
     </div>
   );
 }

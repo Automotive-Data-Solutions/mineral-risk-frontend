@@ -20,7 +20,10 @@ import type {
  * `.cursorrules` → "Notes / Flag-Issue Pattern".
  */
 const NOTE_ROUTE_PREFIX: Record<
-  Exclude<FlaggableEntityType, "hs_code_material_mapping">,
+  Exclude<
+    FlaggableEntityType,
+    "hs_code_material_mapping" | "company_material_exposure"
+  >,
   string
 > = {
   company: "/api/v1/companies",
@@ -32,10 +35,12 @@ const NOTE_ROUTE_PREFIX: Record<
 };
 
 /**
- * Builds the notes URL for any flaggable entity. ``hs_code_material_mapping``
- * is special-cased because the route is nested under the parent material
- * (``/materials/{material_id}/hs-code-mappings/{mapping_id}/notes``) —
- * pass the parent material id via ``parentId``.
+ * Builds the notes URL for any flaggable entity. Some entities are
+ * nested routes and require ``parentId``:
+ * - ``hs_code_material_mapping``:
+ *   ``/materials/{material_id}/hs-code-mappings/{mapping_id}/notes``
+ * - ``company_material_exposure``:
+ *   ``/companies/{company_id}/exposures/{exposure_id}/notes``
  */
 export function buildNotesUrl(
   entityType: FlaggableEntityType,
@@ -49,6 +54,14 @@ export function buildNotesUrl(
       );
     }
     return `/api/v1/materials/${parentId}/hs-code-mappings/${entityId}/notes`;
+  }
+  if (entityType === "company_material_exposure") {
+    if (!parentId) {
+      throw new Error(
+        "buildNotesUrl: company_material_exposure requires parentId (the parent company id)",
+      );
+    }
+    return `/api/v1/companies/${parentId}/exposures/${entityId}/notes`;
   }
   const prefix = NOTE_ROUTE_PREFIX[entityType];
   return `${prefix}/${entityId}/notes`;

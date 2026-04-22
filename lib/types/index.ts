@@ -21,14 +21,16 @@ export type CompanyDetail = Schemas["CompanyDetail"];
 export type CompanySummary = Schemas["CompanySummary"];
 export type CompanyAliasRead = Schemas["CompanyAliasRead"];
 
-export type ExposureRead = Schemas["ExposureRead"];
+// NOTE: `verified` is added via intersection until `npm run types:generate:file`
+// is run after the 008_verified_flags Alembic migration is applied.
+export type ExposureRead = Schemas["ExposureRead"] & { verified?: boolean };
 export type RelationshipsResponse = Schemas["RelationshipsResponse"];
-export type RelationshipRead = Schemas["RelationshipRead"];
+export type RelationshipRead = Schemas["RelationshipRead"] & { verified?: boolean };
 export type RelationshipCounterparty = Schemas["RelationshipCounterparty"];
-export type RegulationExposureRead = Schemas["RegulationExposureRead"];
+export type RegulationExposureRead = Schemas["RegulationExposureRead"] & { verified?: boolean };
 export type CompanyEventRead = Schemas["CompanyEventRead"];
-export type FacilityRead = Schemas["FacilityRead"];
-export type VehicleModelRead = Schemas["VehicleModelRead"];
+export type FacilityRead = Schemas["FacilityRead"] & { verified?: boolean };
+export type VehicleModelRead = Schemas["VehicleModelRead"] & { verified?: boolean };
 export type VehicleModelChemistryRead = Schemas["VehicleModelChemistryRead"];
 
 // ---------------------------------------------------------------------------
@@ -74,6 +76,7 @@ export type NoteType = AnalystNoteCreate["note_type"];
 export type FlaggableEntityType =
   | "company"
   | "material"
+  | "company_material_exposure"
   | "hs_code_material_mapping"
   | "regulation"
   | "risk_event"

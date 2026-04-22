@@ -72,40 +72,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/risk-events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Risk Events */
-        get: operations["list_risk_events_api_v1_risk_events_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/regulations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Regulations */
-        get: operations["list_regulations_api_v1_regulations_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/companies": {
         parameters: {
             query?: never;
@@ -314,14 +280,278 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/regulations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Regulations */
+        get: operations["list_regulations_api_v1_regulations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/regulations/{regulation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Regulation */
+        get: operations["get_regulation_api_v1_regulations__regulation_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/regulations/{regulation_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Regulation Notes */
+        get: operations["list_regulation_notes_api_v1_regulations__regulation_id__notes_get"];
+        put?: never;
+        /** Create Regulation Note */
+        post: operations["create_regulation_note_api_v1_regulations__regulation_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/risk-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Risk Events */
+        get: operations["list_risk_events_api_v1_risk_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/risk-events/{event_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Risk Event Notes */
+        get: operations["list_risk_event_notes_api_v1_risk_events__event_id__notes_get"];
+        put?: never;
+        /** Create Risk Event Note */
+        post: operations["create_risk_event_note_api_v1_risk_events__event_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Materials */
+        get: operations["list_materials_api_v1_materials_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials/{material_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Material */
+        get: operations["get_material_api_v1_materials__material_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials/{material_id}/hs-mappings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Material Hs Mappings */
+        get: operations["list_material_hs_mappings_api_v1_materials__material_id__hs_mappings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/hs-mappings/mismatches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Hs Mismatches */
+        get: operations["list_hs_mismatches_api_v1_hs_mappings_mismatches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials/{material_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Material Notes */
+        get: operations["list_material_notes_api_v1_materials__material_id__notes_get"];
+        put?: never;
+        /** Create Material Note */
+        post: operations["create_material_note_api_v1_materials__material_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials/{material_id}/hs-mappings/{mapping_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Hs Mapping Notes */
+        get: operations["list_hs_mapping_notes_api_v1_materials__material_id__hs_mappings__mapping_id__notes_get"];
+        put?: never;
+        /** Create Hs Mapping Note */
+        post: operations["create_hs_mapping_note_api_v1_materials__material_id__hs_mappings__mapping_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/facilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Facilities */
+        get: operations["list_facilities_api_v1_facilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/facilities/{facility_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Facility Notes */
+        get: operations["list_facility_notes_api_v1_facilities__facility_id__notes_get"];
+        put?: never;
+        /** Create Facility Note */
+        post: operations["create_facility_note_api_v1_facilities__facility_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chemistries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Chemistries */
+        get: operations["list_chemistries_api_v1_chemistries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chemistries/{chemistry_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Chemistry Notes */
+        get: operations["list_chemistry_notes_api_v1_chemistries__chemistry_id__notes_get"];
+        put?: never;
+        /** Create Chemistry Note */
+        post: operations["create_chemistry_note_api_v1_chemistries__chemistry_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
          * AnalystNoteCreate
-         * @description Body for ``POST /companies/{id}/notes``. ``entity_type`` defaults to
-         *     ``company`` since the Phase 1 dialog always targets companies.
+         * @description Request body for per-entity POST …/notes endpoints.
+         *
+         *     Clients send only ``note_type`` and ``note_text``.  The route handler
+         *     injects ``entity_type`` and ``entity_id`` from the URL path before writing
+         *     to ``analyst_notes``.
          */
         AnalystNoteCreate: {
             /**
@@ -331,25 +561,25 @@ export interface components {
             note_type: "data_error" | "missing_data" | "outdated" | "other";
             /** Note Text */
             note_text: string;
-            /**
-             * Entity Type
-             * @default company
-             * @constant
-             */
-            entity_type: "company";
         };
         /** AnalystNoteRead */
         AnalystNoteRead: {
-            /** Id */
-            id: number;
-            /** Entity Type */
-            entity_type: string;
-            /** Entity Id */
-            entity_id: string;
-            /** Note Type */
-            note_type: string;
+            /**
+             * Note Type
+             * @enum {string}
+             */
+            note_type: "data_error" | "missing_data" | "outdated" | "other";
             /** Note Text */
             note_text: string;
+            /** Id */
+            id: number;
+            /**
+             * Entity Type
+             * @enum {string}
+             */
+            entity_type: "company" | "material" | "hs_code_material_mappings" | "regulation" | "risk_event" | "facility" | "battery_chemistry";
+            /** Entity Id */
+            entity_id: string;
             /**
              * Created At
              * Format: date-time
@@ -360,6 +590,77 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** BatteryChemistryRead */
+        BatteryChemistryRead: {
+            /** Id */
+            id: number;
+            /** Slug */
+            slug: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /** Status */
+            status: string;
+            /** Current Market Share Pct */
+            current_market_share_pct?: number | null;
+            /** Market Share As Of Date */
+            market_share_as_of_date?: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            latest_risk_score?: components["schemas"]["ChemistryRiskScoreRead"] | null;
+        };
+        /** ChemistryRiskScoreRead */
+        ChemistryRiskScoreRead: {
+            /** Id */
+            id: number;
+            /**
+             * As Of Date
+             * Format: date
+             */
+            as_of_date: string;
+            /** Methodology Version */
+            methodology_version: string;
+            /** Material Concentration Score */
+            material_concentration_score?: number | null;
+            /** Geopolitical Score */
+            geopolitical_score?: number | null;
+            /** Composite Risk Score */
+            composite_risk_score?: number | null;
+            /** Score Confidence */
+            score_confidence?: number | null;
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+        };
+        /**
+         * ChemistryUseRead
+         * @description Minimal view of a ``BatteryChemistryMaterial`` row shown on material detail.
+         */
+        ChemistryUseRead: {
+            /** Id */
+            id: number;
+            /** Battery Chemistry Id */
+            battery_chemistry_id: number;
+            /** Role */
+            role: string;
+            /** Intensity */
+            intensity: number;
+            /** Is Substitutable */
+            is_substitutable: boolean;
         };
         /** CompanyAliasRead */
         CompanyAliasRead: {
@@ -494,6 +795,21 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** CriticalitySignalRead */
+        CriticalitySignalRead: {
+            /** Id */
+            id: number;
+            /** Source */
+            source: string;
+            /** Reference Year */
+            reference_year: number;
+            /** Criticality Score */
+            criticality_score?: number | null;
+            /** Trend Direction */
+            trend_direction?: string | null;
+            /** Hhi Score */
+            hhi_score?: number | null;
+        };
         /** DashboardOverview */
         DashboardOverview: {
             /** Company Count Total */
@@ -570,6 +886,81 @@ export interface components {
              */
             service: string;
         };
+        /**
+         * HsMappingRead
+         * @description Serializes ``HsCodeMaterialMapping`` rows.
+         *
+         *     Column names are aliased to match the spec's preferred API names so the
+         *     frontend types stay stable even if internal column names drift.
+         */
+        HsMappingRead: {
+            /** Id */
+            id: number;
+            /** Hs Code Prefix */
+            hs_code_prefix: string;
+            /** Material Id */
+            material_id: number;
+            /** Description */
+            description?: string | null;
+            /** Confidence */
+            confidence: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Is Low Confidence
+             * @default false
+             */
+            is_low_confidence: boolean;
+            /**
+             * Is Missing Description
+             * @default false
+             */
+            is_missing_description: boolean;
+            /**
+             * Is Chapter Mismatch
+             * @default false
+             */
+            is_chapter_mismatch: boolean;
+            /**
+             * Is Cross Mapped
+             * @default false
+             */
+            is_cross_mapped: boolean;
+        };
+        /**
+         * HsMismatchItem
+         * @description One row in the global mismatches list.
+         */
+        HsMismatchItem: {
+            /** Id */
+            id: number;
+            /** Hs Code */
+            hs_code: string;
+            /** Material Id */
+            material_id: number;
+            /** Material Canonical Name */
+            material_canonical_name: string;
+            /** Hs Description */
+            hs_description?: string | null;
+            /** Mapping Confidence */
+            mapping_confidence: number;
+            /** Is Low Confidence */
+            is_low_confidence: boolean;
+            /** Is Missing Description */
+            is_missing_description: boolean;
+            /** Is Chapter Mismatch */
+            is_chapter_mismatch: boolean;
+            /** Is Cross Mapped */
+            is_cross_mapped: boolean;
+            /**
+             * Material Url
+             * @default
+             */
+            material_url: string;
+        };
         /** IngestionRunRead */
         IngestionRunRead: {
             /** Id */
@@ -606,6 +997,116 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** MappingHealth */
+        MappingHealth: {
+            /** Total */
+            total: number;
+            /** Mismatched */
+            mismatched: number;
+            /** Low Confidence */
+            low_confidence: number;
+            /** Missing Description */
+            missing_description: number;
+            /** Chapter Mismatch */
+            chapter_mismatch: number;
+            /** Cross Mapped */
+            cross_mapped: number;
+        };
+        /** MaterialDetail */
+        MaterialDetail: {
+            /** Id */
+            id: number;
+            /** Canonical Name */
+            canonical_name: string;
+            /** Category */
+            category?: string | null;
+            /** Symbol Or Code */
+            symbol_or_code?: string | null;
+            /** Hs Codes */
+            hs_codes?: unknown | null;
+            /** Criticality Score */
+            criticality_score?: number | null;
+            /** Primary Producing Countries */
+            primary_producing_countries?: unknown | null;
+            /** Price Unit */
+            price_unit?: string | null;
+            /** Is Ira Critical Mineral */
+            is_ira_critical_mineral: boolean;
+            /** Is Eu Crma Critical */
+            is_eu_crma_critical: boolean;
+            /** Patent Occurrence Trend */
+            patent_occurrence_trend?: string | null;
+            /** Data Availability */
+            data_availability?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Criticality Signals
+             * @default []
+             */
+            criticality_signals: components["schemas"]["CriticalitySignalRead"][];
+            /**
+             * Chemistry Uses
+             * @default []
+             */
+            chemistry_uses: components["schemas"]["ChemistryUseRead"][];
+            /**
+             * Hs Mappings
+             * @default []
+             */
+            hs_mappings: components["schemas"]["HsMappingRead"][];
+            mapping_health?: components["schemas"]["MappingHealth"];
+        };
+        /** MaterialListItem */
+        MaterialListItem: {
+            /** Id */
+            id: number;
+            /** Canonical Name */
+            canonical_name: string;
+            /** Category */
+            category?: string | null;
+            /** Symbol Or Code */
+            symbol_or_code?: string | null;
+            /** Criticality Score */
+            criticality_score?: number | null;
+            /** Is Ira Critical Mineral */
+            is_ira_critical_mineral: boolean;
+            /** Is Eu Crma Critical */
+            is_eu_crma_critical: boolean;
+            /** Data Availability */
+            data_availability?: string | null;
+            /**
+             * Hs Mapping Count
+             * @default 0
+             */
+            hs_mapping_count: number;
+            /**
+             * Mapping Mismatch Count
+             * @default 0
+             */
+            mapping_mismatch_count: number;
+        };
+        /** PaginatedResponse[BatteryChemistryRead] */
+        PaginatedResponse_BatteryChemistryRead_: {
+            /** Data */
+            data: components["schemas"]["BatteryChemistryRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Limit */
+            limit: number;
+        };
         /** PaginatedResponse[CompanyListItem] */
         PaginatedResponse_CompanyListItem_: {
             /** Data */
@@ -616,6 +1117,113 @@ export interface components {
             page: number;
             /** Limit */
             limit: number;
+        };
+        /** PaginatedResponse[FacilityRead] */
+        PaginatedResponse_FacilityRead_: {
+            /** Data */
+            data: components["schemas"]["FacilityRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Limit */
+            limit: number;
+        };
+        /** PaginatedResponse[HsMismatchItem] */
+        PaginatedResponse_HsMismatchItem_: {
+            /** Data */
+            data: components["schemas"]["HsMismatchItem"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Limit */
+            limit: number;
+        };
+        /** PaginatedResponse[MaterialListItem] */
+        PaginatedResponse_MaterialListItem_: {
+            /** Data */
+            data: components["schemas"]["MaterialListItem"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Limit */
+            limit: number;
+        };
+        /** PaginatedResponse[RegulationRead] */
+        PaginatedResponse_RegulationRead_: {
+            /** Data */
+            data: components["schemas"]["RegulationRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Limit */
+            limit: number;
+        };
+        /** PaginatedResponse[RiskEventRead] */
+        PaginatedResponse_RiskEventRead_: {
+            /** Data */
+            data: components["schemas"]["RiskEventRead"][];
+            /** Total */
+            total: number;
+            /** Page */
+            page: number;
+            /** Limit */
+            limit: number;
+        };
+        /**
+         * RegulationDetail
+         * @description Extends RegulationRead with joined scope tables.
+         */
+        RegulationDetail: {
+            /** Id */
+            id: number;
+            /** Source Document Id */
+            source_document_id?: number | null;
+            /** Regulation Key */
+            regulation_key: string;
+            /** Title */
+            title?: string | null;
+            /** Issuing Body */
+            issuing_body?: string | null;
+            /** Geography */
+            geography?: string | null;
+            /** Policy Theme */
+            policy_theme?: string | null;
+            /** Status */
+            status?: string | null;
+            /** Publication Date */
+            publication_date?: string | null;
+            /** Effective Date */
+            effective_date?: string | null;
+            /** Summary */
+            summary?: string | null;
+            /** Metadata Json */
+            metadata_json?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Material Scopes
+             * @default []
+             */
+            material_scopes: components["schemas"]["RegulationMaterialScopeRead"][];
+            /**
+             * Geography Scopes
+             * @default []
+             */
+            geography_scopes: components["schemas"]["RegulationGeographyScopeRead"][];
         };
         /** RegulationExposureRead */
         RegulationExposureRead: {
@@ -638,12 +1246,32 @@ export interface components {
             /** Assessed At */
             assessed_at?: string | null;
         };
+        /** RegulationGeographyScopeRead */
+        RegulationGeographyScopeRead: {
+            /** Id */
+            id: number;
+            /** Country Code */
+            country_code: string;
+            /** Scope Type */
+            scope_type: string;
+        };
+        /** RegulationMaterialScopeRead */
+        RegulationMaterialScopeRead: {
+            /** Id */
+            id: number;
+            /** Material Id */
+            material_id: number;
+            /** Scope Type */
+            scope_type: string;
+            /** Notes */
+            notes?: string | null;
+        };
         /** RegulationRead */
         RegulationRead: {
             /** Id */
             id: number;
             /** Source Document Id */
-            source_document_id: number;
+            source_document_id?: number | null;
             /** Regulation Key */
             regulation_key: string;
             /** Title */
@@ -978,68 +1606,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IngestionRunRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_risk_events_api_v1_risk_events_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RiskEventRead"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_regulations_api_v1_regulations_get: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegulationRead"][];
                 };
             };
             /** @description Validation Error */
@@ -1480,6 +2046,754 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TradeFlowRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_regulations_api_v1_regulations_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string | null;
+                status?: string | null;
+                policy_theme?: string | null;
+                issuing_body?: string | null;
+                effective_after?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_RegulationRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_regulation_api_v1_regulations__regulation_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                regulation_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegulationDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_regulation_notes_api_v1_regulations__regulation_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                regulation_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_regulation_note_api_v1_regulations__regulation_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                regulation_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_risk_events_api_v1_risk_events_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string | null;
+                event_type?: string | null;
+                severity_min?: number | null;
+                date_from?: string | null;
+                date_to?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_RiskEventRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_risk_event_notes_api_v1_risk_events__event_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_risk_event_note_api_v1_risk_events__event_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_materials_api_v1_materials_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string | null;
+                category?: string | null;
+                is_ira_critical?: boolean | null;
+                is_eu_crma_critical?: boolean | null;
+                has_mismatched_mappings?: boolean | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_MaterialListItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_material_api_v1_materials__material_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_material_hs_mappings_api_v1_materials__material_id__hs_mappings_get: {
+        parameters: {
+            query?: {
+                min_confidence?: number | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HsMappingRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_hs_mismatches_api_v1_hs_mappings_mismatches_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_HsMismatchItem_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_material_notes_api_v1_materials__material_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_material_note_api_v1_materials__material_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_hs_mapping_notes_api_v1_materials__material_id__hs_mappings__mapping_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                material_id: number;
+                mapping_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_hs_mapping_note_api_v1_materials__material_id__hs_mappings__mapping_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                material_id: number;
+                mapping_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_facilities_api_v1_facilities_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string | null;
+                company_id?: string | null;
+                country?: string | null;
+                facility_type?: string | null;
+                status?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_FacilityRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_facility_notes_api_v1_facilities__facility_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                facility_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_facility_note_api_v1_facilities__facility_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                facility_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_chemistries_api_v1_chemistries_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                limit?: number;
+                search?: string | null;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedResponse_BatteryChemistryRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_chemistry_notes_api_v1_chemistries__chemistry_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                chemistry_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_chemistry_note_api_v1_chemistries__chemistry_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                chemistry_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
                 };
             };
             /** @description Validation Error */

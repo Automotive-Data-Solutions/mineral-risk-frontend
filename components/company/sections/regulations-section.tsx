@@ -1,32 +1,46 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { CheckCircle2, Flag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SideSheet, SideSheetContent } from "@/components/ui/side-sheet";
+import { Separator } from "@/components/ui/separator";
 import { DataTable } from "@/components/data-table/data-table";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dialog";
+import { KeyValueRow } from "@/components/shared/key-value-row";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 import { useCompanyRegulations } from "@/lib/hooks/use-companies";
 import { useRegulation } from "@/lib/hooks/use-regulations";
+import { useToggleRegulationExposureVerified } from "@/lib/hooks/use-verified";
 import type { RegulationExposureRead } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatDate, humanize } from "@/lib/utils/format";
 
 const STATUS_TONES: Record<string, string> = {
-  compliant: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
+  compliant:
+    "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
   at_risk: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
   non_compliant: "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200",
   unknown: "bg-muted text-muted-foreground",
 };
+const SIDE_SHEET_GRID = "grid-cols-[170px_minmax(0,1fr)]";
 
 export function RegulationsSection({ companyId }: { companyId: string }) {
   const [selected, setSelected] = useState<RegulationExposureRead | null>(null);
-  const { data = [], isLoading, error, refetch } = useCompanyRegulations(companyId);
+  const {
+    data = [],
+    isLoading,
+    error,
+    refetch,
+  } = useCompanyRegulations(companyId);
   const columns = useMemo<ColumnDef<RegulationExposureRead, unknown>[]>(
     () => [
       {
@@ -57,7 +71,8 @@ export function RegulationsSection({ companyId }: { companyId: string }) {
             variant="outline"
             className={cn(
               "border-0",
-              STATUS_TONES[row.original.compliance_status] ?? STATUS_TONES.unknown,
+              STATUS_TONES[row.original.compliance_status] ??
+                STATUS_TONES.unknown,
             )}
           >
             {humanize(row.original.compliance_status)}
@@ -78,7 +93,8 @@ export function RegulationsSection({ companyId }: { companyId: string }) {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-1.5">
+            <VerifiedBadge verified={row.original.verified ?? false} />
             <RowActionsMenu
               entityType="regulation"
               entityId={String(row.original.regulation_id)}
@@ -106,6 +122,7 @@ export function RegulationsSection({ companyId }: { companyId: string }) {
         emptyTitle="No regulatory exposures recorded"
       />
       <RegulationExposureSideSheet
+        companyId={companyId}
         exposure={selected}
         open={Boolean(selected)}
         onOpenChange={(open) => {
@@ -117,16 +134,19 @@ export function RegulationsSection({ companyId }: { companyId: string }) {
 }
 
 function RegulationExposureSideSheet({
+  companyId,
   exposure,
   open,
   onOpenChange,
 }: {
+  companyId: string;
   exposure: RegulationExposureRead | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const regulationId = exposure ? String(exposure.regulation_id) : "";
   const { data: regulation, isLoading, error } = useRegulation(regulationId);
+  const verifyToggle = useToggleRegulationExposureVerified(companyId);
 
   return (
     <SideSheet open={open} onOpenChange={onOpenChange}>
@@ -134,57 +154,127 @@ function RegulationExposureSideSheet({
         <div className="space-y-5 p-6">
           <DialogHeader className="space-y-2 text-left">
             <DialogTitle>
-              {exposure?.regulation_title ?? exposure?.regulation_key ?? "Regulation details"}
+              {exposure?.regulation_title ??
+                exposure?.regulation_key ??
+                "Regulation details"}
             </DialogTitle>
             <DialogDescription>
               Company-specific regulation exposure details.
             </DialogDescription>
           </DialogHeader>
-
+          {exposure && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={verifyToggle.isPending}
+                onClick={() =>
+                  verifyToggle.mutate({
+                    exposureId: exposure.id,
+                    verified: !(exposure.verified ?? false),
+                  })
+                }
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {exposure.verified ? "Remove verification" : "Mark as verified"}
+              </Button>
+              <EntityFlagIssueDialog
+                entityType="regulation"
+                entityId={String(exposure.regulation_id)}
+                entityLabel={
+                  exposure.regulation_title ?? exposure.regulation_key
+                }
+                sectionLabel="Regulations"
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Flag className="h-3.5 w-3.5" />
+                    Flag regulation
+                  </Button>
+                }
+              />
+            </div>
+          )}
           {exposure ? (
             <div className="grid gap-2 rounded-md border bg-muted/20 p-3 text-sm">
-              <KeyValue label="Regulation key" value={exposure.regulation_key} />
-              <KeyValue
+              <KeyValueRow
+                label="Regulation key"
+                value={exposure.regulation_key}
+                gridTemplateClassName={SIDE_SHEET_GRID}
+              />
+              <KeyValueRow
                 label="Company compliance status"
                 value={humanize(exposure.compliance_status)}
+                gridTemplateClassName={SIDE_SHEET_GRID}
               />
-              <KeyValue
+              <KeyValueRow
                 label="Company exposure reason"
-                value={exposure.exposure_reason || "No exposure reason provided"}
+                value={
+                  exposure.exposure_reason || "No exposure reason provided"
+                }
+                gridTemplateClassName={SIDE_SHEET_GRID}
               />
-              <KeyValue
+              <KeyValueRow
                 label="Company assessed date"
                 value={formatDate(exposure.assessed_at)}
+                gridTemplateClassName={SIDE_SHEET_GRID}
               />
             </div>
           ) : null}
 
-          <h3 className="text-sm font-semibold">Regulation profile</h3>
+          {exposure ? (
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">Regulation profile</h3>
+            </div>
+          ) : (
+            <h3 className="text-sm font-semibold">Regulation profile</h3>
+          )}
+          <Separator />
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading regulation details...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading regulation details...
+            </p>
           ) : error ? (
             <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-              Could not load regulation detail for this row yet. Placeholder shown until the
-              regulation detail endpoint is available.
+              Could not load regulation detail for this row yet. Placeholder
+              shown until the regulation detail endpoint is available.
             </div>
           ) : regulation ? (
             <div className="space-y-2 text-sm">
-              <KeyValue label="Title" value={regulation.title || "—"} />
-              <KeyValue
+              <KeyValueRow
+                label="Title"
+                value={regulation.title || "—"}
+                gridTemplateClassName={SIDE_SHEET_GRID}
+              />
+              <KeyValueRow
                 label="Location of effect"
                 value={regulation.geography || "No geography/location provided"}
+                gridTemplateClassName={SIDE_SHEET_GRID}
               />
-              <KeyValue label="Status" value={regulation.status || "—"} />
-              <KeyValue
+              <KeyValueRow
+                label="Status"
+                value={regulation.status || "—"}
+                gridTemplateClassName={SIDE_SHEET_GRID}
+              />
+              <KeyValueRow
                 label="Effective date"
                 value={formatDate(regulation.effective_date)}
+                gridTemplateClassName={SIDE_SHEET_GRID}
               />
-              <KeyValue
+              <KeyValueRow
                 label="Publication date"
                 value={formatDate(regulation.publication_date)}
+                gridTemplateClassName={SIDE_SHEET_GRID}
               />
-              <KeyValue label="Issuing body" value={regulation.issuing_body || "—"} />
-              <KeyValue label="Summary" value={regulation.summary || "—"} />
+              <KeyValueRow
+                label="Issuing body"
+                value={regulation.issuing_body || "—"}
+                gridTemplateClassName={SIDE_SHEET_GRID}
+              />
+              <KeyValueRow
+                label="Summary"
+                value={regulation.summary || "—"}
+                gridTemplateClassName={SIDE_SHEET_GRID}
+              />
               <div className="space-y-1 rounded-md border bg-muted/20 p-3">
                 <p className="text-muted-foreground">`metadata_json`</p>
                 <pre className="whitespace-pre-wrap break-words text-xs">
@@ -198,20 +288,5 @@ function RegulationExposureSideSheet({
         </div>
       </SideSheetContent>
     </SideSheet>
-  );
-}
-
-function KeyValue({
-  label,
-  value,
-}: {
-  label: string;
-  value: ReactNode;
-}) {
-  return (
-    <div className="grid grid-cols-[170px_minmax(0,1fr)] items-start gap-3">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="min-w-0 break-words font-medium">{value}</span>
-    </div>
   );
 }

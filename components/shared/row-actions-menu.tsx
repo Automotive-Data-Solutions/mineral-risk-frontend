@@ -16,7 +16,7 @@ import type { FlaggableEntityType } from "@/lib/types";
 interface RowActionsMenuProps {
   entityType: FlaggableEntityType;
   entityId: string;
-  /** Required when entityType is `hs_code_material_mapping`. */
+  /** Required for nested-note entity types (e.g. hs-code mapping, company exposure). */
   parentId?: string;
   /** Human-readable label shown in the flag dialog header. */
   entityLabel?: string;

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/data-table/data-table";
-import { useCompanyNotes } from "@/lib/hooks/use-companies";
+import { useCompanyAllNotes } from "@/lib/hooks/use-companies";
 import type { AnalystNoteRead } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { formatDateTime, formatRelative, humanize } from "@/lib/utils/format";
@@ -17,7 +17,7 @@ const NOTE_TYPE_TONE: Record<string, string> = {
 };
 
 export function NotesSection({ companyId }: { companyId: string }) {
-  const { data = [], isLoading, error, refetch } = useCompanyNotes(companyId);
+  const { data = [], isLoading, error, refetch } = useCompanyAllNotes(companyId);
   const columns = useMemo<ColumnDef<AnalystNoteRead, unknown>[]>(
     () => [
       {
