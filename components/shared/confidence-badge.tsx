@@ -1,9 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { formatConfidence } from "@/lib/utils/format";
+import {
+  formatConfidence,
+  normalizeConfidencePercent,
+} from "@/lib/utils/format";
 
 interface ConfidenceBadgeProps {
-  value: number | null | undefined;
+  /** Backend may send 0..1 or 0..100 as number or numeric string. */
+  value: number | string | null | undefined;
   className?: string;
 }
 
@@ -13,14 +17,14 @@ interface ConfidenceBadgeProps {
  * otherwise. Null/undefined renders a neutral "—".
  */
 export function ConfidenceBadge({ value, className }: ConfidenceBadgeProps) {
-  if (value == null || Number.isNaN(value)) {
+  const pct = normalizeConfidencePercent(value);
+  if (pct == null) {
     return (
       <Badge variant="outline" className={cn("font-mono", className)}>
         —
       </Badge>
     );
   }
-  const pct = value <= 1 ? value * 100 : value;
   const tone =
     pct >= 75
       ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"

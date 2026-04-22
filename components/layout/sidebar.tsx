@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, LayoutDashboard, type LucideIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  Building2,
+  Factory,
+  FlaskConical,
+  Layers,
+  LayoutDashboard,
+  Scale,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -11,11 +20,47 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-// Phase 1 only - scoring, reports, reference data, admin come later.
-const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/companies", label: "Companies", icon: Building2 },
+interface NavSection {
+  label?: string;
+  items: NavItem[];
+}
+
+// Phases 1 + 2 nav. Scoring, Reports, and Admin still come later.
+const NAV_SECTIONS: NavSection[] = [
+  {
+    items: [{ href: "/dashboard", label: "Overview", icon: LayoutDashboard }],
+  },
+  {
+    label: "Supply Chain",
+    items: [
+      { href: "/companies", label: "Companies", icon: Building2 },
+      { href: "/data/materials", label: "Materials", icon: Layers },
+      { href: "/data/facilities", label: "Facilities", icon: Factory },
+      { href: "/data/chemistries", label: "Chemistries", icon: FlaskConical },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      {
+        href: "/data/risk-events",
+        label: "Risk Events",
+        icon: AlertTriangle,
+      },
+      { href: "/data/regulations", label: "Regulations", icon: Scale },
+    ],
+  },
 ];
+
+// Routes whose "active" state should require an exact pathname match instead
+// of a prefix match (otherwise `/dashboard` would also light up on every
+// nested admin/dashboard sub-route).
+const EXACT_MATCH_ROUTES = new Set(["/dashboard"]);
+
+function isItemActive(pathname: string, href: string) {
+  if (EXACT_MATCH_ROUTES.has(href)) return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -32,29 +77,38 @@ export function Sidebar() {
           </span>
         </div>
       </div>
-      <nav className="flex flex-col gap-0.5 p-2">
-        {NAV_ITEMS.map((item) => {
-          const active =
-            item.href === "/dashboard"
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-                active
-                  ? "bg-muted font-medium text-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4" aria-hidden />
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav className="flex flex-col gap-3 p-2">
+        {NAV_SECTIONS.map((section, sectionIdx) => (
+          <div
+            key={section.label ?? `section-${sectionIdx}`}
+            className="flex flex-col gap-0.5"
+          >
+            {section.label && (
+              <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {section.label}
+              </div>
+            )}
+            {section.items.map((item) => {
+              const active = isItemActive(pathname, item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                    active
+                      ? "bg-muted font-medium text-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
+                >
+                  <Icon className="h-4 w-4" aria-hidden />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
     </aside>
   );

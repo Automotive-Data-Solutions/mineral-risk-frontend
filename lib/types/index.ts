@@ -32,12 +32,59 @@ export type VehicleModelRead = Schemas["VehicleModelRead"];
 export type VehicleModelChemistryRead = Schemas["VehicleModelChemistryRead"];
 
 // ---------------------------------------------------------------------------
+// Reference data (Phase 2 — partially generated, partially hand-authored)
+// ---------------------------------------------------------------------------
+
+export type RegulationRead = Schemas["RegulationRead"];
+export type RiskEventRead = Schemas["RiskEventRead"];
+
+export type {
+  MaterialListItem,
+  MaterialDetail,
+  MaterialCriticalitySignal,
+  MaterialChemistryUse,
+  MappingHealth,
+  HsCodeMaterialMappingRead,
+  HsMappingMismatchReason,
+  BatteryChemistryRead,
+  FacilityListItem,
+  MaterialListResponse,
+  RegulationListResponse,
+  RiskEventListResponse,
+  FacilityListResponse,
+  ChemistryListResponse,
+  HsCodeMappingMismatchListResponse,
+} from "./reference-data";
+
+// ---------------------------------------------------------------------------
 // Notes
 // ---------------------------------------------------------------------------
 
 export type AnalystNoteRead = Schemas["AnalystNoteRead"];
 export type AnalystNoteCreate = Schemas["AnalystNoteCreate"];
 export type NoteType = AnalystNoteCreate["note_type"];
+
+/**
+ * Entities the Phase 2 ``EntityFlagIssueDialog`` knows how to flag.
+ *
+ * Mirrors the ``analyst_notes.entity_type`` enum on the backend (see
+ * ``.cursorrules`` → "Notes / Flag-Issue Pattern"). Keep these in sync
+ * with the per-entity ``POST .../notes`` routes.
+ */
+export type FlaggableEntityType =
+  | "company"
+  | "material"
+  | "hs_code_material_mapping"
+  | "regulation"
+  | "risk_event"
+  | "facility"
+  | "battery_chemistry";
+
+/** Body sent to every per-entity ``POST .../notes`` route. */
+export interface EntityNoteCreate {
+  note_type: NoteType;
+  note_text: string;
+}
 
 // ---------------------------------------------------------------------------
 // Dashboard

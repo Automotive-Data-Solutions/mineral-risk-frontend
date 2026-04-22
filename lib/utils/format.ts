@@ -16,10 +16,25 @@ export function formatPercent(
   return `${value.toFixed(digits)}%`;
 }
 
-/** Confidence scores in our data range 0..1. Display as a 0..100% value. */
-export function formatConfidence(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return "—";
-  const pct = value <= 1 ? value * 100 : value;
+/**
+ * Coerce API values (number or numeric string) to a 0..100 display percent.
+ * Accepts either a 0..1 score or an already-scaled 0..100 value.
+ */
+export function normalizeConfidencePercent(
+  value: number | string | null | undefined,
+): number | null {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : Number(value);
+  if (Number.isNaN(n)) return null;
+  return n <= 1 ? n * 100 : n;
+}
+
+/** Confidence scores in our data range 0..1 (or 0..100). Display as 0..100%. */
+export function formatConfidence(
+  value: number | string | null | undefined,
+): string {
+  const pct = normalizeConfidencePercent(value);
+  if (pct == null) return "—";
   return `${pct.toFixed(0)}%`;
 }
 
