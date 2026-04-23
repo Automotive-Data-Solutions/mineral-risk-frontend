@@ -2,16 +2,15 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { AlertCircle, CheckCircle2, Flag } from "lucide-react";
 import { DataTable } from "@/components/data-table/data-table";
 import { CountryFlag } from "@/components/shared/country-flag";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
+import { FlagEntityButton } from "@/components/shared/flag-entity-button";
 import { KeyValueRow } from "@/components/shared/key-value-row";
+import { MaterialCriticalTags } from "@/components/shared/material-critical-tags";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dialog";
+import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   DialogDescription,
   DialogHeader,
@@ -143,32 +142,23 @@ function MaterialExposureSideSheet({
           </DialogHeader>
           {exposure ? (
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
+                <VerifyToggleButton
+                  verified={exposure.verified ?? false}
                   disabled={verifyToggle.isPending}
-                  onClick={() =>
+                  onToggle={() =>
                     verifyToggle.mutate({
                       exposureId: exposure.id,
                       verified: !(exposure.verified ?? false),
                     })
                   }
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  {exposure.verified ? "Remove verification" : "Mark as verified"}
-                </Button>
-                <EntityFlagIssueDialog
+                />
+                <FlagEntityButton
                   entityType="company_material_exposure"
                   entityId={String(exposure.id)}
                   parentId={companyId}
                   entityLabel={exposure.material_name}
                   sectionLabel="Exposures"
-                  trigger={
-                    <Button variant="outline" size="sm">
-                      <Flag className="h-3.5 w-3.5" />
-                      Flag exposure
-                    </Button>
-                  }
+                  buttonLabel="Flag exposure"
                 />
               </div>
             ) : null}
@@ -224,17 +214,11 @@ function MaterialExposureSideSheet({
                     : formatNumber(material.criticality_score, 2)
                 }
               />
-              <div className="flex flex-wrap gap-2">
-                {material.is_ira_critical_mineral ? (
-                  <Badge variant="outline">IRA critical mineral</Badge>
-                ) : null}
-                {material.is_eu_crma_critical ? (
-                  <Badge variant="outline">EU CRMA critical</Badge>
-                ) : null}
-                {!material.is_ira_critical_mineral && !material.is_eu_crma_critical ? (
-                  <span className="text-muted-foreground">No critical tags</span>
-                ) : null}
-              </div>
+              <MaterialCriticalTags
+                isIraCritical={material.is_ira_critical_mineral}
+                isEuCrmaCritical={material.is_eu_crma_critical}
+                emptyLabel="No critical tags"
+              />
               <KeyValueRow
                 label="HS code prefixes"
                 value={
@@ -246,16 +230,21 @@ function MaterialExposureSideSheet({
                     : "No HS code mappings"
                 }
               />
-              <div className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-                <p className="inline-flex items-center gap-2 font-medium text-foreground">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  Primary producing countries unavailable
-                </p>
-                <p className="mt-1">
-                  Placeholder: this quick view needs a dedicated material field (for example
-                  `primary_producing_countries`) from the backend.
-                </p>
-              </div>
+              <KeyValueRow
+                label="Producing countries"
+                value={
+                  material.primary_producing_countries &&
+                  material.primary_producing_countries.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {material.primary_producing_countries.map((code) => (
+                        <CountryFlag key={code} code={code} />
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )
+                }
+              />
             </div>
           ) : null}
 

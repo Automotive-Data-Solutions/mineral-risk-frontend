@@ -2,9 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2, Flag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   DialogDescription,
   DialogHeader,
@@ -14,8 +12,9 @@ import { SideSheet, SideSheetContent } from "@/components/ui/side-sheet";
 import { Separator } from "@/components/ui/separator";
 import { DataTable } from "@/components/data-table/data-table";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
-import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dialog";
+import { FlagEntityButton } from "@/components/shared/flag-entity-button";
 import { KeyValueRow } from "@/components/shared/key-value-row";
+import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
 import { useCompanyRegulations } from "@/lib/hooks/use-companies";
 import { useRegulation } from "@/lib/hooks/use-regulations";
@@ -164,33 +163,24 @@ function RegulationExposureSideSheet({
           </DialogHeader>
           {exposure && (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+              <VerifyToggleButton
+                verified={exposure.verified ?? false}
                 disabled={verifyToggle.isPending}
-                onClick={() =>
+                onToggle={() =>
                   verifyToggle.mutate({
                     exposureId: exposure.id,
                     verified: !(exposure.verified ?? false),
                   })
                 }
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {exposure.verified ? "Remove verification" : "Mark as verified"}
-              </Button>
-              <EntityFlagIssueDialog
+              />
+              <FlagEntityButton
                 entityType="regulation"
                 entityId={String(exposure.regulation_id)}
                 entityLabel={
                   exposure.regulation_title ?? exposure.regulation_key
                 }
                 sectionLabel="Regulations"
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <Flag className="h-3.5 w-3.5" />
-                    Flag regulation
-                  </Button>
-                }
+                buttonLabel="Flag regulation"
               />
             </div>
           )}

@@ -28,8 +28,22 @@ export type RelationshipsResponse = Schemas["RelationshipsResponse"];
 export type RelationshipRead = Schemas["RelationshipRead"] & { verified?: boolean };
 export type RelationshipCounterparty = Schemas["RelationshipCounterparty"];
 export type RegulationExposureRead = Schemas["RegulationExposureRead"] & { verified?: boolean };
-export type CompanyEventRead = Schemas["CompanyEventRead"];
-export type FacilityRead = Schemas["FacilityRead"] & { verified?: boolean };
+// NOTE: event_link_id, review_status, review_note added via intersection
+// until npm run types:generate:file is run after migration 009.
+export type CompanyEventRead = Schemas["CompanyEventRead"] & {
+  event_link_id?: string;
+  review_status?: "pending" | "confirmed" | "excluded";
+  review_note?: string | null;
+};
+// NOTE: company_facility_id, ownership_type, ownership_pct, verified, data_source added
+// via intersection until npm run types:generate:file is run after migration 010.
+export type FacilityRead = Schemas["FacilityRead"] & {
+  company_facility_id?: string;
+  ownership_type?: string;
+  ownership_pct?: number | null;
+  verified?: boolean;
+  data_source?: string | null;
+};
 export type VehicleModelRead = Schemas["VehicleModelRead"] & { verified?: boolean };
 export type VehicleModelChemistryRead = Schemas["VehicleModelChemistryRead"];
 

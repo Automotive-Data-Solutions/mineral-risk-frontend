@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search, X } from "lucide-react";
@@ -67,22 +66,6 @@ export default function FacilitiesListPage() {
   const columns = useMemo<ColumnDef<FacilityListItem, unknown>[]>(
     () => [
       {
-        id: "company",
-        header: "Operator",
-        cell: ({ row }) =>
-          row.original.company_name ? (
-            <Link
-              href={`/companies/${row.original.company_id}`}
-              className="font-medium text-primary hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {row.original.company_name}
-            </Link>
-          ) : (
-            <span className="text-xs text-muted-foreground">unknown</span>
-          ),
-      },
-      {
         accessorKey: "facility_type",
         header: "Type",
         cell: ({ row }) => (
@@ -125,6 +108,15 @@ export default function FacilitiesListPage() {
           ),
       },
       {
+        accessorKey: "data_source",
+        header: "Source",
+        cell: ({ row }) => (
+          <span className="text-xs text-muted-foreground">
+            {row.original.data_source ?? "—"}
+          </span>
+        ),
+      },
+      {
         id: "actions",
         header: () => <span className="sr-only">Actions</span>,
         cell: ({ row }) => (
@@ -132,11 +124,7 @@ export default function FacilitiesListPage() {
             <RowActionsMenu
               entityType="facility"
               entityId={row.original.id}
-              entityLabel={
-                row.original.company_name
-                  ? `${row.original.company_name} · ${humanize(row.original.facility_type)}`
-                  : humanize(row.original.facility_type)
-              }
+              entityLabel={humanize(row.original.facility_type)}
             />
           </div>
         ),

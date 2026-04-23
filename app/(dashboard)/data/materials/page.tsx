@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AlertTriangle, ExternalLink } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
+import { MaterialCriticalTags } from "@/components/shared/material-critical-tags";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { useMaterials } from "@/lib/hooks/use-materials";
 import type { MaterialListItem } from "@/lib/types";
@@ -64,28 +64,11 @@ export default function MaterialsListPage() {
         id: "criticality_flags",
         header: "Critical",
         cell: ({ row }) => (
-          <div className="flex flex-wrap gap-1">
-            {row.original.is_ira_critical_mineral && (
-              <Badge
-                variant="outline"
-                className="border-0 bg-blue-100 text-blue-900 dark:bg-blue-950 dark:text-blue-200"
-              >
-                IRA
-              </Badge>
-            )}
-            {row.original.is_eu_crma_critical && (
-              <Badge
-                variant="outline"
-                className="border-0 bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-200"
-              >
-                EU CRMA
-              </Badge>
-            )}
-            {!row.original.is_ira_critical_mineral &&
-              !row.original.is_eu_crma_critical && (
-                <span className="text-xs text-muted-foreground">—</span>
-              )}
-          </div>
+          <MaterialCriticalTags
+            isIraCritical={row.original.is_ira_critical_mineral}
+            isEuCrmaCritical={row.original.is_eu_crma_critical}
+            emptyLabel="—"
+          />
         ),
       },
       {

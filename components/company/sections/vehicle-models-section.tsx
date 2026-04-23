@@ -2,9 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2, Flag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   DialogDescription,
   DialogHeader,
@@ -13,7 +11,8 @@ import {
 import { SideSheet, SideSheetContent } from "@/components/ui/side-sheet";
 import { Separator } from "@/components/ui/separator";
 import { DataTable } from "@/components/data-table/data-table";
-import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dialog";
+import { FlagEntityButton } from "@/components/shared/flag-entity-button";
+import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
 import { useCompanyVehicleModels } from "@/lib/hooks/use-companies";
 import { useToggleVehicleModelVerified } from "@/lib/hooks/use-verified";
@@ -157,31 +156,22 @@ function VehicleModelSideSheet({
           </DialogHeader>
           {model ? (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+              <VerifyToggleButton
+                verified={model.verified ?? false}
                 disabled={verifyToggle.isPending}
-                onClick={() =>
+                onToggle={() =>
                   verifyToggle.mutate({
                     modelId: model.id,
                     verified: !(model.verified ?? false),
                   })
                 }
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {model.verified ? "Remove verification" : "Mark as verified"}
-              </Button>
-              <EntityFlagIssueDialog
+              />
+              <FlagEntityButton
                 entityType="company"
                 entityId={companyId}
                 entityLabel={model.model_name}
                 sectionLabel="Vehicle Models"
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <Flag className="h-3.5 w-3.5" />
-                    Flag model
-                  </Button>
-                }
+                buttonLabel="Flag model"
               />
             </div>
           ) : null}

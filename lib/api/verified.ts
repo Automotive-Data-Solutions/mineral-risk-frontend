@@ -105,6 +105,23 @@ export const setFacilityVerified = (
   verified: boolean,
 ) => patchVerified(client, `/api/v1/facilities/${facilityId}/verified`, verified);
 
+/**
+ * Company-scoped facility verification — toggles the ``verified`` flag on the
+ * ``company_facilities`` junction row, not the global facility record.
+ * Use this from any company detail page.
+ */
+export const setCompanyFacilityVerified = (
+  client: ApiClient,
+  companyId: string,
+  companyFacilityId: string,
+  verified: boolean,
+) =>
+  patchVerified(
+    client,
+    `/api/v1/companies/${companyId}/facilities/${companyFacilityId}/verified`,
+    verified,
+  );
+
 export const setChemistryVerified = (
   client: ApiClient,
   chemistryId: number,

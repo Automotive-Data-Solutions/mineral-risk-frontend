@@ -63,6 +63,8 @@ export interface MaterialDetail extends MaterialListItem {
   notes_count: number;
   created_at: string;
   updated_at: string;
+  /** ISO-2 country codes for top producing nations, e.g. ["CN", "CD", "AU"]. Stored as JSONB. */
+  primary_producing_countries?: string[] | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -143,8 +145,13 @@ export type HsCodeMappingMismatchListResponse =
 // ---------------------------------------------------------------------------
 
 /**
- * Server-side join of `facilities` + `companies.canonical_name` so the list
- * page doesn't need a second round-trip per row.
+ * Shape returned by ``GET /api/v1/facilities`` (global list).
+ *
+ * After migration 010, facilities are linked to companies via the
+ * ``company_facilities`` junction table. The global list endpoint returns
+ * pure facility data without company-scoped fields. Use
+ * ``GET /api/v1/companies/{id}/facilities`` (which returns ``FacilityRead``)
+ * when you need ownership and verified-link context.
  */
 export interface FacilityListItem {
   id: string;
@@ -156,6 +163,6 @@ export interface FacilityListItem {
   capacity_notes: string | null;
   latitude: number | null;
   longitude: number | null;
-  company_id: string;
-  company_name: string | null;
+  data_source: string | null;
+  verified: boolean;
 }

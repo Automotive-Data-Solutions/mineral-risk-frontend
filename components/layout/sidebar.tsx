@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import {
   AlertTriangle,
   Building2,
@@ -9,9 +10,12 @@ import {
   FlaskConical,
   Layers,
   LayoutDashboard,
+  Menu,
   Scale,
   type LucideIcon,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SideSheet, SideSheetContent } from "@/components/ui/side-sheet";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -34,22 +38,22 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Supply Chain",
     items: [
       { href: "/companies", label: "Companies", icon: Building2 },
-      { href: "/data/materials", label: "Materials", icon: Layers },
-      { href: "/data/facilities", label: "Facilities", icon: Factory },
-      { href: "/data/chemistries", label: "Chemistries", icon: FlaskConical },
+      // { href: "/data/materials", label: "Materials", icon: Layers },
+      // { href: "/data/facilities", label: "Facilities", icon: Factory },
+      // { href: "/data/chemistries", label: "Chemistries", icon: FlaskConical },
     ],
   },
-  {
-    label: "Intelligence",
-    items: [
-      {
-        href: "/data/risk-events",
-        label: "Risk Events",
-        icon: AlertTriangle,
-      },
-      { href: "/data/regulations", label: "Regulations", icon: Scale },
-    ],
-  },
+  // {
+  //   label: "Intelligence",
+  //   items: [
+  //     {
+  //       href: "/data/risk-events",
+  //       label: "Risk Events",
+  //       icon: AlertTriangle,
+  //     },
+  //     { href: "/data/regulations", label: "Regulations", icon: Scale },
+  //   ],
+  // },
 ];
 
 // Routes whose "active" state should require an exact pathname match instead
@@ -62,10 +66,15 @@ function isItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function Sidebar() {
-  const pathname = usePathname();
+function SidebarContent({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+}) {
   return (
-    <aside className="hidden w-60 shrink-0 border-r bg-background lg:block">
+    <>
       <div className="flex h-14 items-center gap-2 border-b px-4">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Building2 className="h-4 w-4" aria-hidden />
@@ -95,6 +104,7 @@ export function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onNavigate}
                   className={cn(
                     "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
                     active
@@ -110,6 +120,39 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
+    </>
+  );
+}
+
+export function Sidebar() {
+  const pathname = usePathname();
+  return (
+    <aside className="hidden w-60 shrink-0 border-r bg-background lg:block">
+      <SidebarContent pathname={pathname} />
     </aside>
+  );
+}
+
+export function MobileSidebarMenu() {
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="lg:hidden"
+        aria-label="Open navigation menu"
+        onClick={() => setOpen(true)}
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+      <SideSheet open={open} onOpenChange={setOpen}>
+        <SideSheetContent className="w-[85vw] max-w-[320px] p-0 sm:max-w-[320px]">
+          <SidebarContent pathname={pathname} onNavigate={() => setOpen(false)} />
+        </SideSheetContent>
+      </SideSheet>
+    </>
   );
 }

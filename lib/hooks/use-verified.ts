@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useApiClient } from "./use-api-client";
 import {
   setChemistryVerified,
+  setCompanyFacilityVerified,
   setCompanyVerified,
   setExposureVerified,
   setFacilityVerified,
@@ -131,7 +132,28 @@ export function useToggleRegulationVerified(opts?: ToggleOptions) {
   );
 }
 
-export function useToggleFacilityVerified(opts?: ToggleOptions) {
+/**
+ * Company-scoped facility verification.
+ *
+ * Toggles the ``verified`` flag on the ``company_facilities`` junction row
+ * (not the global facility record). The mutation variable is
+ * ``{ companyFacilityId: string; verified: boolean }``.
+ */
+export function useToggleFacilityVerified(companyId: string, opts?: ToggleOptions) {
+  const client = useApiClient();
+  return useToggle(
+    ({ companyFacilityId, verified }: { companyFacilityId: string; verified: boolean }) =>
+      setCompanyFacilityVerified(client, companyId, companyFacilityId, verified),
+    [["companies", "detail", companyId, "facilities"]],
+    opts,
+  );
+}
+
+/**
+ * Global facility verification (facility physically exists / data is real).
+ * Useful from a global facilities admin page. Not used from company detail.
+ */
+export function useToggleGlobalFacilityVerified(opts?: ToggleOptions) {
   const client = useApiClient();
   return useToggle(
     ({ facilityId, verified }: { facilityId: string; verified: boolean }) =>

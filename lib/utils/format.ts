@@ -82,3 +82,14 @@ export function countryToFlag(code: string | null | undefined): string {
   const cp = (c: string) => 127397 + c.toUpperCase().charCodeAt(0);
   return String.fromCodePoint(cp(a), cp(b));
 }
+
+/** Converts ISO-3166 alpha-2 country code to a display name (e.g. "US" -> "United States"). */
+export function countryCodeToName(code: string | null | undefined): string {
+  if (!code || code.length !== 2) return "Unknown country";
+  try {
+    const displayNames = new Intl.DisplayNames(["en"], { type: "region" });
+    return displayNames.of(code.toUpperCase()) ?? code.toUpperCase();
+  } catch {
+    return code.toUpperCase();
+  }
+}

@@ -229,6 +229,163 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/companies/{company_id}/exposures/{exposure_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Company Material Exposure Notes */
+        get: operations["list_company_material_exposure_notes_api_v1_companies__company_id__exposures__exposure_id__notes_get"];
+        put?: never;
+        /** Create Company Material Exposure Note */
+        post: operations["create_company_material_exposure_note_api_v1_companies__company_id__exposures__exposure_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/companies/{company_id}/relationships/{relationship_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Company Relationship Notes */
+        get: operations["list_company_relationship_notes_api_v1_companies__company_id__relationships__relationship_id__notes_get"];
+        put?: never;
+        /** Create Company Relationship Note */
+        post: operations["create_company_relationship_note_api_v1_companies__company_id__relationships__relationship_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/companies/{company_id}/regulation-exposures/{exposure_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Company Regulation Exposure Notes */
+        get: operations["list_company_regulation_exposure_notes_api_v1_companies__company_id__regulation_exposures__exposure_id__notes_get"];
+        put?: never;
+        /** Create Company Regulation Exposure Note */
+        post: operations["create_company_regulation_exposure_note_api_v1_companies__company_id__regulation_exposures__exposure_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/companies/{company_id}/vehicle-models/{model_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Company Vehicle Model Notes */
+        get: operations["list_company_vehicle_model_notes_api_v1_companies__company_id__vehicle_models__model_id__notes_get"];
+        put?: never;
+        /** Create Company Vehicle Model Note */
+        post: operations["create_company_vehicle_model_note_api_v1_companies__company_id__vehicle_models__model_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/companies/{company_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Company Verified */
+        patch: operations["set_company_verified_api_v1_companies__company_id__verified_patch"];
+        trace?: never;
+    };
+    "/api/v1/companies/{company_id}/exposures/{exposure_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Exposure Verified */
+        patch: operations["set_exposure_verified_api_v1_companies__company_id__exposures__exposure_id__verified_patch"];
+        trace?: never;
+    };
+    "/api/v1/companies/{company_id}/relationships/{relationship_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Relationship Verified */
+        patch: operations["set_relationship_verified_api_v1_companies__company_id__relationships__relationship_id__verified_patch"];
+        trace?: never;
+    };
+    "/api/v1/companies/{company_id}/regulation-exposures/{exposure_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Regulation Exposure Verified */
+        patch: operations["set_regulation_exposure_verified_api_v1_companies__company_id__regulation_exposures__exposure_id__verified_patch"];
+        trace?: never;
+    };
+    "/api/v1/companies/{company_id}/vehicle-models/{model_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Vehicle Model Verified */
+        patch: operations["set_vehicle_model_verified_api_v1_companies__company_id__vehicle_models__model_id__verified_patch"];
+        trace?: never;
+    };
     "/api/v1/companies/{company_id}/rescore": {
         parameters: {
             query?: never;
@@ -332,6 +489,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/regulations/{regulation_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Regulation Verified */
+        patch: operations["set_regulation_verified_api_v1_regulations__regulation_id__verified_patch"];
+        trace?: never;
+    };
     "/api/v1/risk-events": {
         parameters: {
             query?: never;
@@ -365,6 +539,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/risk-events/{event_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Risk Event Verified */
+        patch: operations["set_risk_event_verified_api_v1_risk_events__event_id__verified_patch"];
         trace?: never;
     };
     "/api/v1/materials": {
@@ -471,6 +662,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/materials/{material_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Material Verified */
+        patch: operations["set_material_verified_api_v1_materials__material_id__verified_patch"];
+        trace?: never;
+    };
     "/api/v1/facilities": {
         parameters: {
             query?: never;
@@ -506,6 +714,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/facilities/{facility_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Facility Verified */
+        patch: operations["set_facility_verified_api_v1_facilities__facility_id__verified_patch"];
+        trace?: never;
+    };
     "/api/v1/chemistries": {
         parameters: {
             query?: never;
@@ -539,6 +764,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/chemistries/{chemistry_id}/verified": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Chemistry Verified */
+        patch: operations["set_chemistry_verified_api_v1_chemistries__chemistry_id__verified_patch"];
         trace?: never;
     };
 }
@@ -577,7 +819,7 @@ export interface components {
              * Entity Type
              * @enum {string}
              */
-            entity_type: "company" | "material" | "hs_code_material_mappings" | "regulation" | "risk_event" | "facility" | "battery_chemistry";
+            entity_type: "company" | "company_material_exposure" | "company_supply_relationship" | "company_regulation_exposure" | "company_vehicle_model" | "material" | "hs_code_material_mappings" | "regulation" | "risk_event" | "facility" | "battery_chemistry";
             /** Entity Id */
             entity_id: string;
             /**
@@ -609,6 +851,11 @@ export interface components {
             market_share_as_of_date?: string | null;
             /** Is Active */
             is_active: boolean;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
             /**
              * Created At
              * Format: date-time
@@ -772,6 +1019,11 @@ export interface components {
             latest_risk_band?: string | null;
             /** Latest Score As Of Date */
             latest_score_as_of_date?: string | null;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /**
          * CompanySummary
@@ -843,6 +1095,11 @@ export interface components {
             rationale?: string | null;
             /** As Of Date */
             as_of_date?: string | null;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /** FacilityRead */
         FacilityRead: {
@@ -867,6 +1124,11 @@ export interface components {
             latitude?: number | null;
             /** Longitude */
             longitude?: number | null;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1095,6 +1357,11 @@ export interface components {
              * @default 0
              */
             mapping_mismatch_count: number;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /** PaginatedResponse[BatteryChemistryRead] */
         PaginatedResponse_BatteryChemistryRead_: {
@@ -1205,6 +1472,11 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
+            /**
              * Created At
              * Format: date-time
              */
@@ -1245,6 +1517,11 @@ export interface components {
             exposure_reason?: string | null;
             /** Assessed At */
             assessed_at?: string | null;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /** RegulationGeographyScopeRead */
         RegulationGeographyScopeRead: {
@@ -1295,6 +1572,11 @@ export interface components {
                 [key: string]: unknown;
             } | null;
             /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
+            /**
              * Created At
              * Format: date-time
              */
@@ -1336,6 +1618,11 @@ export interface components {
             /** Valid To */
             valid_to?: string | null;
             counterparty: components["schemas"]["RelationshipCounterparty"];
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
         };
         /** RelationshipsResponse */
         RelationshipsResponse: {
@@ -1374,6 +1661,11 @@ export interface components {
             metadata_json?: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
             /**
              * Created At
              * Format: date-time
@@ -1501,8 +1793,29 @@ export interface components {
             is_active: boolean;
             /** Data Source */
             data_source?: string | null;
+            /**
+             * Verified
+             * @default false
+             */
+            verified: boolean;
             /** Chemistries */
             chemistries?: components["schemas"]["VehicleModelChemistryRead"][];
+        };
+        /**
+         * VerifiedResponse
+         * @description Minimal response returned by all PATCH …/verified endpoints.
+         */
+        VerifiedResponse: {
+            /** Verified */
+            verified: boolean;
+        };
+        /**
+         * VerifiedUpdate
+         * @description Request body for PATCH …/verified endpoints.
+         */
+        VerifiedUpdate: {
+            /** Verified */
+            verified: boolean;
         };
     };
     responses: never;
@@ -1962,6 +2275,483 @@ export interface operations {
             };
         };
     };
+    list_company_material_exposure_notes_api_v1_companies__company_id__exposures__exposure_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                exposure_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_company_material_exposure_note_api_v1_companies__company_id__exposures__exposure_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                exposure_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_company_relationship_notes_api_v1_companies__company_id__relationships__relationship_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                relationship_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_company_relationship_note_api_v1_companies__company_id__relationships__relationship_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                relationship_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_company_regulation_exposure_notes_api_v1_companies__company_id__regulation_exposures__exposure_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                exposure_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_company_regulation_exposure_note_api_v1_companies__company_id__regulation_exposures__exposure_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                exposure_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_company_vehicle_model_notes_api_v1_companies__company_id__vehicle_models__model_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                model_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_company_vehicle_model_note_api_v1_companies__company_id__vehicle_models__model_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                model_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalystNoteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_company_verified_api_v1_companies__company_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_exposure_verified_api_v1_companies__company_id__exposures__exposure_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                exposure_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_relationship_verified_api_v1_companies__company_id__relationships__relationship_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                relationship_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_regulation_exposure_verified_api_v1_companies__company_id__regulation_exposures__exposure_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                exposure_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_vehicle_model_verified_api_v1_companies__company_id__vehicle_models__model_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                company_id: string;
+                model_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     trigger_rescore_api_v1_companies__company_id__rescore_post: {
         parameters: {
             query?: never;
@@ -2201,6 +2991,43 @@ export interface operations {
             };
         };
     };
+    set_regulation_verified_api_v1_regulations__regulation_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                regulation_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_risk_events_api_v1_risk_events_get: {
         parameters: {
             query?: {
@@ -2297,6 +3124,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_risk_event_verified_api_v1_risk_events__event_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2593,6 +3457,43 @@ export interface operations {
             };
         };
     };
+    set_material_verified_api_v1_materials__material_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                material_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_facilities_api_v1_facilities_get: {
         parameters: {
             query?: {
@@ -2702,6 +3603,43 @@ export interface operations {
             };
         };
     };
+    set_facility_verified_api_v1_facilities__facility_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                facility_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_chemistries_api_v1_chemistries_get: {
         parameters: {
             query?: {
@@ -2794,6 +3732,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnalystNoteRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_chemistry_verified_api_v1_chemistries__chemistry_id__verified_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path: {
+                chemistry_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifiedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedResponse"];
                 };
             };
             /** @description Validation Error */

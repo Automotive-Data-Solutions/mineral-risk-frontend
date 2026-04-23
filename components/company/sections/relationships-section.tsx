@@ -3,13 +3,12 @@
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CheckCircle2, Flag } from "lucide-react";
 import { DataTable } from "@/components/data-table/data-table";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
+import { FlagEntityButton } from "@/components/shared/flag-entity-button";
 import { StageBadge } from "@/components/shared/stage-badge";
+import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
-import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dialog";
-import { Button } from "@/components/ui/button";
 import {
   DialogDescription,
   DialogHeader,
@@ -26,7 +25,6 @@ type Side = "buyer" | "supplier";
 
 function useColumns(
   side: Side,
-  onRowClick: (row: RelationshipRead) => void,
 ): ColumnDef<RelationshipRead, unknown>[] {
   return useMemo(
     () => [
@@ -103,8 +101,8 @@ function useColumns(
 export function RelationshipsSection({ companyId }: { companyId: string }) {
   const [selected, setSelected] = useState<RelationshipRead | null>(null);
   const { data, isLoading, error, refetch } = useCompanyRelationships(companyId);
-  const asBuyerCols = useColumns("buyer", setSelected);
-  const asSupplierCols = useColumns("supplier", setSelected);
+  const asBuyerCols = useColumns("buyer");
+  const asSupplierCols = useColumns("supplier");
 
   const asBuyer = data?.as_buyer ?? [];
   const asSupplier = data?.as_supplier ?? [];
@@ -186,31 +184,22 @@ function RelationshipSideSheet({
           </DialogHeader>
           {relationship ? (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
+              <VerifyToggleButton
+                verified={relationship.verified ?? false}
                 disabled={verifyToggle.isPending}
-                onClick={() =>
+                onToggle={() =>
                   verifyToggle.mutate({
                     relationshipId: relationship.id,
                     verified: !(relationship.verified ?? false),
                   })
                 }
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                {relationship.verified ? "Remove verification" : "Mark as verified"}
-              </Button>
-              <EntityFlagIssueDialog
+              />
+              <FlagEntityButton
                 entityType="company"
                 entityId={companyId}
                 entityLabel={relationship.counterparty.canonical_name}
                 sectionLabel="Relationships"
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <Flag className="h-3.5 w-3.5" />
-                    Flag relationship
-                  </Button>
-                }
+                buttonLabel="Flag relationship"
               />
             </div>
           ) : null}
