@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  AlertTriangle,
+  // AlertTriangle,
   Building2,
-  Factory,
-  FlaskConical,
-  Layers,
+  // Factory,
+  // FlaskConical,
+  // Layers,
   LayoutDashboard,
   Menu,
-  Scale,
+  // Scale,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
