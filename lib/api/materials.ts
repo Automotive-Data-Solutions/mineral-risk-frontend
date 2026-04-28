@@ -3,6 +3,7 @@ import type {
   HsCodeMappingMismatchListResponse,
   HsCodeMaterialMappingRead,
   MaterialDetail,
+  MaterialGlobalScoreRead,
   MaterialListResponse,
 } from "@/lib/types";
 
@@ -28,8 +29,18 @@ export async function getMaterials(
 }
 
 type MaterialDetailResponse = MaterialDetail & {
-  /** Legacy/alternate key some backends may return until OpenAPI is aligned. */
+  /**
+   * The backend uses `hs_mappings` as the key; we normalize to `hs_code_mappings`
+   * for consistency with the rest of the frontend type system.
+   */
   hs_mappings?: HsCodeMaterialMappingRead[];
+  /**
+   * Some backend builds currently omit ``verified`` on material detail while
+   * still returning it on list rows. Keep this optional so we can backfill.
+   */
+  verified?: boolean;
+  // Backend also emits chapter_mismatch / cross_mapped inside mapping_health —
+  // the frontend type drops them (only the four fields used by the UI are kept).
 };
 
 /** Backend may omit server-derived ``mismatch_reasons`` until scoring is wired. */
@@ -68,6 +79,33 @@ function normalizeMaterialDetail(raw: MaterialDetailResponse): MaterialDetail {
   };
 }
 
+/**
+ * Temporary compatibility shim:
+ * ``GET /api/v1/materials/{id}`` may omit ``verified`` in some backend
+ * deployments while ``GET /api/v1/materials`` includes it. When absent, fetch
+ * a narrow list slice and backfill by id.
+ */
+async function resolveMaterialVerified(
+  client: ApiClient,
+  raw: MaterialDetailResponse,
+): Promise<boolean> {
+  if (typeof raw.verified === "boolean") return raw.verified;
+  try {
+    const { data } = await client.get<MaterialListResponse>("/api/v1/materials", {
+      params: {
+        page: 1,
+        limit: 25,
+        search: raw.canonical_name,
+      },
+    });
+    const match = (data.data ?? []).find((item) => item.id === raw.id);
+    if (typeof match?.verified === "boolean") return match.verified;
+  } catch {
+    // Best-effort fallback only; detail should still render.
+  }
+  return false;
+}
+
 export async function getMaterial(
   client: ApiClient,
   id: string,
@@ -75,7 +113,11 @@ export async function getMaterial(
   const { data } = await client.get<MaterialDetailResponse>(
     `/api/v1/materials/${id}`,
   );
-  return normalizeMaterialDetail(data);
+  const normalized = normalizeMaterialDetail(data);
+  return {
+    ...normalized,
+    verified: await resolveMaterialVerified(client, data),
+  };
 }
 
 export interface MaterialHsCodeMappingsParams {
@@ -115,4 +157,37 @@ export async function getHsCodeMappingMismatches(
     ...data,
     data: (data.data ?? []).map(normalizeHsCodeMappingRow),
   };
+}
+
+export async function getMaterialGlobalScore(
+  client: ApiClient,
+  id: string,
+): Promise<MaterialGlobalScoreRead | null> {
+  try {
+    const { data } = await client.get<MaterialGlobalScoreRead>(
+      `/api/v1/materials/${id}/global-score`,
+    );
+    return data;
+  } catch (err: unknown) {
+    // 404 means no rollup computed yet — not an error state worth surfacing
+    if (
+      err != null &&
+      typeof err === "object" &&
+      "response" in err &&
+      (err as { response?: { status?: number } }).response?.status === 404
+    ) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function getMaterialMarketScores(
+  client: ApiClient,
+  id: string,
+): Promise<import("@/lib/types").MaterialGeographyScoreRead[]> {
+  const { data } = await client.get<import("@/lib/types").MaterialGeographyScoreRead[]>(
+    `/api/v1/materials/${id}/market-scores`,
+  );
+  return data ?? [];
 }

@@ -8,7 +8,9 @@ import { useApiClient } from "./use-api-client";
 import {
   getHsCodeMappingMismatches,
   getMaterial,
+  getMaterialGlobalScore,
   getMaterialHsCodeMappings,
+  getMaterialMarketScores,
   getMaterials,
   type HsCodeMappingMismatchParams,
   type MaterialHsCodeMappingsParams,
@@ -18,6 +20,8 @@ import type {
   HsCodeMappingMismatchListResponse,
   HsCodeMaterialMappingRead,
   MaterialDetail,
+  MaterialGeographyScoreRead,
+  MaterialGlobalScoreRead,
   MaterialListResponse,
 } from "@/lib/types";
 
@@ -30,6 +34,10 @@ export const materialQueryKeys = {
   detail: (id: string) => [...materialQueryKeys.details(), id] as const,
   hsCodeMappings: (id: string, params: MaterialHsCodeMappingsParams) =>
     [...materialQueryKeys.detail(id), "hs-code-mappings", params] as const,
+  globalScore: (id: string) =>
+    [...materialQueryKeys.detail(id), "global-score"] as const,
+  marketScores: (id: string) =>
+    [...materialQueryKeys.detail(id), "market-scores"] as const,
   mismatches: (params: HsCodeMappingMismatchParams) =>
     [...materialQueryKeys.all, "mismatches", params] as const,
 };
@@ -55,6 +63,24 @@ export function useMaterial(id: string) {
   return useQuery<MaterialDetail>({
     queryKey: materialQueryKeys.detail(id),
     queryFn: () => getMaterial(client, id),
+    enabled: Boolean(id),
+  });
+}
+
+export function useMaterialGlobalScore(id: string) {
+  const client = useApiClient();
+  return useQuery<MaterialGlobalScoreRead | null>({
+    queryKey: materialQueryKeys.globalScore(id),
+    queryFn: () => getMaterialGlobalScore(client, id),
+    enabled: Boolean(id),
+  });
+}
+
+export function useMaterialMarketScores(id: string) {
+  const client = useApiClient();
+  return useQuery<MaterialGeographyScoreRead[]>({
+    queryKey: materialQueryKeys.marketScores(id),
+    queryFn: () => getMaterialMarketScores(client, id),
     enabled: Boolean(id),
   });
 }

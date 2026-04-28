@@ -32,20 +32,40 @@ export interface MaterialListItem {
   hs_code_mapping_count: number;
   /** Subset of those mappings the backend flagged as suspect. */
   mapping_mismatch_count: number;
+  verified: boolean;
 }
 
+/**
+ * One row from `material_criticality_signals`.
+ * Source hierarchy: eu_crma > iea_report > usgs_mcs > manual > patstat
+ */
 export interface MaterialCriticalitySignal {
-  signal_key: string;
-  label: string;
-  value: number | string | null;
-  source: string | null;
+  id: number;
+  /** "usgs_mcs" | "eu_crma" | "iea_report" | "manual" | "patstat" */
+  source: string;
+  reference_year: number;
+  /** Normalised 0..1. For usgs_mcs equals normalised HHI. */
+  criticality_score: number | null;
+  /** "rising" | "declining" | "stable" */
+  trend_direction: string | null;
+  /** Raw HHI 0..1 (Σ share_i²). Multiply by 10 000 for traditional 0–10 000 scale. */
+  hhi_score: number | null;
 }
 
+/**
+ * One junction row from `battery_chemistry_materials`, enriched with
+ * the parent chemistry's slug and name by the route handler.
+ */
 export interface MaterialChemistryUse {
+  id: number;
   battery_chemistry_id: number;
-  chemistry_slug: string;
-  /** 0..1 — share of the chemistry mass made up by this material. */
-  share_pct: number | null;
+  chemistry_slug: string | null;
+  chemistry_name: string | null;
+  /** "cathode_active" | "anode" | "electrolyte" | "current_collector" | "other" */
+  role: string;
+  /** 0..1 — relative material intensity within the chemistry. */
+  intensity: number;
+  is_substitutable: boolean;
 }
 
 export interface MappingHealth {
@@ -58,13 +78,30 @@ export interface MappingHealth {
 export interface MaterialDetail extends MaterialListItem {
   criticality_signals: MaterialCriticalitySignal[];
   chemistry_uses: MaterialChemistryUse[];
+  /**
+   * Normalized from backend's `hs_mappings` key by the API client.
+   */
   hs_code_mappings: HsCodeMaterialMappingRead[];
   mapping_health: MappingHealth;
-  notes_count: number;
   created_at: string;
   updated_at: string;
-  /** ISO-2 country codes for top producing nations, e.g. ["CN", "CD", "AU"]. Stored as JSONB. */
+  /** Chemical symbol or short code, e.g. "Li", "Co", "NiSO4". */
+  symbol_or_code?: string | null;
+  /** ISO-2 country codes for top producing nations, e.g. ["CN", "CD", "AU"]. */
   primary_producing_countries?: string[] | null;
+  /** "per_mt" | "per_kg" */
+  price_unit?: string | null;
+  /** "rising" | "declining" | "stable" — denormalized cache from criticality_signals. */
+  patent_occurrence_trend?: string | null;
+  /** Free-text analyst notes on this material. */
+  notes?: string | null;
+  /**
+   * Official HS codes recorded on the material record itself (JSONB array,
+   * e.g. ["2825.20", "2836.91"]). Distinct from the many-to-many
+   * hs_code_material_mappings rows — this is the "source of truth" list
+   * used to validate mappings.
+   */
+  hs_codes?: string[] | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -197,6 +234,29 @@ export interface MaterialGeographyScoreRead {
   overall_risk_score: number | null;
   event_count: number;
   scoring_version: string;
+  /** ISO datetime. */
+  created_at: string;
+}
+
+/**
+ * Trade-flow-weighted global rollup — one row per material per scoring date.
+ * Mirrors ``material_global_risk_scores`` and feeds chemistry risk scoring.
+ */
+export interface MaterialGlobalScoreRead {
+  id: number;
+  material_id: number;
+  /** ISO date. */
+  as_of_date: string;
+  material_concentration_score: number | null;
+  geopolitical_trade_score: number | null;
+  regulatory_compliance_score: number | null;
+  operational_score: number | null;
+  financial_pressure_score: number | null;
+  overall_risk_score: number | null;
+  /** How many geographies contributed a non-zero weight. */
+  trade_weighted_geo_count: number;
+  /** Sum of trade_value_usd used as denominator; null when production shares or equal weights used. */
+  total_trade_value_usd: number | null;
   /** ISO datetime. */
   created_at: string;
 }

@@ -11,6 +11,7 @@ import { DataTablePagination } from "@/components/data-table/pagination";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { MaterialCriticalTags } from "@/components/shared/material-critical-tags";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
+import { VerifiedBadge } from "@/components/shared/verified-badge";
 import { useMaterials } from "@/lib/hooks/use-materials";
 import type { MaterialListItem } from "@/lib/types";
 import { humanize } from "@/lib/utils/format";
@@ -52,8 +53,11 @@ export default function MaterialsListPage() {
         accessorKey: "canonical_name",
         header: "Material",
         cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="font-medium">{row.original.canonical_name}</span>
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium">{row.original.canonical_name}</span>
+              <VerifiedBadge verified={row.original.verified} />
+            </div>
             <span className="text-xs text-muted-foreground">
               {humanize(row.original.category)}
             </span>

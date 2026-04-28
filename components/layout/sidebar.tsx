@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   // AlertTriangle,
-  BarChart3,
+  // BarChart3,
   Building2,
   // Factory,
   FlaskConical,
-  // Layers,
+  Layers,
   LayoutDashboard,
   Menu,
   // Scale,
@@ -39,10 +39,10 @@ const NAV_SECTIONS: NavSection[] = [
     label: "Supply Chain",
     items: [
       { href: "/companies", label: "Companies", icon: Building2 },
-      // { href: "/data/materials", label: "Materials", icon: Layers },
+      { href: "/data/materials", label: "Materials", icon: Layers },
       // { href: "/data/facilities", label: "Facilities", icon: Factory },
       { href: "/data/chemistries", label: "Chemistries", icon: FlaskConical },
-      { href: "/data/market-scores", label: "Market Scores", icon: BarChart3 },
+      // { href: "/data/market-scores", label: "Market Scores", icon: BarChart3 },
     ],
   },
   // {
