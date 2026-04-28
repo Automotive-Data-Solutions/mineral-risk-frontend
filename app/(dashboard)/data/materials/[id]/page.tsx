@@ -610,7 +610,7 @@ function MappingsTab({
           <CardContent className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
               Compares the HS codes recorded on the material record against the
-              mapping prefixes. A registered code is "covered" when at least one
+              mapping prefixes. A registered code is &quot;covered&quot; when at least one
               mapping prefix overlaps it.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
