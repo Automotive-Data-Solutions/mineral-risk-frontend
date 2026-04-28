@@ -63,6 +63,11 @@ export type {
   HsCodeMaterialMappingRead,
   HsMappingMismatchReason,
   BatteryChemistryRead,
+  ChemistryRiskScoreRead,
+  ChemistryMaterialRead,
+  ChemistryDetailRead,
+  MaterialGeographyScoreRead,
+  RescoredResult,
   FacilityListItem,
   MaterialListResponse,
   RegulationListResponse,
@@ -70,6 +75,7 @@ export type {
   FacilityListResponse,
   ChemistryListResponse,
   HsCodeMappingMismatchListResponse,
+  MarketScoresResponse,
 } from "./reference-data";
 
 // ---------------------------------------------------------------------------

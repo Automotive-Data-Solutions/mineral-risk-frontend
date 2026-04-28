@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 88" width="80" height="88" role="img" aria-label="Mineral Risk Analytics">
+  
+  <rect x="1" y="1" width="78" height="86" rx="3" fill="#4A1419" stroke="#C8623A" stroke-width="2"></rect>
+  
+  <text x="7" y="15" font-family="&#39;JetBrains Mono&#39;, SFMono-Regular, Menlo, monospace" font-size="10" font-weight="500" fill="#C8623A">83</text>
+  
+  <text x="40" y="50" text-anchor="middle" font-family="&#39;Source Serif 4&#39;, &#39;Source Serif Pro&#39;, Georgia, serif" font-size="30" font-weight="600" fill="#F0E6DE" letter-spacing="-0.5">MRa</text>
+  
+  <text x="40" y="68" text-anchor="middle" font-family="Inter, -apple-system, system-ui, sans-serif" font-size="7.5" font-weight="500" fill="#F0E6DE" letter-spacing="0.4">Mineral Risk</text>
+  <text x="40" y="79" text-anchor="middle" font-family="Inter, -apple-system, system-ui, sans-serif" font-size="6.5" font-weight="400" fill="#F0E6DE" letter-spacing="0.6">Analytics</text>
+</svg>

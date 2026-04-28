@@ -115,15 +115,97 @@ export interface HsCodeMaterialMappingRead {
 // Battery chemistries
 // ---------------------------------------------------------------------------
 
+/**
+ * One row from `chemistry_risk_scores`. Mirrors the backend
+ * ``ChemistryRiskScoreRead`` Pydantic schema 1:1.
+ */
+export interface ChemistryRiskScoreRead {
+  id: number;
+  /** ISO date. */
+  as_of_date: string;
+  methodology_version: string;
+  material_concentration_score: number | null;
+  geopolitical_score: number | null;
+  composite_risk_score: number | null;
+  /** 0..1 confidence in the composite score. */
+  score_confidence: number | null;
+  /** ISO datetime. */
+  computed_at: string;
+  metadata_json: Record<string, unknown> | null;
+}
+
+/**
+ * Mirrors the backend ``BatteryChemistryRead`` schema 1:1.
+ *
+ * NOTE: backend uses ``name`` (not ``display_name``) and exposes the
+ * latest joined risk score as a nested object rather than a scalar.
+ */
 export interface BatteryChemistryRead {
   id: number;
   slug: string;
-  display_name: string;
-  category: string | null;
-  /** 0..1 — most recent chemistry_risk_scores.overall, joined server-side. */
-  latest_risk_score: number | null;
-  latest_risk_band: string | null;
+  name: string;
+  description: string | null;
+  status: string;
+  current_market_share_pct: number | null;
+  market_share_as_of_date: string | null;
+  is_active: boolean;
+  verified: boolean;
+  created_at: string;
+  updated_at: string;
+  latest_risk_score: ChemistryRiskScoreRead | null;
+}
+
+/**
+ * Single row from ``chemistry_materials`` joined with
+ * ``materials.canonical_name`` server-side.
+ */
+export interface ChemistryMaterialRead {
+  id: number;
+  material_id: number;
+  material_canonical_name: string;
+  role: string;
+  /** 0..1 — fraction of the chemistry mass made up by this material. */
+  intensity: number;
+  is_substitutable: boolean;
+  /** ISO date. */
+  valid_from: string;
+  /** ISO date or null for open-ended. */
+  valid_to: string | null;
   notes: string | null;
+}
+
+export interface ChemistryDetailRead extends BatteryChemistryRead {
+  active_materials: ChemistryMaterialRead[];
+}
+
+// ---------------------------------------------------------------------------
+// Market scores (material × geography)
+// ---------------------------------------------------------------------------
+
+export interface MaterialGeographyScoreRead {
+  id: number;
+  material_id: number;
+  /** ISO-2 country code, uppercase. */
+  geography_code: string;
+  /** ISO date. */
+  as_of_date: string;
+  material_concentration_score: number | null;
+  geopolitical_trade_score: number | null;
+  regulatory_compliance_score: number | null;
+  operational_score: number | null;
+  financial_pressure_score: number | null;
+  overall_risk_score: number | null;
+  event_count: number;
+  scoring_version: string;
+  /** ISO datetime. */
+  created_at: string;
+}
+
+export interface RescoredResult {
+  scored: number;
+  /** ISO date. */
+  as_of_date: string;
+  run_id: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -139,6 +221,8 @@ export type FacilityListResponse = PaginatedResponse<FacilityListItem>;
 export type ChemistryListResponse = PaginatedResponse<BatteryChemistryRead>;
 export type HsCodeMappingMismatchListResponse =
   PaginatedResponse<HsCodeMaterialMappingRead>;
+export type MarketScoresResponse =
+  PaginatedResponse<MaterialGeographyScoreRead>;
 
 // ---------------------------------------------------------------------------
 // Facility list item

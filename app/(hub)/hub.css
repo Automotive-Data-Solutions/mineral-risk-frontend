@@ -1,0 +1,245 @@
+/*
+ * Intelligence Hub — Wine + Stone design system
+ * Self-contained: all tokens defined here (colors_and_type.css is not a separate file).
+ * All classes prefixed ih- to avoid collision with Tailwind/shadcn.
+ *
+ * Token reference (maps to uploaded styles.css variable names):
+ *   --wine-darkest  #1C0707   nav bar, footer bg
+ *   --wine-dark     #2E0E0E   tab bar, subnav
+ *   --wine-mid      #4A1C1C   badge bg, subscribe block
+ *   --wine-light    rgba(200,98,58,.25)  border tint on dark
+ *   --ink           #2A1008   body text
+ *   --ink-muted     #7A5540   secondary text
+ *   --cream         #F0E6DE   heading text on dark
+ *   --cream-muted   #9E7B72   secondary text on dark
+ *   --stone         #FAF3EC   page / card bg
+ *   --stone-mid     #F2E8DE   hover tint, track bg
+ *   --rule          #E8D4C4   borders
+ *   --terracotta    #C8623A   CTA, active underline, accent
+ *   --terracotta-lt #D98060   hover terracotta
+ *   --risk-high     #E24B4A
+ *   --risk-med      #EF9F27
+ *   --risk-low      #3B9E68
+ *   --risk-high-soft rgba(226,75,74,.06)
+ *   --risk-med-soft  rgba(200,98,58,.06)
+ */
+
+/* ─── Variables ─────────────────────────────────────────────── */
+.ih-root {
+  /* Wine ramp — from README-design.md token table */
+  --wine-darkest:    #3A0F14;
+  --wine-dark:       #4A1419;
+  --wine-mid:        #5A1A20;
+  --wine-light:      #6E2530;
+  /* Text */
+  --ink:             #4A1419;   /* same as wine-dark per README */
+  --ink-muted:       #6B544D;
+  --cream:           #F0E6DE;
+  --cream-muted:     #9E7B72;
+  /* Surfaces */
+  --stone:           #FAF3EC;
+  --stone-mid:       #F2E8DE;
+  --rule:            #E5D4C5;
+  /* Accent */
+  --terracotta:      #C8623A;
+  --terracotta-light: #D98060;
+  /* Risk semantics — do not re-skin */
+  --risk-high:       #E24B4A;
+  --risk-med:        #EF9F27;
+  --risk-low:        #3B9E68;
+  --risk-high-soft:  rgba(226, 75, 74, 0.06);
+  --risk-med-soft:   rgba(200, 98, 58, 0.06);
+  /* Elevation */
+  --elev-0: none;
+  --elev-1: 0 1px 2px rgba(46, 14, 14, 0.06);
+  --elev-2: 0 8px 24px -8px rgba(28, 7, 7, 0.18);
+  /* Typography */
+  --font-body:       var(--font-geist-sans, Inter, -apple-system, system-ui, sans-serif);
+  --font-display:    var(--font-source-serif, 'Source Serif 4', 'Source Serif Pro', Georgia, serif);
+  --font-mono:       var(--font-geist-mono, 'JetBrains Mono', SFMono-Regular, Menlo, monospace);
+  /* Layout */
+  --max-content:     1240px;
+  --ease:            cubic-bezier(0.2, 0, 0, 1);
+  /* Radii — square-leaning per README */
+  --radius-xs:       2px;
+  --radius-sm:       4px;
+  --radius-md:       6px;
+  --radius-lg:       8px;
+}
+
+/* ─── Reset ─────────────────────────────────────────────────── */
+.ih-root *, .ih-root *::before, .ih-root *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+.ih-root a { text-decoration: none; color: inherit; cursor: pointer; }
+.ih-root button { cursor: pointer; border: none; background: none; font: inherit; }
+
+/* ─── Page base ─────────────────────────────────────────────── */
+.ih-page { background: var(--stone); min-height: 100vh; color: var(--ink); font-family: var(--font-body); }
+
+/* ─── Nav ───────────────────────────────────────────────────── */
+.ih-nav-wrap { background: var(--wine-darkest); position: sticky; top: 0; z-index: 10; }
+.ih-gradient-bar { height: 3px; background: linear-gradient(to right, #4A1419 0%, #7A2530 40%, #F0D4C4 78%, #C8623A 100%); }
+.ih-nav { display: flex; align-items: center; padding: 12px 28px; gap: 16px; max-width: var(--max-content); margin: 0 auto; }
+.ih-nav-brand { display: flex; align-items: center; gap: 12px; }
+.ih-logo { height: 36px; display: block; }
+.ih-wm { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--cream); letter-spacing: -0.01em; }
+.ih-nav-links { margin-left: auto; display: flex; align-items: center; gap: 22px; font-size: 13px; font-weight: 500; }
+.ih-nav-links a { color: var(--cream-muted); text-decoration: none; cursor: pointer; transition: color 150ms var(--ease); }
+.ih-nav-links a:hover { color: var(--cream); }
+
+/* Tab bar */
+.ih-tabs { display: flex; background: var(--wine-dark); border-top: 1px solid rgba(110, 37, 48, 0.6); }
+.ih-tabs-inner { display: flex; padding: 0 28px; max-width: var(--max-content); margin: 0 auto; width: 100%; }
+.ih-tab { background: transparent; border: 0; padding: 13px 16px; font-family: inherit; font-size: 13px; font-weight: 500; color: var(--cream-muted); cursor: pointer; position: relative; transition: color 150ms var(--ease); }
+.ih-tab:hover { color: var(--cream); }
+.ih-tab.is-active { color: var(--cream); }
+.ih-tab.is-active::after { content: ""; position: absolute; left: 16px; right: 16px; bottom: 0; height: 2px; background: var(--terracotta); }
+
+/* ─── Buttons ───────────────────────────────────────────────── */
+.ih-btn-primary { background: var(--terracotta); color: var(--wine-darkest); font-family: inherit; font-weight: 600; font-size: 13px; padding: 8px 14px; border: 0; border-radius: var(--radius-sm); cursor: pointer; transition: background 150ms var(--ease); }
+.ih-btn-primary:hover { background: var(--terracotta-light); }
+.ih-btn-block { display: block; width: 100%; padding: 10px; }
+
+/* ─── Badges ────────────────────────────────────────────────── */
+.ih-badge { display: inline-flex; align-items: center; padding: 3px 7px; border-radius: var(--radius-xs); font-size: 11.5px; font-weight: 600; line-height: 1.4; letter-spacing: 0.01em; }
+.ih-badge-dark { background: var(--wine-mid); color: var(--cream); }
+.ih-badge-news { background: var(--wine-light); color: var(--cream); border: 1px solid var(--cream-muted); }
+.ih-badge-report { background: var(--terracotta); color: var(--wine-darkest); }
+
+/* ─── Tags ──────────────────────────────────────────────────── */
+.ih-tag { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: var(--radius-xs); font-size: 11px; font-weight: 500; line-height: 1.5; }
+.ih-tag-mat { background: transparent; color: var(--terracotta); border: 1px solid var(--terracotta); }
+.ih-tag-geo { background: var(--stone-mid); color: var(--wine-mid); font-family: var(--font-mono); font-size: 10.5px; padding: 1px 6px; letter-spacing: 0.04em; }
+
+/* ─── Layout ────────────────────────────────────────────────── */
+.ih-main { background: var(--stone); min-height: calc(100vh - 200px); }
+
+.ih-content {
+  max-width: var(--max-content);
+  margin: 0 auto;
+  padding: 28px 28px 0;
+}
+
+.ih-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 28px;
+  align-items: start;
+  padding-bottom: 28px;
+}
+
+@media (max-width: 900px) {
+  .ih-body { grid-template-columns: 1fr; }
+  .ih-sidebar { order: -1; }
+}
+
+.ih-feed-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Type legend ───────────────────────────────────────────── */
+.ih-legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.ih-legend-card { background: #FFFDF8; border: 1px solid var(--rule); border-radius: var(--radius-md); padding: 14px; }
+.ih-legend-desc { margin: 8px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--ink-muted); }
+
+@media (max-width: 700px) {
+  .ih-legend { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ─── Featured report ───────────────────────────────────────── */
+.ih-featured { background: #FFFDF8; border: 1.5px solid var(--terracotta); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 0; }
+.ih-featured-tags { display: flex; gap: 6px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.ih-featured-meta { margin-left: auto; font-size: 11.5px; color: var(--ink-muted); font-weight: 500; }
+.ih-featured-title { font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1.22; letter-spacing: -0.01em; margin: 0 0 10px; text-wrap: balance; color: var(--ink); }
+.ih-featured-lede { font-family: var(--font-display); font-style: italic; font-size: 16px; line-height: 1.55; color: var(--ink-muted); margin: 0 0 16px; max-width: 64ch; }
+.ih-callouts { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.ih-callout { flex: 1; border-radius: var(--radius-sm); padding: 10px 12px; min-width: 90px; border: 1px solid var(--rule); }
+.ih-callout-high { background: var(--risk-high-soft); border-color: rgba(226, 75, 74, 0.3); color: #8A1F1E; }
+.ih-callout-med  { background: var(--risk-med-soft);  border-color: rgba(200, 98, 58, 0.3);  color: #8A5A0F; }
+.ih-callout-neutral { background: var(--stone-mid); }
+.ih-callout-v { font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1; }
+.ih-callout-high .ih-callout-v { color: var(--risk-high); }
+.ih-callout-med  .ih-callout-v { color: var(--terracotta); }
+.ih-callout-l { font-size: 11px; font-weight: 500; margin-top: 4px; letter-spacing: 0.02em; }
+.ih-cta { display: inline-block; font-size: 13.5px; font-weight: 600; color: var(--terracotta); padding: 0.5rem 1.1rem; border: 1.5px solid var(--terracotta); border-radius: var(--radius-sm); transition: background 150ms var(--ease), color 150ms var(--ease); }
+.ih-cta:hover { background: var(--terracotta); color: white; }
+
+/* ─── Feed rows ─────────────────────────────────────────────── */
+.ih-feed-row { padding: 18px 0; border-bottom: 1px solid var(--rule); cursor: pointer; transition: none; }
+.ih-feed-row:first-child { border-top: 1px solid var(--rule); margin-top: 8px; }
+.ih-feed-row:last-child { border-bottom: none; }
+.ih-feed-row:hover .ih-feed-title { color: var(--terracotta); }
+.ih-feed-row:hover { background: transparent; }
+.ih-feed-tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.ih-feed-meta { margin-left: auto; font-size: 11px; color: var(--ink-muted); font-weight: 500; white-space: nowrap; }
+.ih-feed-title { font-family: var(--font-display); font-size: 17px; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; margin: 0; text-wrap: balance; color: var(--ink); transition: color 150ms var(--ease); }
+.ih-feed-preview { margin: 6px 0 0; font-size: 13.5px; color: var(--ink-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ─── Sidebar ───────────────────────────────────────────────── */
+/* Per README-design: sidebar scrolls with the body (non-sticky) */
+.ih-sidebar {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.ih-side-block {
+  background: #FFFDF8;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.ih-side-block:last-child { border-bottom: none; }
+
+.ih-eyebrow { font-family: var(--font-body); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-muted); font-weight: 600; margin-bottom: 10px; }
+.ih-eyebrow-on-dark { color: var(--terracotta-light); }
+
+/* Material risk bars */
+.ih-mat-list { display: flex; flex-direction: column; gap: 8px; }
+.ih-mat-row { display: flex; align-items: center; gap: 8px; }
+.ih-mat-name { font-size: 12.5px; font-weight: 500; color: var(--ink); width: 70px; flex-shrink: 0; }
+.ih-mat-track { flex: 1; height: 4px; background: var(--stone-mid); border-radius: 2px; overflow: hidden; }
+.ih-mat-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
+.ih-mat-fill.ih-mat-high { background: var(--risk-high); }
+.ih-mat-fill.ih-mat-med  { background: var(--risk-med);  }
+.ih-mat-fill.ih-mat-low  { background: var(--risk-low);  }
+.ih-mat-level { font-size: 11px; font-family: var(--font-mono); text-align: right; font-weight: 600; width: 26px; flex-shrink: 0; }
+.ih-mat-level-high { color: var(--risk-high); }
+.ih-mat-level-med  { color: var(--risk-med);  }
+.ih-mat-level-low  { color: var(--risk-low);  }
+
+/* Pillar buttons */
+.ih-pillars { display: flex; flex-direction: column; gap: 2px; }
+.ih-pillar-btn { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-radius: var(--radius-sm); font-family: inherit; transition: background 100ms var(--ease); text-align: left; }
+.ih-pillar-btn:hover { background: var(--stone-mid); }
+.ih-pillar-l { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; color: var(--ink); }
+.ih-pillar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.ih-pillar-n { font-family: var(--font-mono); font-size: 11px; color: var(--ink-muted); font-weight: 600; }
+
+/* Subscribe block */
+.ih-subscribe { background: var(--wine-mid) !important; border-bottom: none !important; }
+.ih-subscribe-copy { color: var(--cream-muted); font-size: 12.5px; line-height: 1.5; margin: 0 0 10px; }
+.ih-subscribe input { width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.07); border: 1px solid rgba(240,230,222,0.2); color: var(--cream); padding: 8px 10px; border-radius: var(--radius-sm); font-family: inherit; font-size: 12.5px; margin-bottom: 8px; outline: none; }
+.ih-subscribe input::placeholder { color: var(--cream-muted); }
+.ih-subscribe input:focus { border-color: rgba(200,98,58,0.5); }
+
+/* ─── Footer ────────────────────────────────────────────────── */
+.ih-footer { background: var(--wine-darkest); color: var(--cream); margin-top: 56px; }
+.ih-footer-inner { max-width: var(--max-content); margin: 0 auto; padding: 40px 28px 24px; display: flex; gap: 3rem; flex-wrap: wrap; }
+.ih-footer-brand { display: flex; gap: 14px; align-items: flex-start; flex-shrink: 0; }
+.ih-footer-wm { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--cream); }
+.ih-footer-tag { font-family: var(--font-display); font-size: 13px; font-style: italic; color: var(--cream-muted); margin-top: 2px; }
+.ih-footer-cols { display: flex; gap: 2.5rem; flex-wrap: wrap; flex: 1; }
+.ih-footer-cols > div { display: flex; flex-direction: column; gap: 0.4rem; min-width: 120px; }
+.ih-footer-h { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--terracotta-light); font-weight: 600; margin-bottom: 0.25rem; }
+.ih-footer-cols a { display: block; color: var(--cream-muted); font-size: 13px; transition: color 150ms var(--ease); }
+.ih-footer-cols a:hover { color: var(--cream); }
+.ih-footer-base { max-width: var(--max-content); margin: 0 auto; padding: 16px 28px; display: flex; justify-content: space-between; border-top: 1px solid rgba(240,230,222,0.08); font-size: 11.5px; color: var(--cream-muted); flex-wrap: wrap; gap: 0.5rem; }
+.ih-mono { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.06em; }

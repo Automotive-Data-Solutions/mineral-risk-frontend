@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search, X } from "lucide-react";
@@ -23,6 +24,20 @@ const RISK_BAND_TONE: Record<string, string> = {
   HIGH: "bg-orange-100 text-orange-900 dark:bg-orange-950 dark:text-orange-200",
   CRIT: "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200",
 };
+
+/**
+ * Per `.cursorrules`, chemistry list pages bucket composite scores into
+ * the canonical four risk bands. Kept local to this page so it doesn't
+ * conflict with the lib/utils/risk-band helper that uses different
+ * thresholds for company-level scoring.
+ */
+function scoreToBand(score: number | null | undefined): string | null {
+  if (score == null) return null;
+  if (score >= 75) return "CRIT";
+  if (score >= 55) return "HIGH";
+  if (score >= 35) return "MOD";
+  return "LOW";
+}
 
 export default function ChemistriesListPage() {
   const [page, setPage] = useState(1);
@@ -52,62 +67,81 @@ export default function ChemistriesListPage() {
   const columns = useMemo<ColumnDef<BatteryChemistryRead, unknown>[]>(
     () => [
       {
-        accessorKey: "display_name",
+        accessorKey: "name",
         header: "Chemistry",
         cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="font-medium">{row.original.display_name}</span>
-            <span className="font-mono text-xs text-muted-foreground">
-              {row.original.slug}
-            </span>
-          </div>
+          <Link
+            href={`/data/chemistries/${row.original.id}`}
+            className="hover:underline"
+          >
+            <div className="flex flex-col">
+              <span className="font-medium">{row.original.name}</span>
+              <span className="font-mono text-xs text-muted-foreground">
+                {row.original.slug}
+              </span>
+            </div>
+          </Link>
         ),
       },
       {
-        accessorKey: "category",
-        header: "Category",
-        cell: ({ row }) =>
-          row.original.category ? (
-            <Badge variant="outline">{humanize(row.original.category)}</Badge>
-          ) : (
-            <span className="text-xs text-muted-foreground">—</span>
-          ),
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <Badge variant="outline">{humanize(row.original.status)}</Badge>
+        ),
       },
       {
-        accessorKey: "latest_risk_band",
+        id: "risk_band",
         header: "Risk band",
         cell: ({ row }) => {
-          const band = row.original.latest_risk_band;
-          if (!band) return <span className="text-xs text-muted-foreground">—</span>;
+          const band = scoreToBand(
+            row.original.latest_risk_score?.composite_risk_score,
+          );
+          if (!band)
+            return <span className="text-xs text-muted-foreground">—</span>;
           return (
             <Badge
               variant="outline"
               className={`border-0 ${
-                RISK_BAND_TONE[band.toUpperCase()] ??
-                "bg-muted text-muted-foreground"
+                RISK_BAND_TONE[band] ?? "bg-muted text-muted-foreground"
               }`}
             >
-              {band.toUpperCase()}
+              {band}
             </Badge>
           );
         },
       },
       {
-        accessorKey: "latest_risk_score",
+        id: "composite_score",
         header: () => <div className="text-right">Score</div>,
         cell: ({ row }) => (
           <div className="flex justify-end">
-            <ConfidenceBadge value={row.original.latest_risk_score} />
+            <ConfidenceBadge
+              value={
+                row.original.latest_risk_score?.composite_risk_score ?? null
+              }
+            />
           </div>
         ),
       },
       {
-        accessorKey: "notes",
-        header: "Notes",
+        id: "score_confidence",
+        header: () => <div className="text-right">Confidence</div>,
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <ConfidenceBadge
+              value={row.original.latest_risk_score?.score_confidence ?? null}
+            />
+          </div>
+        ),
+      },
+      {
+        accessorKey: "description",
+        header: "Description",
         cell: ({ row }) =>
-          row.original.notes ? (
+          row.original.description ? (
             <span className="line-clamp-2 text-xs text-muted-foreground">
-              {row.original.notes}
+              {row.original.description}
             </span>
           ) : (
             <span className="text-xs text-muted-foreground">—</span>
@@ -121,7 +155,7 @@ export default function ChemistriesListPage() {
             <RowActionsMenu
               entityType="battery_chemistry"
               entityId={String(row.original.id)}
-              entityLabel={row.original.display_name}
+              entityLabel={row.original.name}
             />
           </div>
         ),
