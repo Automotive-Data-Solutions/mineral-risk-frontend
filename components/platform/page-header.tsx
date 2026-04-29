@@ -18,7 +18,8 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "space-between",
-        gap: 16,
+        flexWrap: "wrap",
+        gap: 12,
       }}
     >
       <div className="p-page-header">

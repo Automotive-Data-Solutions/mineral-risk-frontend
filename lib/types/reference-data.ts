@@ -23,13 +23,19 @@ export interface MaterialListItem {
   id: number;
   canonical_name: string;
   category: string | null;
+  /** Chemical symbol or short code, e.g. "Li", "Co", "REE". */
+  symbol_or_code: string | null;
   /** 0..1 */
   criticality_score: number | null;
   is_ira_critical_mineral: boolean;
   is_eu_crma_critical: boolean;
   data_availability: string | null;
+  /** ISO-2 country codes for primary producing countries, e.g. ["CN","CD","AU"]. */
+  primary_producing_countries: string[] | null;
+  /** Latest global composite risk score (0–100). Null if never scored. */
+  latest_overall_risk_score: number | null;
   /** Total rows in `hs_code_material_mappings` for this material. */
-  hs_code_mapping_count: number;
+  hs_mapping_count: number;
   /** Subset of those mappings the backend flagged as suspect. */
   mapping_mismatch_count: number;
   verified: boolean;
@@ -75,6 +81,13 @@ export interface MappingHealth {
   missing_description: number;
 }
 
+export interface CountryShareItem {
+  /** ISO-2 country code, uppercased. */
+  code: string;
+  /** Rounded integer percentage, e.g. 47. */
+  share_pct: number;
+}
+
 export interface MaterialDetail extends MaterialListItem {
   criticality_signals: MaterialCriticalitySignal[];
   chemistry_uses: MaterialChemistryUse[];
@@ -85,10 +98,9 @@ export interface MaterialDetail extends MaterialListItem {
   mapping_health: MappingHealth;
   created_at: string;
   updated_at: string;
-  /** Chemical symbol or short code, e.g. "Li", "Co", "NiSO4". */
-  symbol_or_code?: string | null;
-  /** ISO-2 country codes for top producing nations, e.g. ["CN", "CD", "AU"]. */
-  primary_producing_countries?: string[] | null;
+  // symbol_or_code and primary_producing_countries are now inherited from MaterialListItem
+  /** Production share breakdown from material_production_shares, latest year only. */
+  country_production_shares: CountryShareItem[];
   /** "per_mt" | "per_kg" */
   price_unit?: string | null;
   /** "rising" | "declining" | "stable" — denormalized cache from criticality_signals. */

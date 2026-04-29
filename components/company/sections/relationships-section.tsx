@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { FlagEntityButton } from "@/components/shared/flag-entity-button";
 import { StageBadge } from "@/components/shared/stage-badge";
@@ -117,7 +117,7 @@ export function RelationshipsSection({ companyId }: { companyId: string }) {
               (this company buys from)
             </span>
           </h3>
-          <DataTable
+          <PlatformTable
             data={asBuyer}
             columns={asBuyerCols}
             isLoading={isLoading}
@@ -134,7 +134,7 @@ export function RelationshipsSection({ companyId }: { companyId: string }) {
               (this company sells to)
             </span>
           </h3>
-          <DataTable
+          <PlatformTable
             data={asSupplier}
             columns={asSupplierCols}
             isLoading={isLoading}

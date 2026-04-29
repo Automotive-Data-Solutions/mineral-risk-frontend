@@ -658,3 +658,180 @@
 .mra-platform .p-faint { color: var(--p-text-faint); }
 .mra-platform .p-tiny  { font-size: 11px; }
 .mra-platform .p-small { font-size: 12px; }
+
+/* ============================================================
+   Responsive breakpoints
+   ============================================================ */
+
+/* Tablet and below (< 1024px): sidebar is hidden, collapse grid to single column */
+/* ============================================================
+   Mobile nav drawer + backdrop
+   Rendered outside .mra-platform so scoped to body-level
+   ============================================================ */
+
+/* Hamburger button — hidden on large screens, shown on mobile */
+.mra-platform .p-topbar-hamburger {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--p-text-muted);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.mra-platform .p-topbar-hamburger:hover {
+  background: var(--p-bg-muted);
+  color: var(--p-text);
+}
+
+/* Backdrop overlay */
+.p-mobile-nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.p-mobile-nav-backdrop.open {
+  display: block;
+  opacity: 1;
+}
+
+/* Slide-in drawer */
+.p-mobile-nav-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: var(--p-sidebar);
+  transform: translateX(-100%);
+  transition: transform 220ms ease;
+  overflow-y: auto;
+  /* Carry over the same font stack */
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+.p-mobile-nav-drawer.open {
+  transform: translateX(0);
+}
+
+/* Close button inside drawer */
+.p-mobile-nav-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--p-text-on-dark-muted);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+  z-index: 1;
+}
+.p-mobile-nav-close:hover {
+  background: var(--p-sidebar-elev);
+  color: var(--p-text-on-dark);
+}
+
+@media (max-width: 1023px) {
+  .mra-platform {
+    grid-template-columns: 1fr;
+  }
+
+  /* p-sidebar sets display:flex which overrides Tailwind's `hidden` class —
+     explicitly hide it here so the CSS specificity battle is won in one place. */
+  .mra-platform .p-sidebar {
+    display: none;
+  }
+
+  /* Show hamburger on mobile */
+  .mra-platform .p-topbar-hamburger {
+    display: flex;
+  }
+}
+
+/* Medium screens (< 768px) */
+@media (max-width: 767px) {
+  .mra-platform .p-page {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  /* KPI grid: 2 columns on tablet */
+  .mra-platform .p-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Score grid: 3 columns on tablet (overall + 2, then 3 pillars) */
+  .mra-platform .p-score-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Topbar: reduce search width */
+  .mra-platform .p-topbar-search {
+    max-width: 200px;
+  }
+
+  /* Tabs: allow horizontal scroll so they never wrap or overflow clipped */
+  .mra-platform .p-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .mra-platform .p-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .mra-platform .p-tab {
+    flex-shrink: 0;
+  }
+}
+
+/* Mobile (< 640px) */
+@media (max-width: 639px) {
+  .mra-platform .p-page {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  /* KPI grid: stay at 2 columns — single column is too sparse for small numbers */
+  .mra-platform .p-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mra-platform .p-kpi .p-kpi-value {
+    font-size: 22px;
+  }
+
+  /* Score grid: 2 columns on mobile */
+  .mra-platform .p-score-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Cards: reduce internal padding */
+  .mra-platform .p-card-head {
+    padding: 12px 14px 10px;
+  }
+  .mra-platform .p-card-body {
+    padding: 12px 14px;
+  }
+
+  /* Tab labels: slightly smaller on mobile */
+  .mra-platform .p-tab {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}

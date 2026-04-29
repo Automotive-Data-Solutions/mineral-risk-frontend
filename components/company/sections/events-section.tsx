@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { ReviewStatusBadge } from "@/components/shared/review-status-badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -86,7 +86,7 @@ export function EventsSection({ companyId }: { companyId: string }) {
 
   return (
     <>
-      <DataTable
+      <PlatformTable
         data={data}
         columns={columns}
         isLoading={isLoading}

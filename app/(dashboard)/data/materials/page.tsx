@@ -6,14 +6,14 @@ import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AlertTriangle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
-import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { MaterialCriticalTags } from "@/components/shared/material-critical-tags";
-import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
+import { CountrySharePill } from "@/components/shared/country-share-pill";
 import { PageLayout } from "@/components/platform/page-layout";
 import { PageHeader } from "@/components/platform/page-header";
+import { ScoreChip } from "@/components/platform/score-chip";
 import { useMaterials } from "@/lib/hooks/use-materials";
 import type { MaterialListItem } from "@/lib/types";
 import { humanize } from "@/lib/utils/format";
@@ -54,17 +54,20 @@ export default function MaterialsListPage() {
       {
         accessorKey: "canonical_name",
         header: "Material",
-        cell: ({ row }) => (
-          <div className="flex flex-col gap-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="font-medium">{row.original.canonical_name}</span>
-              <VerifiedBadge verified={row.original.verified} />
+        cell: ({ row }) => {
+          const { canonical_name, symbol_or_code, category, verified } = row.original;
+          return (
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">{canonical_name}</span>
+                <VerifiedBadge verified={verified} />
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {[symbol_or_code, humanize(category)].filter(Boolean).join(" · ")}
+              </span>
             </div>
-            <span className="text-xs text-muted-foreground">
-              {humanize(row.original.category)}
-            </span>
-          </div>
-        ),
+          );
+        },
       },
       {
         id: "criticality_flags",
@@ -80,19 +83,50 @@ export default function MaterialsListPage() {
       {
         accessorKey: "criticality_score",
         header: () => <div className="text-right">Criticality</div>,
+        cell: ({ row }) => {
+          const v = row.original.criticality_score;
+          if (v == null) return <div className="text-right text-xs text-muted-foreground">—</div>;
+          const display = v <= 1 ? Math.round(v * 100) : Math.round(v);
+          return (
+            <div className="text-right font-mono text-sm tabular-nums">{display}</div>
+          );
+        },
+      },
+      {
+        id: "top_sources",
+        header: "Top Sources",
+        cell: ({ row }) => {
+          const countries = row.original.primary_producing_countries;
+          if (!countries || countries.length === 0)
+            return <span className="text-xs text-muted-foreground">—</span>;
+          return (
+            <div className="flex flex-wrap items-center gap-1">
+              {countries.slice(0, 4).map((code) => (
+                <CountrySharePill key={code} code={code} />
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        id: "risk",
+        header: () => <div className="text-right">Risk</div>,
         cell: ({ row }) => (
           <div className="flex justify-end">
-            <ConfidenceBadge value={row.original.criticality_score} />
+            <ScoreChip
+              score={row.original.latest_overall_risk_score}
+              showBandLabel={false}
+            />
           </div>
         ),
       },
       {
-        accessorKey: "hs_code_mapping_count",
-        header: () => <div className="text-right">HS mappings</div>,
+        id: "hs_mappings",
+        header: () => <div className="text-right">HS Mappings</div>,
         cell: ({ row }) => (
           <div className="flex flex-col items-end leading-tight">
-            <span className="font-mono text-sm">
-              {row.original.hs_code_mapping_count}
+            <span className="font-mono text-sm tabular-nums">
+              {row.original.hs_mapping_count}
             </span>
             {row.original.mapping_mismatch_count > 0 && (
               <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300">
@@ -100,19 +134,6 @@ export default function MaterialsListPage() {
                 {row.original.mapping_mismatch_count} suspect
               </span>
             )}
-          </div>
-        ),
-      },
-      {
-        id: "actions",
-        header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => (
-          <div className="flex justify-end">
-            <RowActionsMenu
-              entityType="material"
-              entityId={String(row.original.id)}
-              entityLabel={row.original.canonical_name}
-            />
           </div>
         ),
       },
@@ -171,7 +192,7 @@ export default function MaterialsListPage() {
         total={data?.total}
       />
 
-      <DataTable
+      <PlatformTable
         data={rows}
         columns={columns}
         isLoading={isLoading || (isFetching && rows.length === 0)}

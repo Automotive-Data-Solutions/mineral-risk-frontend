@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/platform/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import { DataTableToolbar } from "@/components/data-table/toolbar";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
@@ -166,7 +166,7 @@ export default function RiskEventsListPage() {
           placeholder="Event type"
           value={localType}
           onChange={(e) => setLocalType(e.target.value)}
-          className="h-9 w-[160px]"
+          className="h-9 max-w-[160px]"
         />
         <div className="flex w-[240px] items-center gap-2 rounded-md border px-2 py-1 text-xs">
           <span className="text-muted-foreground">Min severity</span>
@@ -204,7 +204,7 @@ export default function RiskEventsListPage() {
         )}
       </DataTableToolbar>
 
-      <DataTable
+      <PlatformTable
         data={rows}
         columns={columns}
         isLoading={isLoading || (isFetching && rows.length === 0)}

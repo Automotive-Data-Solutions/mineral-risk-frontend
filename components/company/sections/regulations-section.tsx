@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { SideSheet, SideSheetContent } from "@/components/ui/side-sheet";
 import { Separator } from "@/components/ui/separator";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { FlagEntityButton } from "@/components/shared/flag-entity-button";
 import { KeyValueRow } from "@/components/shared/key-value-row";
@@ -111,7 +111,7 @@ export function RegulationsSection({ companyId }: { companyId: string }) {
 
   return (
     <>
-      <DataTable
+      <PlatformTable
         data={data}
         columns={columns}
         isLoading={isLoading}

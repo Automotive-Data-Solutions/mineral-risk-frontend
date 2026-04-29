@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { humanize } from "@/lib/utils/format";
 import type { HsMappingMismatchReason } from "@/lib/types";
@@ -15,7 +16,7 @@ const REASON_TONE: Record<HsMappingMismatchReason, string> = {
 };
 
 const REASON_LABEL: Record<HsMappingMismatchReason, string> = {
-  low_confidence: "Low confidence",
+  low_confidence: "Low conf.",
   missing_description: "Missing description",
   category_chapter_mismatch: "Chapter mismatch",
   duplicate_hs_prefix: "Duplicate prefix",
@@ -30,10 +31,15 @@ export function MismatchBadge({ reason, className }: MismatchBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className={cn("border-0", REASON_TONE[reason], className)}
+      className={cn(
+        "inline-flex items-center gap-1 border-0 px-2 py-0.5 font-medium",
+        REASON_TONE[reason],
+        className,
+      )}
       title={REASON_LABEL[reason] ?? humanize(reason)}
     >
-      {REASON_LABEL[reason] ?? humanize(reason)}
+      <AlertTriangle className="h-3 w-3 shrink-0 opacity-90" aria-hidden />
+      <span>{REASON_LABEL[reason] ?? humanize(reason)}</span>
     </Badge>
   );
 }
@@ -52,10 +58,11 @@ export function MismatchBadgeList({
       <Badge
         variant="outline"
         className={cn(
-          "border-0 bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
+          "inline-flex items-center gap-1 border-0 bg-emerald-100 px-2 py-0.5 font-medium text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
           className,
         )}
       >
+        <CheckCircle2 className="h-3 w-3 shrink-0 opacity-90" aria-hidden />
         OK
       </Badge>
     );

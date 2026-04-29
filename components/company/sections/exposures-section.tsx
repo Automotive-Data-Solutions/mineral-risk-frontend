@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { CountryFlag } from "@/components/shared/country-flag";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { FlagEntityButton } from "@/components/shared/flag-entity-button";
@@ -86,7 +86,7 @@ export function ExposuresSection({ companyId }: { companyId: string }) {
 
   return (
     <>
-      <DataTable
+      <PlatformTable
         data={data}
         columns={columns}
         isLoading={isLoading}

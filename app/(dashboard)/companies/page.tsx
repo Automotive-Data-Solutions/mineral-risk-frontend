@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import { StageBadge } from "@/components/shared/stage-badge";
 import { CountryFlag } from "@/components/shared/country-flag";
@@ -126,7 +126,7 @@ export default function CompaniesListPage() {
         total={data?.total}
       />
 
-      <DataTable
+      <PlatformTable
         data={rows}
         columns={columns}
         isLoading={isLoading || (isFetching && rows.length === 0)}

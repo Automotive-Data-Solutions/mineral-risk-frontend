@@ -6,6 +6,8 @@ interface ScoreChipProps {
   score: number | null | undefined;
   /** If omitted, band is derived automatically from the score. */
   band?: RiskBand;
+  /** When false, shows only the numeric score and tier dot (no “· Med” label). Default true. */
+  showBandLabel?: boolean;
   className?: string;
 }
 
@@ -54,7 +56,12 @@ function bandLabel(band: RiskBand): string {
   }
 }
 
-export function ScoreChip({ score, band, className }: ScoreChipProps) {
+export function ScoreChip({
+  score,
+  band,
+  showBandLabel = true,
+  className,
+}: ScoreChipProps) {
   if (score == null) {
     return (
       <span className={cn("p-score p-score-none", className)}>—</span>
@@ -66,7 +73,13 @@ export function ScoreChip({ score, band, className }: ScoreChipProps) {
   return (
     <span className={cn("p-score", bandClass(resolvedBand), className)}>
       <span className={cn("p-score-dot", dotClass(resolvedBand))} />
-      {score.toFixed(1)} · {bandLabel(resolvedBand)}
+      {showBandLabel ? (
+        <>
+          {score.toFixed(1)} · {bandLabel(resolvedBand)}
+        </>
+      ) : (
+        score.toFixed(1)
+      )}
     </span>
   );
 }

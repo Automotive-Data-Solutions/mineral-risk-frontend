@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { SideSheet, SideSheetContent } from "@/components/ui/side-sheet";
 import { Separator } from "@/components/ui/separator";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { FlagEntityButton } from "@/components/shared/flag-entity-button";
 import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
@@ -110,7 +110,7 @@ export function VehicleModelsSection({ companyId }: { companyId: string }) {
 
   return (
     <>
-      <DataTable
+      <PlatformTable
         data={data}
         columns={columns}
         isLoading={isLoading}

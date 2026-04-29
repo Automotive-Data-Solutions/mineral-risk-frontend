@@ -94,7 +94,7 @@ function isItemActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function SidebarContent({ pathname }: { pathname: string }) {
+export function SidebarContent({ pathname }: { pathname: string }) {
   return (
     <>
       <div className="p-sidebar-brand">
@@ -137,7 +137,7 @@ function SidebarContent({ pathname }: { pathname: string }) {
 export function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="p-sidebar hidden lg:flex lg:flex-col">
+    <aside className="p-sidebar">
       <SidebarContent pathname={pathname} />
     </aside>
   );

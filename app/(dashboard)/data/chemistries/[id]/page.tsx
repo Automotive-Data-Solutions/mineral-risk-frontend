@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/platform/page-layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { ErrorState } from "@/components/shared/error-state";
 import {
@@ -408,7 +408,7 @@ function ActiveCompositionTable({ materials }: ActiveCompositionTableProps) {
   return (
     <div className="flex flex-col gap-2">
       <h2 className="text-sm font-semibold">Active composition</h2>
-      <DataTable
+      <PlatformTable
         data={materials}
         columns={columns}
         emptyTitle="No active materials linked to this chemistry."

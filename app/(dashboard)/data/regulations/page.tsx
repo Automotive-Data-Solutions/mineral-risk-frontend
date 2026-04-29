@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import { DataTableToolbar } from "@/components/data-table/toolbar";
 import { CountryFlag } from "@/components/shared/country-flag";
@@ -178,7 +178,7 @@ export default function RegulationsListPage() {
             placeholder="Search title or key..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            className="h-9 w-[260px] pl-8"
+            className="h-9 w-full max-w-[260px] pl-8"
           />
         </div>
         <Select
@@ -188,7 +188,7 @@ export default function RegulationsListPage() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="h-9 w-[160px]">
+          <SelectTrigger className="h-9 max-w-[160px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -207,7 +207,7 @@ export default function RegulationsListPage() {
             setFilters({ ...filters, policy_theme: e.target.value });
             setPage(1);
           }}
-          className="h-9 w-[180px]"
+          className="h-9 max-w-[180px]"
         />
         {hasFilters && (
           <Button
@@ -225,7 +225,7 @@ export default function RegulationsListPage() {
         )}
       </DataTableToolbar>
 
-      <DataTable
+      <PlatformTable
         data={rows}
         columns={columns}
         isLoading={isLoading || (isFetching && rows.length === 0)}

@@ -3,20 +3,21 @@
 import Link from "next/link";
 import { use, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { AlertTriangle, ArrowLeft, CheckCircle2, CheckCircle, XCircle, MinusCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CheckCircle, XCircle, MinusCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/platform/page-layout";
 import { PlatformCard, PlatformCardHeader, PlatformCardBody } from "@/components/platform/platform-card";
+import { ScoreChip } from "@/components/platform/score-chip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
-import { CountryFlag } from "@/components/shared/country-flag";
+import { CountrySharePill } from "@/components/shared/country-share-pill";
 import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dialog";
 import { ErrorState } from "@/components/shared/error-state";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { MismatchBadgeList } from "@/components/materials/mismatch-badge";
 import {
   useMaterial,
@@ -26,14 +27,17 @@ import {
 } from "@/lib/hooks/use-materials";
 import { useToggleMaterialVerified } from "@/lib/hooks/use-verified";
 import { useEntityNotes } from "@/lib/hooks/use-entity-notes";
+import {
+  sortMarketRiskScoreRows,
+  buildMarketRiskScoreColumns,
+} from "@/lib/table/market-risk-score-columns";
 import type {
-  AnalystNoteRead,
   HsCodeMaterialMappingRead,
   MappingHealth,
   MaterialGeographyScoreRead,
   MaterialGlobalScoreRead,
 } from "@/lib/types";
-import { formatDate, formatDateTime, formatRelative, humanize } from "@/lib/utils/format";
+import { formatDate, formatDateTime, formatRelative, humanize, NOTE_TYPE_BADGE, NOTE_TYPE_LABEL } from "@/lib/utils/format";
 
 const TABS = [
   { value: "overview", label: "Overview" },
@@ -140,12 +144,14 @@ export default function MaterialDetailPage({
               )}
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">
-              Criticality
+          {globalScore?.overall_risk_score != null && (
+            <div className="shrink-0 text-right">
+              <div className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">
+                Overall Risk
+              </div>
+              <ScoreChip score={globalScore.overall_risk_score} showBandLabel />
             </div>
-            <ConfidenceBadge value={material.criticality_score} />
-          </div>
+          )}
         </div>
       </div>
 
@@ -272,15 +278,20 @@ function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabPro
                 </span>
               </div>
             )}
-            {(material.primary_producing_countries ?? []).length > 0 && (
+            {(material.country_production_shares.length > 0 ||
+              (material.primary_producing_countries ?? []).length > 0) && (
               <div className="sm:col-span-2 lg:col-span-4">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
                   Primary producing countries
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {(material.primary_producing_countries ?? []).map((cc) => (
-                    <CountryFlag key={cc} code={cc} />
-                  ))}
+                <div className="flex flex-wrap gap-1.5">
+                  {material.country_production_shares.length > 0
+                    ? material.country_production_shares.map((c) => (
+                        <CountrySharePill key={c.code} code={c.code} sharePct={c.share_pct} />
+                      ))
+                    : (material.primary_producing_countries ?? []).map((cc) => (
+                        <CountrySharePill key={cc} code={cc} />
+                      ))}
                 </div>
               </div>
             )}
@@ -536,16 +547,14 @@ function MappingsTab({
     () => [
       {
         accessorKey: "hs_code_prefix",
-        header: "HS code prefix",
+        header: "HS prefix",
         cell: ({ row }) => (
-          <span className="font-mono text-sm font-medium">
-            {row.original.hs_code_prefix}
-          </span>
+          <span className="font-mono text-sm font-semibold">{row.original.hs_code_prefix}</span>
         ),
       },
       {
         accessorKey: "description",
-        header: "HS description (per customs schedule)",
+        header: "Customs description",
         cell: ({ row }) =>
           row.original.description ? (
             <span className="text-sm">{row.original.description}</span>
@@ -557,7 +566,7 @@ function MappingsTab({
       },
       {
         id: "comparison",
-        header: `Mapped to "${materialName}"`,
+        header: "Mapped to",
         cell: () => <span className="text-sm">{materialName}</span>,
       },
       {
@@ -703,25 +712,25 @@ function MappingsTab({
         </Card>
       )}
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div>
-          {mappings.length === 0
-            ? "No HS codes have been mapped to this material yet."
-            : `${mappings.length} HS code${
-                mappings.length === 1 ? "" : "s"
-              } map to this material.`}
-        </div>
-        {suspectCount > 0 && (
-          <div className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-            <AlertTriangle className="h-3 w-3" />
-            {suspectCount} flagged as suspect
-          </div>
-        )}
-      </div>
-
-      <DataTable
+      <PlatformTable
         data={mappings}
         columns={columns}
+        tableTitle="HS code mappings"
+        tableSubtitle={
+          mappings.length === 0 ? (
+            "No HS codes mapped yet."
+          ) : (
+            <>
+              <span>
+                {mappings.length} mapping{mappings.length === 1 ? "" : "s"}
+              </span>
+              <span aria-hidden className="mx-2 text-muted-foreground/60">
+                ·
+              </span>
+              <span>{suspectCount} flagged as suspect</span>
+            </>
+          )
+        }
         emptyTitle="No HS mappings"
         emptyDescription="Add a mapping in the backend, or flag this material so an analyst can investigate."
       />
@@ -737,76 +746,16 @@ interface ScoresTabProps {
   scores: MaterialGeographyScoreRead[];
 }
 
-const SCORE_PILLAR_COLS: {
-  key: keyof MaterialGeographyScoreRead;
-  header: string;
-}[] = [
-  { key: "material_concentration_score", header: "Mat. Conc." },
-  { key: "geopolitical_trade_score",      header: "Geopolitical" },
-  { key: "regulatory_compliance_score",   header: "Regulatory" },
-  { key: "operational_score",             header: "Operational" },
-  { key: "financial_pressure_score",      header: "Financial" },
-];
-
-/** Shared country pill — same style as the concentration pills in the dashboard */
-function CountryPill({ code }: { code: string }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        padding: "2px 6px",
-        background: "var(--p-bg-subtle)",
-        border: "1px solid var(--p-border)",
-        borderRadius: "var(--p-radius-sm)",
-        fontSize: 12,
-        whiteSpace: "nowrap",
-        lineHeight: 1.4,
-      }}
-    >
-      <CountryFlag code={code} showCode={false} showTooltip={false} />
-      <span style={{ fontFamily: "var(--p-font-mono)", fontWeight: 500, color: "var(--p-text)" }}>
-        {code.toUpperCase()}
-      </span>
-    </span>
-  );
-}
-
-/** Risk tier helper — mirrors the dashboard */
-function scoreTier(s: number): "high" | "med" | "low" {
-  if (s >= 70) return "high";
-  if (s >= 40) return "med";
-  return "low";
-}
-
 function ScoresTab({ scores }: ScoresTabProps) {
-  const sorted = useMemo(
+  const columns = useMemo(
     () =>
-      [...scores].sort(
-        (a, b) => (b.overall_risk_score ?? -1) - (a.overall_risk_score ?? -1),
-      ),
-    [scores],
+      buildMarketRiskScoreColumns({
+        showMaterialColumn: false,
+        overallBandLabels: false,
+      }),
+    [],
   );
-
-  const TH_STYLE: React.CSSProperties = {
-    padding: "8px 16px",
-    textAlign: "left",
-    fontSize: 11,
-    fontWeight: 600,
-    textTransform: "uppercase",
-    letterSpacing: "0.06em",
-    color: "var(--p-text-muted)",
-    whiteSpace: "nowrap",
-    borderBottom: "1px solid var(--p-border)",
-    background: "var(--p-bg-subtle)",
-  };
-
-  const TD_STYLE: React.CSSProperties = {
-    padding: "11px 16px",
-    borderBottom: "1px solid var(--p-rule)",
-    fontSize: 13,
-  };
+  const sortedData = useMemo(() => sortMarketRiskScoreRows(scores), [scores]);
 
   if (scores.length === 0) {
     return (
@@ -831,66 +780,7 @@ function ScoresTab({ scores }: ScoresTabProps) {
         subtitle="Sorted by overall risk descending"
       />
       <PlatformCardBody noPadding>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={TH_STYLE}>Country</th>
-              <th style={TH_STYLE}>Overall</th>
-              {SCORE_PILLAR_COLS.map((c) => (
-                <th key={c.key} style={{ ...TH_STYLE, textAlign: "right" }}>
-                  {c.header}
-                </th>
-              ))}
-              <th style={{ ...TH_STYLE, textAlign: "right" }}>Events</th>
-              <th style={{ ...TH_STYLE, textAlign: "right" }}>As of</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((row) => {
-              const overall = row.overall_risk_score;
-              const tier = overall != null ? scoreTier(overall) : null;
-              return (
-                <tr key={row.id ?? row.geography_code}>
-                  <td style={TD_STYLE}>
-                    <CountryPill code={row.geography_code} />
-                  </td>
-                  <td style={TD_STYLE}>
-                    {overall != null && tier ? (
-                      <span className={`p-score p-score-${tier}`}>
-                        <span className={`p-score-dot p-dot-${tier}`} />
-                        {overall.toFixed(1)}
-                      </span>
-                    ) : (
-                      <span style={{ color: "var(--p-text-faint)", fontSize: 12 }}>—</span>
-                    )}
-                  </td>
-                  {SCORE_PILLAR_COLS.map((c) => {
-                    const val = row[c.key] as number | null | undefined;
-                    return (
-                      <td
-                        key={c.key}
-                        style={{
-                          ...TD_STYLE,
-                          textAlign: "right",
-                          fontVariantNumeric: "tabular-nums",
-                          color: val != null ? "var(--p-text)" : "var(--p-text-faint)",
-                        }}
-                      >
-                        {val != null ? Math.round(val) : "—"}
-                      </td>
-                    );
-                  })}
-                  <td style={{ ...TD_STYLE, textAlign: "right", fontFamily: "var(--p-font-mono)", color: "var(--p-text-muted)" }}>
-                    {row.event_count ?? 0}
-                  </td>
-                  <td style={{ ...TD_STYLE, textAlign: "right", fontSize: 12, color: "var(--p-text-muted)" }}>
-                    {formatDate(row.as_of_date)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <PlatformTable embedded data={sortedData} columns={columns} />
       </PlatformCardBody>
     </PlatformCard>
   );
@@ -900,73 +790,98 @@ function ScoresTab({ scores }: ScoresTabProps) {
 // Notes tab
 // ---------------------------------------------------------------------------
 
-const NOTE_TYPE_TONE: Record<string, string> = {
-  data_error: "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200",
-  missing_data: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
-  outdated: "bg-orange-100 text-orange-900 dark:bg-orange-950 dark:text-orange-200",
-  other: "bg-muted text-muted-foreground",
-};
-
 function NotesTab({ materialId }: { materialId: string }) {
   const { data = [], isLoading, error, refetch } = useEntityNotes(
     "material",
     materialId,
   );
 
-  const columns = useMemo<ColumnDef<AnalystNoteRead, unknown>[]>(
-    () => [
-      {
-        accessorKey: "note_type",
-        header: "Type",
-        size: 140,
-        cell: ({ row }) => (
-          <Badge
-            variant="outline"
-            className={`border-0 ${NOTE_TYPE_TONE[row.original.note_type] ?? NOTE_TYPE_TONE.other}`}
-          >
-            {humanize(row.original.note_type)}
-          </Badge>
-        ),
-      },
-      {
-        accessorKey: "note_text",
-        header: "Note",
-        cell: ({ row }) => (
-          <span className="whitespace-pre-wrap text-sm">{row.original.note_text}</span>
-        ),
-      },
-      {
-        accessorKey: "created_at",
-        header: () => <div className="text-right">Created</div>,
-        size: 140,
-        cell: ({ row }) => (
-          <div
-            className="text-right text-xs text-muted-foreground"
-            title={formatDateTime(row.original.created_at)}
-          >
-            {formatRelative(row.original.created_at)}
+  if (isLoading) {
+    return (
+      <PlatformCard>
+        <PlatformCardBody>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {[1, 2, 3].map((i) => (
+              <div key={i} style={{ height: 72, borderRadius: "var(--p-radius)", background: "var(--p-bg-muted)" }} />
+            ))}
           </div>
-        ),
-      },
-    ],
-    [],
-  );
+        </PlatformCardBody>
+      </PlatformCard>
+    );
+  }
+
+  if (error) {
+    return (
+      <PlatformCard>
+        <PlatformCardBody>
+          <ErrorState error={error} onRetry={() => refetch()} />
+        </PlatformCardBody>
+      </PlatformCard>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">
-        Analyst notes recorded via Flag Issue. Use the button in the page header
-        to add a new note.
-      </p>
-      <DataTable
-        data={data}
-        columns={columns}
-        isLoading={isLoading}
-        error={error}
-        onRetry={() => refetch()}
-        emptyTitle="No notes yet"
-        emptyDescription='Click "Flag Issue" in the page header to record a data-quality note.'
+    <PlatformCard>
+      <PlatformCardHeader
+        title="Analyst notes"
+        subtitle='Recorded via "Flag Issue". Use the button in the page header to add a new note.'
       />
-    </div>
+      <PlatformCardBody noPadding>
+        {data.length === 0 ? (
+          <div
+            style={{
+              padding: "32px 16px",
+              textAlign: "center",
+              fontSize: 13,
+              color: "var(--p-text-muted)",
+            }}
+          >
+            No notes yet for this material.
+          </div>
+        ) : (
+          data.map((note, i) => {
+            const badgeClass = NOTE_TYPE_BADGE[note.note_type] ?? "p-badge-soft";
+            const noteLabel = NOTE_TYPE_LABEL[note.note_type] ?? humanize(note.note_type);
+            return (
+              <div
+                key={note.id}
+                style={{
+                  padding: "14px 16px",
+                  borderBottom: i < data.length - 1 ? "1px solid var(--p-rule)" : "none",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span className={`p-badge ${badgeClass}`} style={{ flexShrink: 0 }}>
+                    {noteLabel}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--p-text-faint)",
+                      marginLeft: "auto",
+                      flexShrink: 0,
+                    }}
+                    title={formatDateTime(note.created_at)}
+                  >
+                    {formatRelative(note.created_at)}
+                  </span>
+                </div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    color: "var(--p-text-muted)",
+                    lineHeight: 1.6,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {note.note_text}
+                </p>
+              </div>
+            );
+          })
+        )}
+      </PlatformCardBody>
+    </PlatformCard>
   );
 }

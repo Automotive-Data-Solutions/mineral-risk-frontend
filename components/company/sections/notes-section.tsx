@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { useCompanyAllNotes } from "@/lib/hooks/use-companies";
 import type { AnalystNoteRead } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -58,7 +58,7 @@ export function NotesSection({ companyId }: { companyId: string }) {
   );
 
   return (
-    <DataTable
+    <PlatformTable
       data={data}
       columns={columns}
       isLoading={isLoading}

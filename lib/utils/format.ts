@@ -73,6 +73,24 @@ export function humanize(value: string | null | undefined): string {
     .join(" ");
 }
 
+// ---------------------------------------------------------------------------
+// Analyst note type display helpers — shared across detail pages + dashboard
+// ---------------------------------------------------------------------------
+
+export const NOTE_TYPE_BADGE: Record<string, string> = {
+  data_error:   "p-badge-rose",
+  missing_data: "p-badge-amber",
+  outdated:     "p-badge-violet",
+  other:        "p-badge-soft",
+};
+
+export const NOTE_TYPE_LABEL: Record<string, string> = {
+  data_error:   "Data error",
+  missing_data: "Missing data",
+  outdated:     "Outdated",
+  other:        "Note",
+};
+
 /** Converts ISO-3166 alpha-2 country codes to a flag emoji. */
 export function countryToFlag(code: string | null | undefined): string {
   if (!code || code.length !== 2) return "";

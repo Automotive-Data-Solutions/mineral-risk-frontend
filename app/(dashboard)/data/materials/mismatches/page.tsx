@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/platform/page-layout";
 import { PageHeader } from "@/components/platform/page-header";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
@@ -139,7 +139,7 @@ export default function HsMappingMismatchesPage() {
         />
       </div>
 
-      <DataTable
+      <PlatformTable
         data={rows}
         columns={columns}
         isLoading={isLoading || (isFetching && rows.length === 0)}

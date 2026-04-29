@@ -8,7 +8,7 @@ import { PageLayout } from "@/components/platform/page-layout";
 import { PageHeader } from "@/components/platform/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import { DataTableToolbar } from "@/components/data-table/toolbar";
 import { CountryFlag } from "@/components/shared/country-flag";
@@ -163,7 +163,7 @@ export default function FacilitiesListPage() {
             placeholder="Search operator or city..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            className="h-9 w-[260px] pl-8"
+            className="h-9 w-full max-w-[260px] pl-8"
           />
         </div>
         <Input
@@ -177,7 +177,7 @@ export default function FacilitiesListPage() {
             });
             setPage(1);
           }}
-          className="h-9 w-[120px] uppercase"
+          className="h-9 max-w-[120px] uppercase"
         />
         <Input
           placeholder="Facility type"
@@ -186,7 +186,7 @@ export default function FacilitiesListPage() {
             setFilters({ ...filters, facility_type: e.target.value });
             setPage(1);
           }}
-          className="h-9 w-[160px]"
+          className="h-9 max-w-[160px]"
         />
         <Input
           placeholder="Status"
@@ -195,7 +195,7 @@ export default function FacilitiesListPage() {
             setFilters({ ...filters, status: e.target.value });
             setPage(1);
           }}
-          className="h-9 w-[140px]"
+          className="h-9 max-w-[140px]"
         />
         {hasFilters && (
           <Button
@@ -213,7 +213,7 @@ export default function FacilitiesListPage() {
         )}
       </DataTableToolbar>
 
-      <DataTable
+      <PlatformTable
         data={rows}
         columns={columns}
         isLoading={isLoading || (isFetching && rows.length === 0)}

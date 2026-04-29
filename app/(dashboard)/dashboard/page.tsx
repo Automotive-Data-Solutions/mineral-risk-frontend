@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/shared/error-state";
 import { KpiCard } from "@/components/platform/kpi-card";
-import { CountryFlag } from "@/components/shared/country-flag";
+import { CountrySharePill } from "@/components/shared/country-share-pill";
 import { PageLayout } from "@/components/platform/page-layout";
 import { PageHeader } from "@/components/platform/page-header";
 import {
@@ -13,8 +13,7 @@ import {
   PlatformCardBody,
 } from "@/components/platform/platform-card";
 import { useDashboardOverview } from "@/lib/hooks/use-dashboard";
-import { formatNumber } from "@/lib/utils/format";
-import { humanize } from "@/lib/utils/format";
+import { formatNumber, formatRelative, humanize, NOTE_TYPE_BADGE, NOTE_TYPE_LABEL } from "@/lib/utils/format";
 import type {
   TopMaterialRisk,
   ScoreRunProgress,
@@ -41,30 +40,6 @@ function riskLabel(score: number): string {
   return t === "high" ? "High" : t === "med" ? "Med" : "Low";
 }
 
-function formatRelativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  return `${days}d ago`;
-}
-
-const NOTE_TYPE_BADGE: Record<string, string> = {
-  data_error: "p-badge-rose",
-  missing_data: "p-badge-amber",
-  outdated: "p-badge-violet",
-  other: "p-badge-soft",
-};
-
-const NOTE_TYPE_LABEL: Record<string, string> = {
-  data_error: "Data error",
-  missing_data: "Missing data",
-  outdated: "Outdated",
-  other: "Note",
-};
 
 const PILLAR_COLOR_VAR: Record<string, string> = {
   material_concentration_score: "var(--p-pillar-material)",
@@ -197,34 +172,10 @@ function TopMaterialsCard({ materials }: { materials: TopMaterialRisk[] }) {
                   </td>
                   {/* Concentration */}
                   <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                       {m.top_countries.length > 0 ? (
                         m.top_countries.map((c) => (
-                          <span
-                            key={c.code}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 3,
-                              padding: "2px 5px",
-                              background: "var(--p-bg-subtle)",
-                              border: "1px solid var(--p-border)",
-                              borderRadius: "var(--p-radius-sm)",
-                              fontSize: 11,
-                              color: "var(--p-text-muted)",
-                              whiteSpace: "nowrap",
-                              lineHeight: 1,
-                            }}
-                          >
-                            <CountryFlag code={c.code} showCode={false} showTooltip={false} />
-                            <span style={{ fontFamily: "var(--p-font-mono)" }}>
-                              {c.code.toUpperCase()}
-                            </span>
-                            <span style={{ color: "var(--p-text-faint)", fontSize: 10 }}>·</span>
-                            <span style={{ fontWeight: 600, color: "var(--p-text)" }}>
-                              {c.share_pct}%
-                            </span>
-                          </span>
+                          <CountrySharePill key={c.code} code={c.code} sharePct={c.share_pct} />
                         ))
                       ) : (
                         <span style={{ fontSize: 12, color: "var(--p-text-faint)" }}>—</span>
@@ -288,12 +239,8 @@ function ScoreRunCard({ progress }: { progress: ScoreRunProgress }) {
       <PlatformCardBody>
         {/* Stats row */}
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 12,
-            marginBottom: 20,
-          }}
+          className="grid grid-cols-2 sm:grid-cols-3"
+          style={{ gap: 12, marginBottom: 20 }}
         >
           {[
             {
@@ -512,7 +459,7 @@ function RecentActivityCard({ notes }: { notes: RecentNoteItem[] }) {
                       marginLeft: "auto",
                     }}
                   >
-                    {formatRelativeTime(note.created_at)}
+                    {formatRelative(note.created_at)}
                   </span>
                 </div>
                 {/* Note text */}
@@ -640,7 +587,7 @@ export default function DashboardOverviewPage() {
           </div>
 
           {/* Top materials + Companies by stage */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 16 }}>
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_380px]">
             {isLoading ? (
               <CardSkeleton title="Top materials by risk" />
             ) : topMaterials.length > 0 ? (
@@ -676,7 +623,7 @@ export default function DashboardOverviewPage() {
           </div>
 
           {/* Score-run progress + Recent activity */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {isLoading ? (
               <CardSkeleton title="Score-run progress" />
             ) : scoreRun ? (

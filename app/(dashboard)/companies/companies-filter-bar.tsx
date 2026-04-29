@@ -94,7 +94,7 @@ export function CompaniesFilterBar({
           placeholder="Search name or alias..."
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          className="h-9 w-[260px] pl-8"
+          className="h-9 w-full max-w-[260px] pl-8"
         />
       </div>
 
@@ -102,7 +102,7 @@ export function CompaniesFilterBar({
         value={value.stage || "all"}
         onValueChange={(v) => onChange({ ...value, stage: v === "all" ? "" : v })}
       >
-        <SelectTrigger className="h-9 w-[160px]">
+        <SelectTrigger className="h-9 max-w-[160px]">
           <SelectValue placeholder="Stage" />
         </SelectTrigger>
         <SelectContent>
@@ -120,7 +120,7 @@ export function CompaniesFilterBar({
         maxLength={2}
         value={localCountry}
         onChange={(e) => setLocalCountry(e.target.value.toUpperCase())}
-        className="h-9 w-[120px] uppercase"
+        className="h-9 max-w-[120px] uppercase"
       />
 
       <div className="flex w-[220px] items-center gap-2 rounded-md border px-2 py-1 text-xs">

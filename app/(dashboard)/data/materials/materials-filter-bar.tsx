@@ -88,7 +88,7 @@ export function MaterialsFilterBar({
           placeholder="Search material name..."
           value={localSearch}
           onChange={(e) => setLocalSearch(e.target.value)}
-          className="h-9 w-[260px] pl-8"
+          className="h-9 w-full min-w-[160px] max-w-[260px] pl-8"
         />
       </div>
 
@@ -98,7 +98,7 @@ export function MaterialsFilterBar({
           onChange({ ...value, category: v === "all" ? "" : v })
         }
       >
-        <SelectTrigger className="h-9 w-[180px]">
+        <SelectTrigger className="h-9 w-full min-w-[140px] max-w-[180px]">
           <SelectValue placeholder="Category" />
         </SelectTrigger>
         <SelectContent>

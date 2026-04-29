@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { SideSheet, SideSheetContent } from "@/components/ui/side-sheet";
 import { Separator } from "@/components/ui/separator";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { CountryFlag } from "@/components/shared/country-flag";
 import { FlagEntityButton } from "@/components/shared/flag-entity-button";
 import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
@@ -100,7 +100,7 @@ export function FacilitiesSection({ companyId }: { companyId: string }) {
 
   return (
     <>
-      <DataTable
+      <PlatformTable
         data={data}
         columns={columns}
         isLoading={isLoading}
