@@ -12,6 +12,8 @@ import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { MaterialCriticalTags } from "@/components/shared/material-critical-tags";
 import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
+import { PageLayout } from "@/components/platform/page-layout";
+import { PageHeader } from "@/components/platform/page-header";
 import { useMaterials } from "@/lib/hooks/use-materials";
 import type { MaterialListItem } from "@/lib/types";
 import { humanize } from "@/lib/utils/format";
@@ -128,23 +130,20 @@ export default function MaterialsListPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Materials</h1>
-          <p className="text-sm text-muted-foreground">
-            Canonical material registry. Click a row to compare against its
-            HS-code mappings.
-          </p>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/data/materials/mismatches">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            All mismatched mappings
-            <ExternalLink className="h-3 w-3" />
-          </Link>
-        </Button>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Materials"
+        subtitle="Canonical material registry. Click a row to compare against its HS-code mappings."
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/data/materials/mismatches">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              All mismatched mappings
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          </Button>
+        }
+      />
 
       {anyMismatches && !filters.has_mismatched_mappings && (
         <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
@@ -193,6 +192,6 @@ export default function MaterialsListPage() {
           setPage(1);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }

@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageLayout } from "@/components/platform/page-layout";
+import { PageHeader } from "@/components/platform/page-header";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
@@ -113,25 +115,19 @@ export default function HsMappingMismatchesPage() {
   const total = data?.total ?? 0;
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div>
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/data/materials">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            All Materials
-          </Link>
-        </Button>
-      </div>
-
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Mismatched HS mappings
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Every HS-code ↔ material mapping the system has flagged as suspect.
-          Click a material to review and confirm or flag the row directly.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Mismatched HS mappings"
+        subtitle="Every HS-code ↔ material mapping the system has flagged as suspect. Click a material to review and confirm or flag the row directly."
+        actions={
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/data/materials">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              All Materials
+            </Link>
+          </Button>
+        }
+      />
 
       <div className="flex items-center gap-2">
         <SeverityToggle
@@ -163,7 +159,7 @@ export default function HsMappingMismatchesPage() {
           setPage(1);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }
 

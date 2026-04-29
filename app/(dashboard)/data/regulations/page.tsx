@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PageLayout } from "@/components/platform/page-layout";
+import { PageHeader } from "@/components/platform/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -157,14 +159,11 @@ export default function RegulationsListPage() {
   const hasFilters = filters.search || filters.status || filters.policy_theme;
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Regulations</h1>
-        <p className="text-sm text-muted-foreground">
-          Trade, environmental, and battery-policy regulations the scoring
-          engine consumes.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Regulations"
+        subtitle="Trade, environmental, and battery-policy regulations the scoring engine consumes."
+      />
 
       <DataTableToolbar
         actions={
@@ -245,6 +244,6 @@ export default function RegulationsListPage() {
           setPage(1);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }

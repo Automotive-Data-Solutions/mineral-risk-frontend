@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, ChevronRight, Flag } from "lucide-react";
 import { useState, use } from "react";
+import { PageLayout } from "@/components/platform/page-layout";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -46,24 +47,24 @@ export default function CompanyDetailPage({
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-7xl flex-col gap-4">
+      <PageLayout>
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </PageLayout>
     );
   }
 
   if (error || !company) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <PageLayout>
         <ErrorState error={error ?? new Error("Company not found")} onRetry={() => refetch()} />
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+    <PageLayout>
       <div>
         <Button asChild variant="ghost" size="sm">
           <Link href="/companies">
@@ -122,7 +123,7 @@ export default function CompanyDetailPage({
           <NotesSection companyId={id} />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageLayout>
   );
 }
 

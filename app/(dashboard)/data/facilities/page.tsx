@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PageLayout } from "@/components/platform/page-layout";
+import { PageHeader } from "@/components/platform/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/data-table/data-table";
@@ -142,14 +144,11 @@ export default function FacilitiesListPage() {
     filters.status;
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Facilities</h1>
-        <p className="text-sm text-muted-foreground">
-          Mines, refineries, cell plants, recyclers — every physical site we
-          track.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Facilities"
+        subtitle="Mines, refineries, cell plants, recyclers — every physical site we track."
+      />
 
       <DataTableToolbar
         actions={
@@ -233,6 +232,6 @@ export default function FacilitiesListPage() {
           setPage(1);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }

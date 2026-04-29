@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PageLayout } from "@/components/platform/page-layout";
+import { PageHeader } from "@/components/platform/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -138,14 +140,11 @@ export default function RiskEventsListPage() {
     filters.search || filters.event_type || filters.severity_min > 0;
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Risk Events</h1>
-        <p className="text-sm text-muted-foreground">
-          Ingested supply-chain risk signals (incidents, disruptions, policy
-          shocks, sanctions).
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Risk Events"
+        subtitle="Ingested supply-chain risk signals (incidents, disruptions, policy shocks, sanctions)."
+      />
 
       <DataTableToolbar
         actions={
@@ -224,6 +223,6 @@ export default function RiskEventsListPage() {
           setPage(1);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }

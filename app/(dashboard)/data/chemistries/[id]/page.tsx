@@ -6,6 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { ChevronLeft, Loader2, RefreshCw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { PageLayout } from "@/components/platform/page-layout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataTable } from "@/components/data-table/data-table";
@@ -58,37 +59,37 @@ export default function ChemistryDetailPage({
 
   if (!Number.isFinite(id) || id <= 0) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <PageLayout>
         <ErrorState error={new Error("Invalid chemistry id")} />
-      </div>
+      </PageLayout>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-7xl flex-col gap-4">
+      <PageLayout>
         <Skeleton className="h-6 w-32" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </PageLayout>
     );
   }
 
   if (error || !chemistry) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <PageLayout>
         <ErrorState
           error={error ?? new Error("Chemistry not found")}
           onRetry={() => refetch()}
         />
-      </div>
+      </PageLayout>
     );
   }
 
   const score = chemistry.latest_risk_score;
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+    <PageLayout>
       <div className="flex items-center justify-between gap-2">
         <Link
           href="/data/chemistries"
@@ -176,7 +177,7 @@ export default function ChemistryDetailPage({
       </div>
 
       <ActiveCompositionTable materials={chemistry.active_materials} />
-    </div>
+    </PageLayout>
   );
 }
 

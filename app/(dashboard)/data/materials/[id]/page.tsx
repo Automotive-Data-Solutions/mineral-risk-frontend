@@ -5,10 +5,11 @@ import { use, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { AlertTriangle, ArrowLeft, CheckCircle2, CheckCircle, XCircle, MinusCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { PageLayout } from "@/components/platform/page-layout";
+import { PlatformCard, PlatformCardHeader, PlatformCardBody } from "@/components/platform/platform-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { CountryFlag } from "@/components/shared/country-flag";
 import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dialog";
@@ -60,28 +61,28 @@ export default function MaterialDetailPage({
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-7xl flex-col gap-4">
+      <PageLayout>
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </PageLayout>
     );
   }
 
   if (error || !material) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <PageLayout>
         <ErrorState
           error={error ?? new Error("Material not found")}
           onRetry={() => refetch()}
         />
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+    <PageLayout>
       <div className="flex items-center justify-between gap-2">
         <Button asChild variant="ghost" size="sm">
           <Link href="/data/materials">
@@ -148,53 +149,50 @@ export default function MaterialDetailPage({
         </div>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
-        <TabsList>
-          {TABS.map((t) => (
-            <TabsTrigger key={t.value} value={t.value}>
+      {/* Tab bar — platform CSS underline style */}
+      <div className="p-tabs">
+        {TABS.map((t) => {
+          const count =
+            t.value === "mappings"
+              ? material.hs_code_mappings.length
+              : t.value === "scores"
+              ? marketScores.length
+              : null;
+          return (
+            <button
+              key={t.value}
+              className={`p-tab${tab === t.value ? " active" : ""}`}
+              onClick={() => setTab(t.value)}
+            >
               {t.label}
-              {t.value === "mappings" &&
-                material.hs_code_mappings.length > 0 && (
-                  <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-mono">
-                    {material.hs_code_mappings.length}
-                  </span>
-                )}
-              {t.value === "scores" && marketScores.length > 0 && (
-                <span className="ml-2 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-mono">
-                  {marketScores.length}
-                </span>
+              {count != null && count > 0 && (
+                <span className="p-tab-count">{count}</span>
               )}
-              {/* Note count badge is rendered inside NotesTab after fetch */}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+            </button>
+          );
+        })}
+      </div>
 
-        <TabsContent value="overview" className="mt-4">
+      <div className="mt-4">
+        {tab === "overview" && (
           <OverviewTab
             material={material}
             globalScore={globalScore}
             onJumpToMappings={() => setTab("mappings")}
           />
-        </TabsContent>
-
-        <TabsContent value="mappings" className="mt-4">
+        )}
+        {tab === "mappings" && (
           <MappingsTab
             materialId={String(material.id)}
             materialName={material.canonical_name}
             mappings={material.hs_code_mappings}
             registeredHsCodes={material.hs_codes ?? []}
           />
-        </TabsContent>
-
-        <TabsContent value="scores" className="mt-4">
-          <ScoresTab scores={marketScores} />
-        </TabsContent>
-
-        <TabsContent value="notes" className="mt-4">
-          <NotesTab materialId={String(material.id)} />
-        </TabsContent>
-      </Tabs>
-    </div>
+        )}
+        {tab === "scores" && <ScoresTab scores={marketScores} />}
+        {tab === "notes" && <NotesTab materialId={String(material.id)} />}
+      </div>
+    </PageLayout>
   );
 }
 
@@ -210,14 +208,6 @@ const TREND_CONFIG: Record<string, { label: string; color: string }> = {
   declining: { label: "Declining", color: "text-emerald-600 dark:text-emerald-400" },
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  cathode_active: "Cathode active material",
-  anode: "Anode material",
-  electrolyte: "Electrolyte component",
-  current_collector: "Current collector",
-  other: "Other",
-};
-
 function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabProps) {
   const health = material.mapping_health;
   const trend = material.patent_occurrence_trend
@@ -226,6 +216,11 @@ function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabPro
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
+      {/* ── Global risk score — first so it's immediately visible ── */}
+      {globalScore && (
+        <GlobalScoreCard score={globalScore} className="md:col-span-3" />
+      )}
+
       {/* ── Material profile ── */}
       <Card className="md:col-span-3">
         <CardHeader>
@@ -243,21 +238,18 @@ function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabPro
                 </span>
               </div>
             )}
-
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                 Category
               </div>
               <span className="text-sm">{humanize(material.category) || "—"}</span>
             </div>
-
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                 Data availability
               </div>
               <span className="text-sm">{humanize(material.data_availability) || "—"}</span>
             </div>
-
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
                 Price basis
@@ -270,7 +262,6 @@ function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabPro
                   : "—"}
               </span>
             </div>
-
             {trend && (
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
@@ -281,7 +272,6 @@ function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabPro
                 </span>
               </div>
             )}
-
             {(material.primary_producing_countries ?? []).length > 0 && (
               <div className="sm:col-span-2 lg:col-span-4">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
@@ -294,7 +284,6 @@ function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabPro
                 </div>
               </div>
             )}
-
             {material.notes && (
               <div className="sm:col-span-2 lg:col-span-4">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
@@ -320,37 +309,48 @@ function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabPro
               Not used by any catalogued battery chemistry.
             </p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {material.chemistry_uses.map((u) => (
-                <div
-                  key={u.id}
-                  className="flex flex-col gap-1.5 rounded-md border bg-background px-3 py-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="text-sm font-medium leading-tight">
-                      {u.chemistry_name ?? u.chemistry_slug ?? `Chemistry #${u.battery_chemistry_id}`}
-                    </span>
-                    <ConfidenceBadge value={u.intensity} className="shrink-0" />
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {ROLE_LABELS[u.role] ?? humanize(u.role)}
-                  </div>
-                  {u.is_substitutable && (
-                    <div className="text-xs text-muted-foreground italic">
-                      Substitutable
+            <>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {material.chemistry_uses.map((u) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-3"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-medium leading-tight">
+                        {u.chemistry_name ? u.chemistry_name.split(" ")[0] : u.chemistry_slug?.toUpperCase() ?? `#${u.battery_chemistry_id}`}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {humanize(u.role)}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                      <span
+                        style={{
+                          fontFamily: "var(--p-font-mono)",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "var(--p-text)",
+                        }}
+                      >
+                        {u.intensity.toFixed(2)}
+                      </span>
+                      {u.is_substitutable && (
+                        <span style={{ fontSize: 10, color: "var(--p-text-faint)" }}>
+                          substitutable
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Intensity is the relative material weight fraction within each chemistry formulation (0–1 scale; values above 1 indicate a data entry issue in the source).
+              </p>
+            </>
           )}
         </CardContent>
       </Card>
-
-      {/* ── Global risk score ── */}
-      {globalScore && (
-        <GlobalScoreCard score={globalScore} className="md:col-span-3" />
-      )}
 
       {/* ── HS-mapping health ── */}
       <MappingHealthCard health={health} onClick={onJumpToMappings} />
@@ -409,53 +409,87 @@ interface GlobalScoreCardProps {
   className?: string;
 }
 
-const GLOBAL_PILLARS: { key: keyof MaterialGlobalScoreRead; label: string }[] =
-  [
-    { key: "material_concentration_score", label: "Mat. concentration" },
-    { key: "geopolitical_trade_score", label: "Geopolitical" },
-    { key: "regulatory_compliance_score", label: "Regulatory" },
-    { key: "operational_score", label: "Operational" },
-    { key: "financial_pressure_score", label: "Financial pressure" },
-  ];
+const GLOBAL_PILLARS: {
+  key: keyof MaterialGlobalScoreRead;
+  label: string;
+  pillarClass: string;
+  colorVar: string;
+}[] = [
+  {
+    key: "material_concentration_score",
+    label: "Mat. Concentration",
+    pillarClass: "p-pillar-material",
+    colorVar: "var(--p-pillar-material)",
+  },
+  {
+    key: "geopolitical_trade_score",
+    label: "Geopolitical",
+    pillarClass: "p-pillar-geo",
+    colorVar: "var(--p-pillar-geo)",
+  },
+  {
+    key: "regulatory_compliance_score",
+    label: "Regulatory",
+    pillarClass: "p-pillar-regulatory",
+    colorVar: "var(--p-pillar-regulatory)",
+  },
+  {
+    key: "operational_score",
+    label: "Operational",
+    pillarClass: "p-pillar-operational",
+    colorVar: "var(--p-pillar-operational)",
+  },
+  {
+    key: "financial_pressure_score",
+    label: "Financial Pressure",
+    pillarClass: "p-pillar-financial",
+    colorVar: "var(--p-pillar-financial)",
+  },
+];
 
 function GlobalScoreCard({ score, className }: GlobalScoreCardProps) {
   return (
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-base">Global risk score</CardTitle>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>
-            {score.trade_weighted_geo_count} geograph
-            {score.trade_weighted_geo_count === 1 ? "y" : "ies"} weighted
-          </span>
-          <span>·</span>
-          <span>as of {formatDate(score.as_of_date)}</span>
+        <div className="text-xs text-muted-foreground">
+          {score.trade_weighted_geo_count} geograph
+          {score.trade_weighted_geo_count === 1 ? "y" : "ies"} weighted · as of{" "}
+          {formatDate(score.as_of_date)}
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
-          <div className="sm:col-span-1 flex flex-col items-start justify-center rounded-md border bg-muted/40 px-3 py-3">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-              Overall
+        {/* Uses platform CSS: p-score-grid, p-score-cell, p-score-cell-label,
+            p-score-cell-value, p-pillar-strip + p-pillar-* colour classes */}
+        <div className="p-score-grid">
+          {/* Overall score — highlighted cell */}
+          <div className="p-score-cell overall">
+            <div className="p-score-cell-label">Overall</div>
+            <div className="p-score-cell-value">
+              {score.overall_risk_score != null
+                ? score.overall_risk_score.toFixed(1)
+                : "—"}
             </div>
-            <ConfidenceBadge
-              value={score.overall_risk_score}
-              className="text-base px-2 py-1"
+            {/* Neutral bar for overall */}
+            <div
+              className="p-pillar-strip"
+              style={{ background: "var(--p-accent)", opacity: 0.6 }}
             />
           </div>
-          {GLOBAL_PILLARS.map((p) => (
-            <div
-              key={p.key}
-              className="flex flex-col items-start justify-center rounded-md border bg-background px-3 py-3"
-            >
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                {p.label}
+
+          {/* One cell per pillar */}
+          {GLOBAL_PILLARS.map((p) => {
+            const raw = score[p.key] as number | null | undefined;
+            return (
+              <div key={p.key} className="p-score-cell">
+                <div className="p-score-cell-label">{p.label}</div>
+                <div className="p-score-cell-value">
+                  {raw != null ? Math.round(raw) : "—"}
+                </div>
+                <div className={`p-pillar-strip ${p.pillarClass}`} />
               </div>
-              <ConfidenceBadge
-                value={score[p.key] as number | null}
-              />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
@@ -703,33 +737,48 @@ interface ScoresTabProps {
   scores: MaterialGeographyScoreRead[];
 }
 
-const PILLAR_COLS: {
+const SCORE_PILLAR_COLS: {
   key: keyof MaterialGeographyScoreRead;
-  label: string;
-  short: string;
+  header: string;
 }[] = [
-  {
-    key: "material_concentration_score",
-    label: "Material concentration",
-    short: "Mat. conc.",
-  },
-  {
-    key: "geopolitical_trade_score",
-    label: "Geopolitical / trade",
-    short: "Geopolitical",
-  },
-  {
-    key: "regulatory_compliance_score",
-    label: "Regulatory compliance",
-    short: "Regulatory",
-  },
-  { key: "operational_score", label: "Operational", short: "Operational" },
-  {
-    key: "financial_pressure_score",
-    label: "Financial pressure",
-    short: "Financial",
-  },
+  { key: "material_concentration_score", header: "Mat. Conc." },
+  { key: "geopolitical_trade_score",      header: "Geopolitical" },
+  { key: "regulatory_compliance_score",   header: "Regulatory" },
+  { key: "operational_score",             header: "Operational" },
+  { key: "financial_pressure_score",      header: "Financial" },
 ];
+
+/** Shared country pill — same style as the concentration pills in the dashboard */
+function CountryPill({ code }: { code: string }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "2px 6px",
+        background: "var(--p-bg-subtle)",
+        border: "1px solid var(--p-border)",
+        borderRadius: "var(--p-radius-sm)",
+        fontSize: 12,
+        whiteSpace: "nowrap",
+        lineHeight: 1.4,
+      }}
+    >
+      <CountryFlag code={code} showCode={false} showTooltip={false} />
+      <span style={{ fontFamily: "var(--p-font-mono)", fontWeight: 500, color: "var(--p-text)" }}>
+        {code.toUpperCase()}
+      </span>
+    </span>
+  );
+}
+
+/** Risk tier helper — mirrors the dashboard */
+function scoreTier(s: number): "high" | "med" | "low" {
+  if (s >= 70) return "high";
+  if (s >= 40) return "med";
+  return "low";
+}
 
 function ScoresTab({ scores }: ScoresTabProps) {
   const sorted = useMemo(
@@ -740,81 +789,110 @@ function ScoresTab({ scores }: ScoresTabProps) {
     [scores],
   );
 
-  const columns = useMemo<ColumnDef<MaterialGeographyScoreRead, unknown>[]>(
-    () => [
-      {
-        accessorKey: "geography_code",
-        header: "Country",
-        cell: ({ row }) => (
-          <CountryFlag code={row.original.geography_code} />
-        ),
-      },
-      {
-        accessorKey: "overall_risk_score",
-        header: () => <div className="text-right">Overall</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-end">
-            <ConfidenceBadge value={row.original.overall_risk_score} />
-          </div>
-        ),
-      },
-      ...PILLAR_COLS.map((col) => ({
-        accessorKey: col.key,
-        header: () => <div className="text-right">{col.short}</div>,
-        cell: ({ row }: { row: { original: MaterialGeographyScoreRead } }) => (
-          <div className="flex justify-end">
-            <ConfidenceBadge
-              value={row.original[col.key] as number | null}
-            />
-          </div>
-        ),
-      })),
-      {
-        accessorKey: "event_count",
-        header: () => <div className="text-right">Events</div>,
-        cell: ({ row }) => (
-          <div className="text-right font-mono text-sm text-muted-foreground">
-            {row.original.event_count}
-          </div>
-        ),
-      },
-      {
-        accessorKey: "as_of_date",
-        header: () => <div className="text-right">As of</div>,
-        cell: ({ row }) => (
-          <div className="text-right text-xs text-muted-foreground">
-            {formatDate(row.original.as_of_date)}
-          </div>
-        ),
-      },
-    ],
-    [],
-  );
+  const TH_STYLE: React.CSSProperties = {
+    padding: "8px 16px",
+    textAlign: "left",
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    color: "var(--p-text-muted)",
+    whiteSpace: "nowrap",
+    borderBottom: "1px solid var(--p-border)",
+    background: "var(--p-bg-subtle)",
+  };
+
+  const TD_STYLE: React.CSSProperties = {
+    padding: "11px 16px",
+    borderBottom: "1px solid var(--p-rule)",
+    fontSize: 13,
+  };
 
   if (scores.length === 0) {
     return (
-      <Card>
-        <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          No market scores have been computed for this material yet. Run the
-          scoring job to populate country-level risk data.
-        </CardContent>
-      </Card>
+      <PlatformCard>
+        <PlatformCardHeader
+          title="Country-level risk scores"
+          subtitle="Sorted by overall risk descending"
+        />
+        <PlatformCardBody>
+          <p style={{ fontSize: 13, color: "var(--p-text-muted)", textAlign: "center", padding: "24px 0" }}>
+            No market scores have been computed for this material yet.
+          </p>
+        </PlatformCardBody>
+      </PlatformCard>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">
-        Country-level risk scores broken down by pillar. Higher scores indicate
-        greater risk. Sorted by overall risk descending.
-      </p>
-      <DataTable
-        data={sorted}
-        columns={columns}
-        emptyTitle="No scores"
-        emptyDescription="Run the scoring job to generate country-level scores."
+    <PlatformCard>
+      <PlatformCardHeader
+        title="Country-level risk scores"
+        subtitle="Sorted by overall risk descending"
       />
-    </div>
+      <PlatformCardBody noPadding>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={TH_STYLE}>Country</th>
+              <th style={TH_STYLE}>Overall</th>
+              {SCORE_PILLAR_COLS.map((c) => (
+                <th key={c.key} style={{ ...TH_STYLE, textAlign: "right" }}>
+                  {c.header}
+                </th>
+              ))}
+              <th style={{ ...TH_STYLE, textAlign: "right" }}>Events</th>
+              <th style={{ ...TH_STYLE, textAlign: "right" }}>As of</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((row) => {
+              const overall = row.overall_risk_score;
+              const tier = overall != null ? scoreTier(overall) : null;
+              return (
+                <tr key={row.id ?? row.geography_code}>
+                  <td style={TD_STYLE}>
+                    <CountryPill code={row.geography_code} />
+                  </td>
+                  <td style={TD_STYLE}>
+                    {overall != null && tier ? (
+                      <span className={`p-score p-score-${tier}`}>
+                        <span className={`p-score-dot p-dot-${tier}`} />
+                        {overall.toFixed(1)}
+                      </span>
+                    ) : (
+                      <span style={{ color: "var(--p-text-faint)", fontSize: 12 }}>—</span>
+                    )}
+                  </td>
+                  {SCORE_PILLAR_COLS.map((c) => {
+                    const val = row[c.key] as number | null | undefined;
+                    return (
+                      <td
+                        key={c.key}
+                        style={{
+                          ...TD_STYLE,
+                          textAlign: "right",
+                          fontVariantNumeric: "tabular-nums",
+                          color: val != null ? "var(--p-text)" : "var(--p-text-faint)",
+                        }}
+                      >
+                        {val != null ? Math.round(val) : "—"}
+                      </td>
+                    );
+                  })}
+                  <td style={{ ...TD_STYLE, textAlign: "right", fontFamily: "var(--p-font-mono)", color: "var(--p-text-muted)" }}>
+                    {row.event_count ?? 0}
+                  </td>
+                  <td style={{ ...TD_STYLE, textAlign: "right", fontSize: 12, color: "var(--p-text-muted)" }}>
+                    {formatDate(row.as_of_date)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </PlatformCardBody>
+    </PlatformCard>
   );
 }
 

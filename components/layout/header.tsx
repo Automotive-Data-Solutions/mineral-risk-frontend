@@ -1,20 +1,35 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
-import { MobileSidebarMenu } from "@/components/layout/sidebar";
+import { Bell, Search } from "lucide-react";
+import { Breadcrumbs } from "@/components/platform/breadcrumbs";
 
 export function Header() {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background px-4 lg:px-6">
-      <div className="flex items-center gap-2">
-        <MobileSidebarMenu />
-        <div className="text-sm text-muted-foreground">
-          Battery Supply Chain Risk Intelligence
-        </div>
+    <div className="p-topbar">
+      {/* Left: breadcrumb trail */}
+      <Breadcrumbs />
+
+      {/* Center: search */}
+      <div className="p-topbar-search">
+        <Search className="p-search-icon" aria-hidden />
+        <input
+          type="search"
+          placeholder="Search materials, companies, regulations…"
+          aria-label="Search"
+        />
       </div>
-      <div className="flex items-center gap-3">
-        <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />
+
+      {/* Right: actions */}
+      <div className="p-topbar-actions">
+        <button
+          className="flex h-8 w-8 items-center justify-center rounded-md text-[color:var(--p-text-muted)] transition-colors hover:bg-[color:var(--p-bg-muted)] hover:text-[color:var(--p-text)]"
+          title="Notifications"
+          aria-label="Notifications"
+        >
+          <Bell size={16} />
+        </button>
+        <span className="p-kbd">⌘K</span>
       </div>
-    </header>
+    </div>
   );
 }

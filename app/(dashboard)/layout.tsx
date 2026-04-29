@@ -1,14 +1,15 @@
-import { Header } from "@/components/layout/header";
+import "@/app/platform.css";
 import { Sidebar } from "@/components/layout/sidebar";
+import { Header } from "@/components/layout/header";
 import type { ReactNode } from "react";
 
 export default function DashboardGroupLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen">
+    <div className="mra-platform">
       <Sidebar />
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="p-main">
         <Header />
-        <main className="flex-1 overflow-y-auto bg-muted/20 p-4 lg:p-6">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

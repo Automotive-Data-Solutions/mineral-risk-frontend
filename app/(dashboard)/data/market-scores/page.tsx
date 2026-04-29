@@ -5,12 +5,14 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Loader2, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { PageLayout } from "@/components/platform/page-layout";
+import { PageHeader } from "@/components/platform/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DataTable } from "@/components/data-table/data-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import { DataTableToolbar } from "@/components/data-table/toolbar";
-import { ConfidenceBadge } from "@/components/shared/confidence-badge";
+import { ScoreChip } from "@/components/platform/score-chip";
 import {
   useMarketScores,
   useRescoreMarket,
@@ -130,7 +132,7 @@ export default function MarketScoresPage() {
         header: () => <div className="text-right">Overall</div>,
         cell: ({ row }) => (
           <div className="flex justify-end">
-            <ConfidenceBadge value={row.original.overall_risk_score} />
+            <ScoreChip score={row.original.overall_risk_score} />
           </div>
         ),
       },
@@ -221,16 +223,11 @@ export default function MarketScoresPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Market Risk Scores
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Latest material × geography risk surface. One row per active
-          (material, geography) pair.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Market Risk Scores"
+        subtitle="Latest material × geography risk surface. One row per active (material, geography) pair."
+      />
 
       <DataTableToolbar
         actions={
@@ -310,6 +307,6 @@ export default function MarketScoresPage() {
           setPage(1);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }

@@ -114,7 +114,55 @@ export interface EntityNoteCreate {
 // Dashboard
 // ---------------------------------------------------------------------------
 
-export type DashboardOverview = Schemas["DashboardOverview"];
+export interface ProductionCountryItem {
+  code: string;
+  share_pct: number;
+}
+export interface TopMaterialRisk {
+  material_id: number;
+  canonical_name: string;
+  symbol_or_code: string | null;
+  category: string | null;
+  overall_risk_score: number;
+  top_countries: ProductionCountryItem[];
+  trend: string | null;
+  as_of_date: string;
+}
+export interface PillarProgress {
+  name: string;
+  label: string;
+  signal_pct: number;   // % pairs with score > 0 (actual data driving it)
+  computed_pct: number; // % pairs with non-null score (includes floor zeros)
+}
+export interface ScoreRunProgress {
+  last_run_date: string | null;
+  valid_geographies: number;   // distinct geos with event_count > 0
+  valid_materials: number;     // distinct materials with event_count > 0
+  scored_geographies: number;
+  scored_materials: number;
+  total_geographies: number;
+  total_materials: number;
+  pillars: PillarProgress[];
+}
+export interface RecentNoteItem {
+  entity_type: string;
+  entity_id: string;
+  entity_name: string | null;
+  note_type: string;
+  note_text: string;
+  created_at: string;
+}
+
+// Extended until api.ts is regenerated after new dashboard fields are deployed
+export type DashboardOverview = Schemas["DashboardOverview"] & {
+  material_count_total?: number;
+  material_count_this_quarter?: number;
+  suspect_mappings_count?: number;
+  recent_notes_entity_count_7d?: number;
+  top_materials_by_risk?: TopMaterialRisk[];
+  score_run_progress?: ScoreRunProgress | null;
+  recent_activity?: RecentNoteItem[];
+};
 export type StageCount = Schemas["StageCount"];
 export type ConfidenceBucket = Schemas["ConfidenceBucket"];
 
