@@ -23,6 +23,7 @@ import { VehicleModelsSection } from "@/components/company/sections/vehicle-mode
 import { NotesSection } from "@/components/company/sections/notes-section";
 import { FlagIssueDialog } from "@/components/company/flag-issue-dialog";
 import { useCompany, useCompanyAllNotes } from "@/lib/hooks/use-companies";
+import { useBreadcrumbLabel } from "@/components/platform/breadcrumb-context";
 
 const TABS = [
   { value: "exposures", label: "Exposures" },
@@ -44,6 +45,9 @@ export default function CompanyDetailPage({
   const { id } = use(params);
   const { data: company, isLoading, error, refetch } = useCompany(id);
   const [tab, setTab] = useState<TabValue>("exposures");
+
+  // Register the company name so the breadcrumb shows the name instead of the ID
+  useBreadcrumbLabel(id, company?.canonical_name);
 
   if (isLoading) {
     return (

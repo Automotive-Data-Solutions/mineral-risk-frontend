@@ -38,6 +38,7 @@ import type {
   MaterialGlobalScoreRead,
 } from "@/lib/types";
 import { formatDate, formatDateTime, formatRelative, humanize, NOTE_TYPE_BADGE, NOTE_TYPE_LABEL } from "@/lib/utils/format";
+import { useBreadcrumbLabel } from "@/components/platform/breadcrumb-context";
 
 const TABS = [
   { value: "overview", label: "Overview" },
@@ -58,6 +59,9 @@ export default function MaterialDetailPage({
   const { data: globalScore = null } = useMaterialGlobalScore(id);
   const { data: marketScores = [] } = useMaterialMarketScores(id);
   const [tab, setTab] = useState<TabValue>("overview");
+
+  // Register the material name so the breadcrumb shows "Lithium" instead of "42"
+  useBreadcrumbLabel(id, material?.canonical_name);
 
   const verifyMutation = useToggleMaterialVerified({
     invalidateKeys: [[...materialQueryKeys.detail(id)]],

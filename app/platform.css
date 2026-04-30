@@ -283,6 +283,27 @@
   flex-shrink: 0;
 }
 
+.mra-platform .p-crumbs .p-crumb-skeleton {
+  display: inline-block;
+  width: 72px;
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--p-bg-muted) 25%,
+    var(--p-border-strong) 50%,
+    var(--p-bg-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: p-shimmer 1.4s ease infinite;
+  vertical-align: middle;
+}
+
+@keyframes p-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
 .mra-platform .p-crumbs .p-crumb-sep {
   color: var(--p-text-faint);
 }

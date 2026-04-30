@@ -22,6 +22,7 @@ import type {
   ChemistryRiskScoreRead,
 } from "@/lib/types";
 import { formatDate, humanize } from "@/lib/utils/format";
+import { useBreadcrumbLabel } from "@/components/platform/breadcrumb-context";
 
 function formatScore(value: number | null | undefined): string {
   if (value == null || Number.isNaN(value)) return "—";
@@ -56,6 +57,9 @@ export default function ChemistryDetailPage({
   const { data: history = [], isLoading: historyLoading } =
     useChemistryRiskHistory(id);
   const rescore = useRescoreChemistry(id);
+
+  // Register the chemistry name so the breadcrumb shows the name instead of the ID
+  useBreadcrumbLabel(idParam, chemistry?.name);
 
   if (!Number.isFinite(id) || id <= 0) {
     return (

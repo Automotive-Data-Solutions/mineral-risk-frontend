@@ -2,55 +2,53 @@
 
 import { usePathname } from "next/navigation";
 import { Fragment } from "react";
+import { useBreadcrumbContext } from "@/components/platform/breadcrumb-context";
 
-// Map path segments to human-readable labels.
-// Dynamic segments (e.g. [id]) fall back to the raw segment value.
+// Static labels for known route segments.
+// Dynamic segments (numeric IDs, slugs) fall back to the context or raw value.
 const SEGMENT_LABELS: Record<string, string> = {
-  dashboard: "Overview",
-  companies: "Companies",
-  data: "Data",
-  materials: "Materials",
-  mismatches: "Mismatches",
-  chemistries: "Chemistries",
-  facilities: "Facilities",
-  "market-scores": "Market Scores",
-  regulations: "Regulations",
-  "risk-events": "Risk Events",
-  admin: "Admin",
-  scoring: "Scoring",
-  ingestion: "Ingestion",
-  "seed-review": "Seed Review",
-  reports: "Reports",
-  new: "New Report",
-  scores: "Risk Scores",
+  dashboard:      "Overview",
+  companies:      "Companies",
+  materials:      "Materials",
+  mismatches:     "Mismatches",
+  chemistries:    "Chemistries",
+  facilities:     "Facilities",
+  "market-scores":"Market Scores",
+  regulations:    "Regulations",
+  "risk-events":  "Risk Events",
+  admin:          "Admin",
+  scoring:        "Scoring",
+  ingestion:      "Ingestion",
+  "seed-review":  "Seed Review",
+  reports:        "Reports",
+  new:            "New Report",
+  scores:         "Risk Scores",
 };
 
-// Section groupings — shown as intermediate crumbs before the segment label.
-const SECTION_PREFIXES: Record<string, string> = {
-  data: "Supply Chain",
-};
+// Segments that are pure grouping prefixes in the URL (/data/materials) but
+// don't represent a navigable page. They are silently skipped.
+const SKIP_SEGMENTS = new Set(["data"]);
 
-function labelFor(segment: string): string {
-  return SEGMENT_LABELS[segment] ?? segment;
+interface Crumb {
+  label: string | null; // null = pending skeleton
 }
 
 export function Breadcrumbs() {
   const pathname = usePathname();
-  // Build crumb list: always start with brand root
-  const crumbs: string[] = ["Mineral Risk Analytics"];
+  const { labels: contextLabels, pendingSegments } = useBreadcrumbContext();
+
+  const crumbs: Crumb[] = [{ label: "Mineral Risk Analytics" }];
 
   const segments = pathname.split("/").filter(Boolean);
 
-  // Inject section heading if the first meaningful segment is in SECTION_PREFIXES
-  if (segments[0] != null && SECTION_PREFIXES[segments[0]] != null) {
-    crumbs.push(SECTION_PREFIXES[segments[0]]!);
-  }
-
   segments.forEach((seg) => {
-    const label = labelFor(seg);
-    // Skip the "data" segment itself — it's only used for the section prefix
-    if (seg === "data") return;
-    crumbs.push(label);
+    if (SKIP_SEGMENTS.has(seg)) return;
+    if (pendingSegments.has(seg)) {
+      crumbs.push({ label: null }); // render as skeleton
+    } else {
+      const label = contextLabels[seg] ?? SEGMENT_LABELS[seg] ?? seg;
+      crumbs.push({ label });
+    }
   });
 
   return (
@@ -58,9 +56,13 @@ export function Breadcrumbs() {
       {crumbs.map((crumb, i) => (
         <Fragment key={i}>
           {i > 0 && <span className="p-crumb-sep">/</span>}
-          <span className={i === crumbs.length - 1 ? "p-crumb-here" : ""}>
-            {crumb}
-          </span>
+          {crumb.label === null ? (
+            <span className="p-crumb-skeleton" aria-hidden />
+          ) : (
+            <span className={i === crumbs.length - 1 ? "p-crumb-here" : ""}>
+              {crumb.label}
+            </span>
+          )}
         </Fragment>
       ))}
     </div>
