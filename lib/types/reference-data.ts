@@ -44,18 +44,54 @@ export interface MaterialListItem {
 /**
  * One row from `material_criticality_signals`.
  * Source hierarchy: eu_crma > iea_report > usgs_mcs > manual > patstat
+ *
+ * All eight signal columns plus ``metadata_json`` and ``created_at`` are
+ * exposed by the API (May 2026).  Use them to drive the Overview tab's
+ * supply-side / price-trend stat strip without hitting any other endpoint.
  */
 export interface MaterialCriticalitySignal {
   id: number;
   /** "usgs_mcs" | "eu_crma" | "iea_report" | "manual" | "patstat" */
   source: string;
   reference_year: number;
+
+  // ── Concentration / criticality ──────────────────────────────────────
   /** Normalised 0..1. For usgs_mcs equals normalised HHI. */
   criticality_score: number | null;
-  /** "rising" | "declining" | "stable" */
+  /** "rising" | "declining" | "stable" — denormalized cache. */
   trend_direction: string | null;
-  /** Raw HHI 0..1 (Σ share_i²). Multiply by 10 000 for traditional 0–10 000 scale. */
+  /** Raw HHI 0..1 (Σ share_i²) on production shares. */
   hhi_score: number | null;
+
+  // ── Supply metrics (migration 019) ───────────────────────────────────
+  /** HHI 0..1 over country reserve distribution. Forward-looking concentration. */
+  reserve_hhi_score: number | null;
+  /** Years of supply at current production rate (world reserves / world annual). */
+  reserve_life_index: number | null;
+  /** Signed fraction YoY change in world production (e.g. -0.05 = -5%). */
+  production_yoy_pct: number | null;
+  /** Production / capacity 0..1. NULL when MCS doesn't publish capacity. */
+  capacity_utilization: number | null;
+
+  // ── Price-trend metrics (migration 036) ──────────────────────────────
+  /** Signed fraction YoY price change (e.g. 1.44 = +144%). Sourced from MCS Fig 10. */
+  price_yoy_pct: number | null;
+  /** Signed fraction 5-year CAGR of price. */
+  price_cagr_5yr_pct: number | null;
+
+  // ── US-dependency metrics (migration 038, promoted from metadata_json) ─
+  /** USGS Net Import Reliance % (0..100). Bounded estimates stored as midpoints. */
+  us_net_import_reliance_pct: number | null;
+  /** US apparent consumption volume (latest year, source unit). */
+  us_apparent_consumption: number | null;
+
+  /**
+   * Source-specific extras still living in JSONB.  Common keys:
+   *   ``mcs_publication_year``: number
+   *   ``fig10_source_rows``: string[]
+   */
+  metadata_json: Record<string, unknown> | null;
+  created_at: string;
 }
 
 /**
@@ -133,7 +169,10 @@ export type HsMappingMismatchReason =
  *
  * Stored columns (from the live DB):
  *   id (serial PK), hs_code_prefix (varchar), material_id (int FK→materials),
- *   description (varchar 512), confidence (double precision), created_at (timestamptz)
+ *   description (varchar 512), confidence (double precision),
+ *   supply_chain_stage (varchar 16), stage_sequence (smallint),
+ *   digit_count (smallint), market_scope (varchar 8),
+ *   keywords (jsonb array), created_at (timestamptz)
  */
 export interface HsCodeMaterialMappingRead {
   id: number;
@@ -151,6 +190,27 @@ export interface HsCodeMaterialMappingRead {
   description: string | null;
   /** 0..1 mapping confidence. */
   confidence: number | null;
+  /**
+   * Supply-chain stage assignment from seed_hs_mappings. One of
+   * ``ore | concentrate | intermediate | refined | battery_grade |
+   * fabricated | scrap`` or null when not yet assigned.
+   */
+  supply_chain_stage: string | null;
+  /**
+   * Numeric ordering of the stage (1=ore … 7=scrap). Used by the
+   * frontend to sort stage groupings without re-encoding the order.
+   */
+  stage_sequence: number | null;
+  /** 4 | 6 | 8 | 10 — precision of the prefix. */
+  digit_count: number;
+  /** ``"global"`` (4/6-digit WCO) or ``"us"`` (10-digit US HTS) or ``"eu"``. */
+  market_scope: string;
+  /**
+   * Partner-curated compound/trade-name aliases used by the resolver for
+   * event attribution (e.g. ``["bauxite", "aluminum ore"]`` for HS 2606).
+   * Null means not yet seeded — treat as empty.
+   */
+  keywords: string[] | null;
   created_at: string;
   /**
    * Server-derived (NOT a stored column). Computed by the FastAPI route and
@@ -248,6 +308,62 @@ export interface MaterialGeographyScoreRead {
   scoring_version: string;
   /** ISO datetime. */
   created_at: string;
+}
+
+/**
+ * Single-pair detail view — includes rationale_json for evidence display.
+ * Returned by GET /materials/{id}/market-scores/{geography_code}.
+ */
+export interface MaterialGeographyScoreDetail extends MaterialGeographyScoreRead {
+  rationale_json: {
+    run_id?: string;
+    scoring_version?: string;
+    as_of_date?: string;
+    criticality_signal?: {
+      source?: string | null;
+      reference_year?: number | null;
+      criticality_score?: number | null;
+      hhi_score?: number | null;
+    };
+    sub_inputs?: {
+      material?: {
+        criticality?: number;
+        concentration?: number;
+        trade_volatility?: number;
+        stage_rollup_method?: string;
+        stage_rollup_count?: number;
+      };
+      geopolitical?: {
+        country_concentration?: number;
+        export_restriction_exposure?: number;
+        tariff_exposure?: number;
+      };
+      regulatory?: {
+        top_event_count?: number;
+        scope_obligations?: number;
+        policy_proximity_adjustment?: number;
+      };
+      operational?: {
+        structural_dependency?: number;
+        structural_dependency_source?: string;
+        event_impact_count?: number;
+      };
+      financial_pressure?: {
+        base_filing_signal?: number;
+        leverage_warning_bonus?: number;
+        liquidity_stress_bonus?: number;
+        evidence_count?: number;
+        sec_edgar_company_signal?: Record<string, unknown>;
+      };
+    };
+    pillar_scores?: Record<string, number>;
+    weights_used?: Record<string, number>;
+    event_counts?: {
+      trade_events?: number;
+      operational_events?: number;
+    };
+    notes?: string;
+  } | null;
 }
 
 /**

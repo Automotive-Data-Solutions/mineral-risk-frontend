@@ -7,7 +7,7 @@ import {
   type ColumnDef,
   type RowData,
 } from "@tanstack/react-table";
-import type { CSSProperties, ReactNode } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
@@ -60,6 +60,14 @@ export interface PlatformTableProps<TData extends RowData> {
   tableSubtitle?: ReactNode;
   /** Zebra-striped body rows. Default true */
   striped?: boolean;
+  /**
+   * When provided, a full-width sub-row is rendered below each row for which
+   * `isRowExpanded` returns true.  Requires `onRowClick` to be wired to toggle
+   * the expanded state in the parent.
+   */
+  renderSubComponent?: (row: TData) => ReactNode;
+  /** Called per-row to decide whether the sub-component is visible. */
+  isRowExpanded?: (row: TData) => boolean;
 }
 
 /** Dashboard register-style data table — slate header, zebra rows, optional title block */
@@ -79,6 +87,8 @@ export function PlatformTable<TData extends RowData>({
   tableTitle,
   tableSubtitle,
   striped = true,
+  renderSubComponent,
+  isRowExpanded,
 }: PlatformTableProps<TData>) {
   const table = useReactTable({
     data,
@@ -146,23 +156,38 @@ export function PlatformTable<TData extends RowData>({
                 </tr>
               ))
             ) : table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-                  className={cn(
-                    striped && row.index % 2 === 1 && "bg-muted/25 dark:bg-muted/15",
-                    onRowClick &&
-                      "cursor-pointer hover:bg-muted/40 dark:hover:bg-muted/25",
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className={tdClasses()}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              table.getRowModel().rows.map((row) => {
+                const expanded = isRowExpanded ? isRowExpanded(row.original) : false;
+                return (
+                  <Fragment key={row.id}>
+                    <tr
+                      onClick={onRowClick ? () => onRowClick(row.original) : undefined}
+                      className={cn(
+                        striped && row.index % 2 === 1 && "bg-muted/25 dark:bg-muted/15",
+                        onRowClick &&
+                          "cursor-pointer hover:bg-muted/40 dark:hover:bg-muted/25",
+                        expanded && "bg-muted/30 dark:bg-muted/20",
+                      )}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className={tdClasses()}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                    {expanded && renderSubComponent && (
+                      <tr>
+                        <td
+                          colSpan={columns.length}
+                          className="border-b border-border/70 bg-muted/10 px-0 py-0 dark:border-border/50"
+                        >
+                          {renderSubComponent(row.original)}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={colCount} className="p-0">

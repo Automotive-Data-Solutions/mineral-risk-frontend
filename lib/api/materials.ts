@@ -191,3 +191,26 @@ export async function getMaterialMarketScores(
   );
   return data ?? [];
 }
+
+export async function getMaterialMarketScoreDetail(
+  client: ApiClient,
+  materialId: string,
+  geoCode: string,
+): Promise<import("@/lib/types").MaterialGeographyScoreDetail | null> {
+  try {
+    const { data } = await client.get<import("@/lib/types").MaterialGeographyScoreDetail>(
+      `/api/v1/materials/${materialId}/market-scores/${geoCode}`,
+    );
+    return data;
+  } catch (err: unknown) {
+    if (
+      err != null &&
+      typeof err === "object" &&
+      "response" in err &&
+      (err as { response?: { status?: number } }).response?.status === 404
+    ) {
+      return null;
+    }
+    throw err;
+  }
+}

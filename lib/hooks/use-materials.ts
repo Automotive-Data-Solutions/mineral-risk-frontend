@@ -11,6 +11,7 @@ import {
   getMaterialGlobalScore,
   getMaterialHsCodeMappings,
   getMaterialMarketScores,
+  getMaterialMarketScoreDetail,
   getMaterials,
   type HsCodeMappingMismatchParams,
   type MaterialHsCodeMappingsParams,
@@ -20,6 +21,7 @@ import type {
   HsCodeMappingMismatchListResponse,
   HsCodeMaterialMappingRead,
   MaterialDetail,
+  MaterialGeographyScoreDetail,
   MaterialGeographyScoreRead,
   MaterialGlobalScoreRead,
   MaterialListResponse,
@@ -38,6 +40,8 @@ export const materialQueryKeys = {
     [...materialQueryKeys.detail(id), "global-score"] as const,
   marketScores: (id: string) =>
     [...materialQueryKeys.detail(id), "market-scores"] as const,
+  marketScoreDetail: (id: string, geoCode: string) =>
+    [...materialQueryKeys.detail(id), "market-scores", geoCode] as const,
   mismatches: (params: HsCodeMappingMismatchParams) =>
     [...materialQueryKeys.all, "mismatches", params] as const,
 };
@@ -82,6 +86,24 @@ export function useMaterialMarketScores(id: string) {
     queryKey: materialQueryKeys.marketScores(id),
     queryFn: () => getMaterialMarketScores(client, id),
     enabled: Boolean(id),
+  });
+}
+
+/**
+ * Lazily fetches the detail row (with rationale_json) for a single
+ * material × geography pair.  Only fires when `geoCode` is non-null —
+ * pass null to keep the query idle (i.e. before a row is expanded).
+ */
+export function useMaterialMarketScoreDetail(
+  materialId: string,
+  geoCode: string | null,
+) {
+  const client = useApiClient();
+  return useQuery<MaterialGeographyScoreDetail | null>({
+    queryKey: materialQueryKeys.marketScoreDetail(materialId, geoCode ?? ""),
+    queryFn: () => getMaterialMarketScoreDetail(client, materialId, geoCode!),
+    enabled: Boolean(materialId) && Boolean(geoCode),
+    staleTime: 5 * 60 * 1000, // 5 min — rationale rarely changes within a session
   });
 }
 

@@ -67,6 +67,7 @@ export type {
   ChemistryMaterialRead,
   ChemistryDetailRead,
   MaterialGeographyScoreRead,
+  MaterialGeographyScoreDetail,
   MaterialGlobalScoreRead,
   RescoredResult,
   FacilityListItem,

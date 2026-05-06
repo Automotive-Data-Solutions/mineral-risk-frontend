@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { use, useMemo, useState } from "react";
-import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowLeft, CheckCircle2, CheckCircle, XCircle, MinusCircle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PageLayout } from "@/components/platform/page-layout";
 import { PlatformCard, PlatformCardHeader, PlatformCardBody } from "@/components/platform/platform-card";
@@ -11,18 +10,16 @@ import { ScoreChip } from "@/components/platform/score-chip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { CountrySharePill } from "@/components/shared/country-share-pill";
 import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dialog";
 import { ErrorState } from "@/components/shared/error-state";
-import { RowActionsMenu } from "@/components/shared/row-actions-menu";
 import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
 import { PlatformTable } from "@/components/platform/platform-table";
-import { MismatchBadgeList } from "@/components/materials/mismatch-badge";
 import {
   useMaterial,
   useMaterialGlobalScore,
   useMaterialMarketScores,
+  useMaterialMarketScoreDetail,
   materialQueryKeys,
 } from "@/lib/hooks/use-materials";
 import { useToggleMaterialVerified } from "@/lib/hooks/use-verified";
@@ -31,9 +28,11 @@ import {
   sortMarketRiskScoreRows,
   buildMarketRiskScoreColumns,
 } from "@/lib/table/market-risk-score-columns";
+import {
+  HsCodesAndStagesTab,
+  type HsMappingNode,
+} from "@/components/materials/hs-codes-stages-tab";
 import type {
-  HsCodeMaterialMappingRead,
-  MappingHealth,
   MaterialGeographyScoreRead,
   MaterialGlobalScoreRead,
 } from "@/lib/types";
@@ -42,7 +41,11 @@ import { useBreadcrumbLabel } from "@/components/platform/breadcrumb-context";
 
 const TABS = [
   { value: "overview", label: "Overview" },
-  { value: "mappings", label: "HS Mappings" },
+  // Combined tab — replaces the old "HS Mappings" tab.  Adds stage
+  // grouping, per-geography drill-down, and partner-review state.
+  // Keeps all functionality from the old flat mappings table via the
+  // "Flat list" view-mode toggle inside the tab.
+  { value: "mappings", label: "HS Codes & Stages" },
   { value: "scores", label: "Market Scores" },
   { value: "notes", label: "Notes" },
 ] as const;
@@ -185,21 +188,20 @@ export default function MaterialDetailPage({
 
       <div className="mt-4">
         {tab === "overview" && (
-          <OverviewTab
-            material={material}
-            globalScore={globalScore}
-            onJumpToMappings={() => setTab("mappings")}
-          />
+          <OverviewTab material={material} globalScore={globalScore} />
         )}
         {tab === "mappings" && (
-          <MappingsTab
+          <HsCodesAndStagesTab
             materialId={String(material.id)}
             materialName={material.canonical_name}
-            mappings={material.hs_code_mappings}
-            registeredHsCodes={material.hs_codes ?? []}
+            // The wire shape now carries supply_chain_stage, market_scope,
+            // digit_count, and keywords directly from the API. Score
+            // fields remain optional and render as "—" until the scoring
+            // engine writes them.
+            mappings={material.hs_code_mappings as HsMappingNode[]}
           />
         )}
-        {tab === "scores" && <ScoresTab scores={marketScores} />}
+        {tab === "scores" && <ScoresTab materialId={String(material.id)} scores={marketScores} />}
         {tab === "notes" && <NotesTab materialId={String(material.id)} />}
       </div>
     </PageLayout>
@@ -209,7 +211,6 @@ export default function MaterialDetailPage({
 interface OverviewTabProps {
   material: import("@/lib/types").MaterialDetail;
   globalScore: MaterialGlobalScoreRead | null;
-  onJumpToMappings: () => void;
 }
 
 const TREND_CONFIG: Record<string, { label: string; color: string }> = {
@@ -218,8 +219,7 @@ const TREND_CONFIG: Record<string, { label: string; color: string }> = {
   declining: { label: "Declining", color: "text-emerald-600 dark:text-emerald-400" },
 };
 
-function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabProps) {
-  const health = material.mapping_health;
+function OverviewTab({ material, globalScore }: OverviewTabProps) {
   const trend = material.patent_occurrence_trend
     ? TREND_CONFIG[material.patent_occurrence_trend]
     : null;
@@ -367,55 +367,11 @@ function OverviewTab({ material, globalScore, onJumpToMappings }: OverviewTabPro
         </CardContent>
       </Card>
 
-      {/* ── HS-mapping health ── */}
-      <MappingHealthCard health={health} onClick={onJumpToMappings} />
+      {/* HS-mapping health card removed (May 2026) — the same checks
+          live inside the HS Codes & Stages tab via the mismatch_reasons
+          column on each row, which is the actionable place to surface
+          them.  Overview no longer needs a duplicate summary. */}
     </div>
-  );
-}
-
-interface MappingHealthCardProps {
-  health: MappingHealth;
-  onClick: () => void;
-}
-
-function MappingHealthCard({ health, onClick }: MappingHealthCardProps) {
-  const allClear =
-    health.mismatched === 0 &&
-    health.low_confidence === 0 &&
-    health.missing_description === 0;
-  return (
-    <Card className="md:col-span-3">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-base">HS-mapping health</CardTitle>
-        <Button variant="outline" size="sm" onClick={onClick}>
-          Open mappings
-        </Button>
-      </CardHeader>
-      <CardContent className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Total mappings" value={health.total} />
-        <Stat
-          label="Suspect (any reason)"
-          value={health.mismatched}
-          tone={health.mismatched > 0 ? "amber" : "ok"}
-        />
-        <Stat
-          label="Low confidence"
-          value={health.low_confidence}
-          tone={health.low_confidence > 0 ? "amber" : "ok"}
-        />
-        <Stat
-          label="Missing description"
-          value={health.missing_description}
-          tone={health.missing_description > 0 ? "amber" : "ok"}
-        />
-        {allClear && (
-          <div className="col-span-full flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
-            <CheckCircle2 className="h-4 w-4" />
-            All HS mappings look healthy.
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
@@ -511,246 +467,27 @@ function GlobalScoreCard({ score, className }: GlobalScoreCardProps) {
   );
 }
 
-interface StatProps {
-  label: string;
-  value: number;
-  tone?: "ok" | "amber";
-}
+// `Stat` (small KPI helper) was removed in May 2026 along with
+// MappingHealthCard.  If a future Overview card needs a stat tile, the
+// platform CSS (.p-card-body grid) covers it without a dedicated
+// component — see GlobalScoreCard above for the pattern.
 
-function Stat({ label, value, tone = "ok" }: StatProps) {
-  const valueColor =
-    tone === "amber"
-      ? "text-amber-700 dark:text-amber-300"
-      : "text-foreground";
-  return (
-    <div className="rounded-md border bg-background px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-        {label}
-      </div>
-      <div className={`text-xl font-semibold tabular-nums ${valueColor}`}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-interface MappingsTabProps {
-  materialId: string;
-  materialName: string;
-  mappings: HsCodeMaterialMappingRead[];
-  registeredHsCodes: string[];
-}
-
-function MappingsTab({
-  materialId,
-  materialName,
-  mappings,
-  registeredHsCodes,
-}: MappingsTabProps) {
-  const columns = useMemo<ColumnDef<HsCodeMaterialMappingRead, unknown>[]>(
-    () => [
-      {
-        accessorKey: "hs_code_prefix",
-        header: "HS prefix",
-        cell: ({ row }) => (
-          <span className="font-mono text-sm font-semibold">{row.original.hs_code_prefix}</span>
-        ),
-      },
-      {
-        accessorKey: "description",
-        header: "Customs description",
-        cell: ({ row }) =>
-          row.original.description ? (
-            <span className="text-sm">{row.original.description}</span>
-          ) : (
-            <span className="text-xs italic text-amber-700 dark:text-amber-300">
-              missing
-            </span>
-          ),
-      },
-      {
-        id: "comparison",
-        header: "Mapped to",
-        cell: () => <span className="text-sm">{materialName}</span>,
-      },
-      {
-        accessorKey: "confidence",
-        header: () => <div className="text-right">Confidence</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-end">
-            <ConfidenceBadge value={row.original.confidence} />
-          </div>
-        ),
-      },
-      {
-        id: "mismatch",
-        header: "Status",
-        cell: ({ row }) => (
-          <MismatchBadgeList
-            reasons={row.original.mismatch_reasons ?? []}
-          />
-        ),
-      },
-      {
-        id: "created",
-        header: () => <div className="text-right">Created</div>,
-        cell: ({ row }) => (
-          <div className="text-right text-xs text-muted-foreground">
-            {formatDate(row.original.created_at)}
-          </div>
-        ),
-      },
-      {
-        id: "actions",
-        header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => (
-          <div className="flex justify-end">
-            <RowActionsMenu
-              entityType="hs_code_material_mapping"
-              entityId={String(row.original.id)}
-              parentId={materialId}
-              entityLabel={`HS ${row.original.hs_code_prefix}`}
-              sectionLabel="HS Mappings"
-            />
-          </div>
-        ),
-      },
-    ],
-    [materialId, materialName],
-  );
-
-  const suspectCount = mappings.filter(
-    (m) => (m.mismatch_reasons?.length ?? 0) > 0,
-  ).length;
-
-  // HS comparison: check which registered codes are covered by at least one
-  // mapping prefix and which mappings don't correspond to any registered code.
-  // Match rule: a mapping prefix covers a registered code when either is a
-  // leading substring of the other (e.g. prefix "2825" covers "2825.20", and
-  // prefix "2825.20.10" also covers registered "2825.20").
-  const mappingPrefixes = mappings.map((m) => m.hs_code_prefix);
-
-  function prefixesOverlap(a: string, b: string): boolean {
-    const an = a.replace(/\./g, "");
-    const bn = b.replace(/\./g, "");
-    return an.startsWith(bn) || bn.startsWith(an);
-  }
-
-  const registeredWithStatus = registeredHsCodes.map((code) => {
-    const matchedMapping = mappingPrefixes.find((p) => prefixesOverlap(code, p));
-    return { code, matched: Boolean(matchedMapping) };
-  });
-
-  const unmatchedMappings = mappings.filter(
-    (m) => !registeredHsCodes.some((c) => prefixesOverlap(c, m.hs_code_prefix)),
-  );
-
-  const hasComparison = registeredHsCodes.length > 0;
-
-  return (
-    <div className="flex flex-col gap-4">
-      {hasComparison && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">HS code coverage check</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <p className="text-sm text-muted-foreground">
-              Compares the HS codes recorded on the material record against the
-              mapping prefixes. A registered code is &quot;covered&quot; when at least one
-              mapping prefix overlaps it.
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <div className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Registered on material ({registeredHsCodes.length})
-                </div>
-                {registeredWithStatus.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">None on file.</p>
-                ) : (
-                  <ul className="flex flex-col gap-1">
-                    {registeredWithStatus.map(({ code, matched }) => (
-                      <li key={code} className="flex items-center gap-2 text-sm font-mono">
-                        {matched ? (
-                          <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                        ) : (
-                          <XCircle className="h-3.5 w-3.5 shrink-0 text-red-500 dark:text-red-400" />
-                        )}
-                        <span>{code}</span>
-                        {!matched && (
-                          <span className="text-xs not-italic text-red-600 dark:text-red-400 font-sans">
-                            no mapping
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div>
-                <div className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Mappings with no registered match ({unmatchedMappings.length})
-                </div>
-                {unmatchedMappings.length === 0 ? (
-                  <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    All mappings align to a registered code.
-                  </div>
-                ) : (
-                  <ul className="flex flex-col gap-1">
-                    {unmatchedMappings.map((m) => (
-                      <li key={m.id} className="flex items-center gap-2 text-sm font-mono">
-                        <MinusCircle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                        <span>{m.hs_code_prefix}</span>
-                        <span className="text-xs not-italic text-amber-600 dark:text-amber-400 font-sans">
-                          extra mapping
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <PlatformTable
-        data={mappings}
-        columns={columns}
-        tableTitle="HS code mappings"
-        tableSubtitle={
-          mappings.length === 0 ? (
-            "No HS codes mapped yet."
-          ) : (
-            <>
-              <span>
-                {mappings.length} mapping{mappings.length === 1 ? "" : "s"}
-              </span>
-              <span aria-hidden className="mx-2 text-muted-foreground/60">
-                ·
-              </span>
-              <span>{suspectCount} flagged as suspect</span>
-            </>
-          )
-        }
-        emptyTitle="No HS mappings"
-        emptyDescription="Add a mapping in the backend, or flag this material so an analyst can investigate."
-      />
-    </div>
-  );
-}
+// HsCodesAndStagesTab replaces the old MappingsTab — see
+// components/materials/hs-codes-stages-tab.tsx.  Old flat-list
+// view is preserved via the "Flat list" toggle inside that tab.
 
 // ---------------------------------------------------------------------------
 // Scores tab
 // ---------------------------------------------------------------------------
 
 interface ScoresTabProps {
+  materialId: string;
   scores: MaterialGeographyScoreRead[];
 }
 
-function ScoresTab({ scores }: ScoresTabProps) {
+function ScoresTab({ materialId, scores }: ScoresTabProps) {
+  const [expandedGeo, setExpandedGeo] = useState<string | null>(null);
+
   const columns = useMemo(
     () =>
       buildMarketRiskScoreColumns({
@@ -760,6 +497,12 @@ function ScoresTab({ scores }: ScoresTabProps) {
     [],
   );
   const sortedData = useMemo(() => sortMarketRiskScoreRows(scores), [scores]);
+
+  function handleRowClick(row: MaterialGeographyScoreRead) {
+    setExpandedGeo((prev) =>
+      prev === row.geography_code ? null : row.geography_code,
+    );
+  }
 
   if (scores.length === 0) {
     return (
@@ -781,12 +524,152 @@ function ScoresTab({ scores }: ScoresTabProps) {
     <PlatformCard>
       <PlatformCardHeader
         title="Country-level risk scores"
-        subtitle="Sorted by overall risk descending"
+        subtitle="Click a row to see the score breakdown · sorted by overall risk descending"
       />
       <PlatformCardBody noPadding>
-        <PlatformTable embedded data={sortedData} columns={columns} />
+        <PlatformTable
+          embedded
+          data={sortedData}
+          columns={columns}
+          onRowClick={handleRowClick}
+          isRowExpanded={(row) => row.geography_code === expandedGeo}
+          renderSubComponent={(row) => (
+            <ScoreRationalePanel
+              materialId={materialId}
+              geoCode={row.geography_code}
+            />
+          )}
+        />
       </PlatformCardBody>
     </PlatformCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Score rationale detail panel (rendered inside expanded table row)
+// ---------------------------------------------------------------------------
+
+interface ScoreRationalePanelProps {
+  materialId: string;
+  geoCode: string;
+}
+
+const PILLAR_META: {
+  key: string;
+  label: string;
+  colorClass: string;
+  inputs: { key: string; label: string }[];
+}[] = [
+  {
+    key: "material",
+    label: "Mat. Concentration",
+    colorClass: "text-blue-600 dark:text-blue-400",
+    inputs: [
+      { key: "criticality", label: "Criticality" },
+      { key: "concentration", label: "Concentration" },
+      { key: "trade_volatility", label: "Trade volatility" },
+      { key: "stage_rollup_method", label: "Rollup method" },
+      { key: "stage_rollup_count", label: "Stage nodes" },
+    ],
+  },
+  {
+    key: "geopolitical",
+    label: "Geopolitical",
+    colorClass: "text-red-600 dark:text-red-400",
+    inputs: [
+      { key: "country_concentration", label: "Country conc." },
+      { key: "export_restriction_exposure", label: "Export restrictions" },
+      { key: "tariff_exposure", label: "Tariff exposure" },
+    ],
+  },
+  {
+    key: "regulatory",
+    label: "Regulatory",
+    colorClass: "text-violet-600 dark:text-violet-400",
+    inputs: [
+      { key: "top_event_count", label: "Top events" },
+      { key: "scope_obligations", label: "Scope obligations" },
+      { key: "policy_proximity_adjustment", label: "Policy proximity adj." },
+    ],
+  },
+  {
+    key: "operational",
+    label: "Operational",
+    colorClass: "text-amber-600 dark:text-amber-400",
+    inputs: [
+      { key: "structural_dependency", label: "Structural dependency" },
+      { key: "structural_dependency_source", label: "Dependency source" },
+      { key: "event_impact_count", label: "Impact events" },
+    ],
+  },
+  {
+    key: "financial_pressure",
+    label: "Financial Pressure",
+    colorClass: "text-emerald-600 dark:text-emerald-400",
+    inputs: [
+      { key: "base_filing_signal", label: "Filing signal" },
+      { key: "leverage_warning_bonus", label: "Leverage warning" },
+      { key: "liquidity_stress_bonus", label: "Liquidity stress" },
+      { key: "evidence_count", label: "Evidence items" },
+    ],
+  },
+];
+
+function formatSubValue(val: unknown): string {
+  if (val == null) return "—";
+  if (typeof val === "number") return val % 1 === 0 ? String(val) : val.toFixed(3);
+  return String(val);
+}
+
+function ScoreRationalePanel({ materialId, geoCode }: ScoreRationalePanelProps) {
+  const { data, isLoading } = useMaterialMarketScoreDetail(materialId, geoCode);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 px-5 py-4 text-xs text-muted-foreground">
+        <Skeleton className="h-3 w-3 rounded-full" />
+        Loading score breakdown…
+      </div>
+    );
+  }
+
+  const rationale = data?.rationale_json;
+  const subInputs = rationale?.sub_inputs;
+
+  if (!rationale || !subInputs) {
+    return (
+      <div className="px-5 py-4 text-xs text-muted-foreground">
+        No rationale data available for this score.
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-0 divide-x divide-border sm:grid-cols-3 lg:grid-cols-5 border-t border-border/50">
+      {PILLAR_META.map((pillar) => {
+        const inputs = subInputs[pillar.key as keyof typeof subInputs] ?? {};
+        return (
+          <div key={pillar.key} className="px-4 py-3 space-y-2">
+            <div className={`text-[10px] font-bold uppercase tracking-wider ${pillar.colorClass}`}>
+              {pillar.label}
+            </div>
+            <dl className="space-y-1">
+              {pillar.inputs.map(({ key, label }) => {
+                const val = (inputs as Record<string, unknown>)[key];
+                return (
+                  <div key={key} className="flex justify-between gap-2 text-[11px]">
+                    <dt className="text-muted-foreground truncate">{label}</dt>
+                    <dd className="font-mono font-semibold text-foreground shrink-0">
+                      {formatSubValue(val)}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
