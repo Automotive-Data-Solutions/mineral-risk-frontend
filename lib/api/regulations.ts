@@ -1,5 +1,8 @@
 import type { ApiClient } from "./client";
-import type { RegulationListResponse, RegulationRead } from "@/lib/types";
+import type {
+  RegulationDetail,
+  RegulationListResponse,
+} from "@/lib/types";
 
 export interface RegulationListParams {
   page?: number;
@@ -25,8 +28,8 @@ export async function getRegulations(
 export async function getRegulation(
   client: ApiClient,
   id: number | string,
-): Promise<RegulationRead> {
-  const { data } = await client.get<RegulationRead>(
+): Promise<RegulationDetail> {
+  const { data } = await client.get<RegulationDetail>(
     `/api/v1/regulations/${id}`,
   );
   return data;

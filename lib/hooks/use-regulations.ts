@@ -7,7 +7,10 @@ import {
   getRegulations,
   type RegulationListParams,
 } from "@/lib/api/regulations";
-import type { RegulationListResponse, RegulationRead } from "@/lib/types";
+import type {
+  RegulationDetail,
+  RegulationListResponse,
+} from "@/lib/types";
 
 export const regulationQueryKeys = {
   all: ["regulations"] as const,
@@ -20,7 +23,7 @@ export const regulationQueryKeys = {
 };
 
 export function useRegulations(
-  params: RegulationListParams,
+  params: RegulationListParams = {},
   options?: Omit<
     UseQueryOptions<RegulationListResponse>,
     "queryKey" | "queryFn"
@@ -35,11 +38,11 @@ export function useRegulations(
   });
 }
 
-export function useRegulation(id: number | string) {
+export function useRegulation(id: number | string | null | undefined) {
   const client = useApiClient();
-  return useQuery<RegulationRead>({
-    queryKey: regulationQueryKeys.detail(id),
-    queryFn: () => getRegulation(client, id),
-    enabled: Boolean(id),
+  return useQuery<RegulationDetail>({
+    queryKey: regulationQueryKeys.detail(id ?? ""),
+    queryFn: () => getRegulation(client, id as number | string),
+    enabled: id != null && id !== "",
   });
 }

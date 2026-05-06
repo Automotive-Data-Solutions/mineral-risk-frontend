@@ -51,7 +51,33 @@ export type VehicleModelChemistryRead = Schemas["VehicleModelChemistryRead"];
 // Reference data (Phase 2 — partially generated, partially hand-authored)
 // ---------------------------------------------------------------------------
 
-export type RegulationRead = Schemas["RegulationRead"];
+// Computed scoring-impact fields exposed by the backend (added 2026-05-06,
+// via @computed_field on RegulationRead).  Layered as an intersection
+// until ``npm run types:generate:file`` regenerates ``api.ts`` against
+// the updated FastAPI schema.
+type RegulationScoringFields = {
+  /** Per non-compliant company uplift points from
+   *  ``regulatory_risk.COMPLIANCE_OBLIGATIONS``.  0 when the regulation
+   *  has no entry in the obligation table.
+   */
+  compliance_uplift_points?: number;
+  /** Per-event severity weight from
+   *  ``eurlex.SEVERITY_BY_STATUS`` (effective 0.55 / enacted 0.40 /
+   *  proposed 0.25 / default 0.35).
+   */
+  status_severity_weight?: number;
+  /** True when today is within ±90 days of effective_date — recency
+   *  multiplier steps up to 1.10–1.20 in that window.
+   */
+  proximity_window_active?: boolean;
+};
+
+export type RegulationRead = Schemas["RegulationRead"] &
+  RegulationScoringFields;
+export type RegulationMaterialScopeRead = Schemas["RegulationMaterialScopeRead"];
+export type RegulationGeographyScopeRead = Schemas["RegulationGeographyScopeRead"];
+export type RegulationDetail = Schemas["RegulationDetail"] &
+  RegulationScoringFields;
 export type RiskEventRead = Schemas["RiskEventRead"];
 
 export type {

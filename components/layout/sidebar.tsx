@@ -62,14 +62,15 @@ const NAV_SECTIONS: NavSection[] = [
       { href: "/data/chemistries", label: "Chemistries", icon: ICONS.FlaskConical },
     ],
   },
-  // {
-  //   label: "Intelligence",
-  //   items: [
-  //     { href: "/data/market-scores", label: "Market Scores", icon: ICONS.BarChart3 },
-  //     { href: "/data/risk-events",   label: "Risk Events",   icon: ICONS.AlertTriangle },
-  //     { href: "/data/regulations",   label: "Regulations",   icon: ICONS.Scale },
-  //   ],
-  // },
+  {
+    label: "Intelligence",
+    items: [
+      { href: "/data/regulations", label: "Regulations", icon: ICONS.Scale },
+      // Other intelligence pages remain commented until they ship:
+      // { href: "/data/market-scores", label: "Market Scores", icon: ICONS.BarChart3 },
+      // { href: "/data/risk-events",   label: "Risk Events",   icon: ICONS.AlertTriangle },
+    ],
+  },
   // {
   //   label: "Reports",
   //   items: [
