@@ -1,19 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { AlertTriangle, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 import { PlatformTable } from "@/components/platform/platform-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
-import { MaterialCriticalTags } from "@/components/shared/material-critical-tags";
 import { VerifiedBadge } from "@/components/shared/verified-badge";
 import { CountrySharePill } from "@/components/shared/country-share-pill";
 import { PageLayout } from "@/components/platform/page-layout";
 import { PageHeader } from "@/components/platform/page-header";
 import { ScoreChip } from "@/components/platform/score-chip";
+import { PillarCoverageDots } from "@/components/materials/pillar-coverage-dots";
 import { useMaterials } from "@/lib/hooks/use-materials";
 import type { MaterialListItem } from "@/lib/types";
 import { humanize } from "@/lib/utils/format";
@@ -24,6 +22,11 @@ import {
 } from "./materials-filter-bar";
 
 const DEFAULT_LIMIT = 25;
+
+// 2026-05-11 refresh: the Materials list now drives an analyst-focused
+// view scoped to the launch-list materials by default.  HS-mismatch UI
+// retired; per-row data centered on "what do I know about this mineral?"
+// (risk score + concentration + 5-pillar coverage + recent events).
 
 export default function MaterialsListPage() {
   const router = useRouter();
@@ -39,9 +42,9 @@ export default function MaterialsListPage() {
       limit,
       search: filters.search || undefined,
       category: filters.category || undefined,
-      is_ira_critical: filters.is_ira_critical || undefined,
-      is_eu_crma_critical: filters.is_eu_crma_critical || undefined,
-      has_mismatched_mappings: filters.has_mismatched_mappings || undefined,
+      // Default page state filters down to the launch list; user toggle
+      // flips the param off to show all materials.
+      is_launch_list: filters.launch_list_only ? true : undefined,
     }),
     [page, limit, filters],
   );
@@ -55,10 +58,19 @@ export default function MaterialsListPage() {
         accessorKey: "canonical_name",
         header: "Material",
         cell: ({ row }) => {
-          const { canonical_name, symbol_or_code, category, verified } = row.original;
+          const { canonical_name, symbol_or_code, category, verified, is_launch_list } = row.original;
           return (
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-1.5">
+                {is_launch_list && (
+                  <span
+                    title="Launch-list material (core 10)"
+                    className="inline-flex"
+                    style={{ color: "var(--p-accent)" }}
+                  >
+                    <Star className="h-3.5 w-3.5 fill-current" />
+                  </span>
+                )}
                 <span className="font-medium">{canonical_name}</span>
                 <VerifiedBadge verified={verified} />
               </div>
@@ -70,72 +82,99 @@ export default function MaterialsListPage() {
         },
       },
       {
-        id: "criticality_flags",
-        header: "Critical",
-        cell: ({ row }) => (
-          <MaterialCriticalTags
-            isIraCritical={row.original.is_ira_critical_mineral}
-            isEuCrmaCritical={row.original.is_eu_crma_critical}
-            emptyLabel="—"
-          />
-        ),
-      },
-      {
-        accessorKey: "criticality_score",
-        header: () => <div className="text-right">Criticality</div>,
-        cell: ({ row }) => {
-          const v = row.original.criticality_score;
-          if (v == null) return <div className="text-right text-xs text-muted-foreground">—</div>;
-          const display = v <= 1 ? Math.round(v * 100) : Math.round(v);
-          return (
-            <div className="text-right font-mono text-sm tabular-nums">{display}</div>
-          );
-        },
-      },
-      {
-        id: "top_sources",
-        header: "Top Sources",
-        cell: ({ row }) => {
-          const countries = row.original.primary_producing_countries;
-          if (!countries || countries.length === 0)
-            return <span className="text-xs text-muted-foreground">—</span>;
-          return (
-            <div className="flex flex-wrap items-center gap-1">
-              {countries.slice(0, 4).map((code) => (
-                <CountrySharePill key={code} code={code} />
-              ))}
-            </div>
-          );
-        },
-      },
-      {
         id: "risk",
         header: () => <div className="text-right">Risk</div>,
         cell: ({ row }) => (
           <div className="flex justify-end">
             <ScoreChip
               score={row.original.latest_overall_risk_score}
-              showBandLabel={false}
+              showBandLabel={true}
             />
           </div>
         ),
       },
       {
-        id: "hs_mappings",
-        header: () => <div className="text-right">HS Mappings</div>,
-        cell: ({ row }) => (
-          <div className="flex flex-col items-end leading-tight">
-            <span className="font-mono text-sm tabular-nums">
-              {row.original.hs_mapping_count}
+        id: "concentration",
+        header: "Concentration",
+        cell: ({ row }) => {
+          const shares = row.original.top_producer_shares;
+          if (!shares || shares.length === 0) {
+            return <span className="text-xs text-muted-foreground">—</span>;
+          }
+          return (
+            <div className="flex flex-wrap items-center gap-1">
+              {shares.slice(0, 3).map((c) => (
+                <CountrySharePill
+                  key={c.code}
+                  code={c.code}
+                  sharePct={c.share_pct}
+                />
+              ))}
+            </div>
+          );
+        },
+      },
+      {
+        id: "coverage",
+        header: () => (
+          // Two-line header — "Coverage" up top, a tiny "M · G · R · O · F"
+          // legend below the title.  The letter positions roughly mirror
+          // the dot positions in each row so the analyst can decode
+          // which dot is which pillar without hovering each one.
+          // Tooltip on the legend spells the full mapping.
+          <div className="flex flex-col gap-0.5">
+            <span>Coverage</span>
+            <span
+              className="inline-flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground"
+              title={
+                "M = Material Concentration · " +
+                "G = Geopolitical / Trade · " +
+                "R = Regulatory Compliance · " +
+                "O = Operational · " +
+                "F = Financial Pressure"
+              }
+            >
+              {["M", "G", "R", "O", "F"].map((letter) => (
+                <span
+                  key={letter}
+                  style={{
+                    display: "inline-block",
+                    width: 8,
+                    textAlign: "center",
+                  }}
+                >
+                  {letter}
+                </span>
+              ))}
             </span>
-            {row.original.mapping_mismatch_count > 0 && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-amber-700 dark:text-amber-300">
-                <AlertTriangle className="h-3 w-3" />
-                {row.original.mapping_mismatch_count} suspect
-              </span>
-            )}
           </div>
         ),
+        cell: ({ row }) => (
+          <PillarCoverageDots pillars={row.original.pillar_scores} />
+        ),
+      },
+      {
+        id: "events_90d",
+        header: () => <div className="text-right">Events 90d</div>,
+        cell: ({ row }) => {
+          const n = row.original.recent_event_count_90d;
+          if (n === 0) {
+            return (
+              <div className="text-right text-xs text-muted-foreground">—</div>
+            );
+          }
+          // Weight scales with volume: bold for ≥20, normal 5-19,
+          // faint for <5.  Matches the coverage matrix cell convention.
+          const fontWeight = n >= 20 ? 600 : n >= 5 ? 500 : 400;
+          return (
+            <div
+              className="text-right font-mono tabular-nums"
+              style={{ fontSize: 13, fontWeight }}
+            >
+              {n}
+            </div>
+          );
+        },
       },
     ],
     [],
@@ -143,7 +182,6 @@ export default function MaterialsListPage() {
 
   const rows = data?.data ?? [];
   const total = data?.total ?? 0;
-  const anyMismatches = rows.some((r) => r.mapping_mismatch_count > 0);
 
   const handleFiltersChange = (next: MaterialsFilters) => {
     setFilters(next);
@@ -154,37 +192,8 @@ export default function MaterialsListPage() {
     <PageLayout>
       <PageHeader
         title="Materials"
-        subtitle="Canonical material registry. Click a row to compare against its HS-code mappings."
-        actions={
-          <Button asChild variant="outline" size="sm">
-            <Link href="/data/materials/mismatches">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              All mismatched mappings
-              <ExternalLink className="h-3 w-3" />
-            </Link>
-          </Button>
-        }
+        subtitle="Canonical material registry.  Click a row to drill into per-mineral detail."
       />
-
-      {anyMismatches && !filters.has_mismatched_mappings && (
-        <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          <span className="flex-1">
-            Some materials on this page have HS-code mappings the system
-            flagged as suspect.
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-amber-900 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40"
-            onClick={() =>
-              setFilters((f) => ({ ...f, has_mismatched_mappings: true }))
-            }
-          >
-            Show only those
-          </Button>
-        </div>
-      )}
 
       <MaterialsFilterBar
         value={filters}
@@ -200,7 +209,11 @@ export default function MaterialsListPage() {
         onRetry={() => refetch()}
         onRowClick={(row) => router.push(`/data/materials/${row.id}`)}
         emptyTitle="No materials match your filters"
-        emptyDescription="Try clearing filters or broadening your search."
+        emptyDescription={
+          filters.launch_list_only
+            ? "Try toggling off 'Launch list only' to see the full registry."
+            : "Try clearing filters or broadening your search."
+        }
       />
 
       <DataTablePagination

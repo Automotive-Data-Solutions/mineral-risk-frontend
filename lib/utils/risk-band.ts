@@ -1,17 +1,35 @@
 import type { RiskBand } from "@/lib/types";
 
-/** Mirrors app/services/scoring/bands.py (backend). Returns null for null input. */
+/**
+ * Risk band thresholds (2026-05-11 calibration).
+ *
+ * MIRRORS app/services/scoring/bands.py — these two files are the SOLE
+ * source of truth for risk tier coloring.  If you change one, change the
+ * other in the same commit or the Materials page and the Overview page
+ * will disagree about whether a score is HIGH or MOD.
+ *
+ *   0–29   LOW    green
+ *   30–59  MOD    amber
+ *   60–79  HIGH   orange
+ *   80–100 CRIT   red
+ *
+ * Returns null for null/NaN input so callers can render a dash.
+ */
 export function scoreToBand(score: number | null | undefined): RiskBand | null {
   if (score == null || Number.isNaN(score)) return null;
-  if (score < 25) return "LOW";
-  if (score < 50) return "MOD";
-  if (score < 75) return "HIGH";
+  if (score < 30) return "LOW";
+  if (score < 60) return "MOD";
+  if (score < 80) return "HIGH";
   return "CRIT";
 }
 
+/** Display labels for each band.  Short forms used throughout — long
+ *  forms would make table chips wrap awkwardly.  "Moderate" was deemed
+ *  too long in 2026-05-11 review; shortened to "Mod" to match the
+ *  underlying band code. */
 export const RISK_BAND_LABEL: Record<RiskBand, string> = {
   LOW: "Low",
-  MOD: "Moderate",
+  MOD: "Mod",
   HIGH: "High",
   CRIT: "Critical",
 };

@@ -18,6 +18,21 @@ import type { PaginatedResponse } from "./index";
 // Materials
 // ---------------------------------------------------------------------------
 
+export interface MaterialListPillarScore {
+  /** Column attr name, e.g. "material_concentration_score". */
+  name: string;
+  /** Display label, e.g. "Material Concentration". */
+  label: string;
+  score: number | null;
+  /** True when score > 0 (real signal); false when 0 (fallback) or null. */
+  has_signal: boolean;
+}
+
+export interface MaterialListCountryShare {
+  code: string;        // ISO-2
+  share_pct: number;   // 0–100, rounded
+}
+
 export interface MaterialListItem {
   /** Integer PK from `materials.id` (serialized as number). */
   id: number;
@@ -30,15 +45,29 @@ export interface MaterialListItem {
   is_ira_critical_mineral: boolean;
   is_eu_crma_critical: boolean;
   data_availability: string | null;
-  /** ISO-2 country codes for primary producing countries, e.g. ["CN","CD","AU"]. */
+  /** Legacy ISO-2-only list.  Kept for backwards-compat; prefer
+   *  `top_producer_shares` for new UI. */
   primary_producing_countries: string[] | null;
   /** Latest global composite risk score (0–100). Null if never scored. */
   latest_overall_risk_score: number | null;
-  /** Total rows in `hs_code_material_mappings` for this material. */
+  /** Total rows in `hs_code_material_mappings` for this material.  No
+   *  longer rendered (HS mismatch UI retired 2026-05-11); kept on the
+   *  type for backwards-compat. */
   hs_mapping_count: number;
-  /** Subset of those mappings the backend flagged as suspect. */
+  /** Always 0 since 2026-05-11.  Retained for backwards-compat. */
   mapping_mismatch_count: number;
   verified: boolean;
+
+  // 2026-05-11 analyst-view extensions
+  /** Whether the material is in the launch list (the v1 core 10). */
+  is_launch_list: boolean;
+  /** Up to 3 top producers with share %.  Sorted by share descending. */
+  top_producer_shares: MaterialListCountryShare[];
+  /** Latest per-pillar score data for the 5 risk pillars in canonical
+   *  order.  Drives the 5-dot coverage indicator. */
+  pillar_scores: MaterialListPillarScore[];
+  /** Count of RiskEvents in last 90 days mapped to this material. */
+  recent_event_count_90d: number;
 }
 
 /**
@@ -150,6 +179,20 @@ export interface MaterialDetail extends MaterialListItem {
    * used to validate mappings.
    */
   hs_codes?: string[] | null;
+
+  // 2026-05-11 analyst-view extensions for the Materials detail Overview.
+  // ``recent_event_count_90d`` is inherited from MaterialListItem (which
+  // also surfaces it on the list rows); declared on the parent so the
+  // type narrowing stays consistent and we don't re-declare here.
+  /** Count of FacilityMaterialLink rows for this material. */
+  facility_count?: number;
+  /** Composite risk-score trend — "rising" / "stable" / "declining" / null.
+   *  Compares the latest MaterialGlobalRiskScore.overall to the most
+   *  recent snapshot at least 7 days older (max 30 days lookback).
+   *  ±5-point threshold on the 0-100 scale.  null when there's no prior
+   *  snapshot (insufficient history) — UI renders "—".  Semantic answer
+   *  to "is risk going up?" rather than "are there more events?". */
+  score_trend_7d?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -304,10 +347,37 @@ export interface MaterialGeographyScoreRead {
   operational_score: number | null;
   financial_pressure_score: number | null;
   overall_risk_score: number | null;
+  /**
+   * UNION of material-anchored and geography-anchored events consumed by
+   * the pillar sub-input derivation. Preserves the audit trail of what was
+   * actually fed into the score. For "this country × this material" reads,
+   * use `event_count_geo_specific` instead — see migration 042.
+   */
   event_count: number;
+  /**
+   * INTERSECTION (RiskEventMaterial ∩ RiskEventGeography) — count of events
+   * tagged to BOTH this material AND this country, within each category's
+   * lookback window. This is what the Events column should display and what
+   * the Country-scores exposure filter keys off. `null` on rows produced
+   * before migration 042 — re-run `POST /market/rescore` to populate.
+   */
+  event_count_geo_specific?: number | null;
   scoring_version: string;
   /** ISO datetime. */
   created_at: string;
+  /**
+   * Percentage share of global production for this material from this country
+   * (latest reference_year). `null` if the country isn't a tracked producer.
+   * Drives the "Share" column and the default material-exposure filter on the
+   * Country scores tab.
+   */
+  production_share_pct?: number | null;
+  /**
+   * Number of FacilityMaterialLink rows whose facility sits in this country
+   * AND links to this material. Helps the analyst spot operational exposure
+   * (a country that doesn't produce but houses processing/refining facilities).
+   */
+  facility_count?: number;
 }
 
 /**

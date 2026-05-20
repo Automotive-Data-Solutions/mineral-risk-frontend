@@ -82,6 +82,8 @@ export type RiskEventRead = Schemas["RiskEventRead"];
 
 export type {
   MaterialListItem,
+  MaterialListPillarScore,
+  MaterialListCountryShare,
   MaterialDetail,
   MaterialCriticalitySignal,
   MaterialChemistryUse,
@@ -180,12 +182,126 @@ export interface RecentNoteItem {
   created_at: string;
 }
 
+// ---------------------------------------------------------------------------
+// New launch-list-centric KPI shapes (2026-05-11)
+// ---------------------------------------------------------------------------
+// The Overview dashboard pivoted from generic platform metrics to launch-
+// list-centric analyst metrics ("how many of the core 10 minerals are
+// scored / have signal / need attention?").  These three shapes back the
+// new KPI strip; the legacy fields (material_count_total etc.) remain in
+// the response object for backwards-compat but are no longer rendered.
+
+export interface CoreMineralsScored {
+  scored: number;
+  total: number;
+  /** Canonical names of launch-list materials WITHOUT a current global
+   * score.  Click-through views render the full list. */
+  unscored_names: string[];
+}
+
+export interface SourceCount {
+  source_name: string;
+  count: number;
+}
+
+export interface RecentRiskEvents30d {
+  count: number;
+  /** Same query for the [60d, 30d) window — used to compute the
+   * up/down delta in the KPI card. */
+  prev_period_count: number;
+  /** Top sources by event count in the trailing 30-day window, capped
+   * at 5 by the backend. */
+  top_sources: SourceCount[];
+}
+
+export interface CoverageGapItem {
+  material_id: number; // -1 sentinel = material row missing entirely
+  canonical_name: string;
+  /** Composable reason tags.  Any combination of:
+   *   "no_global_score"        — no MaterialGlobalRiskScore row
+   *   "material_row_missing"   — material not in DB at all
+   *   "stale_score"            — latest as_of_date > 30 days old
+   *   "thin_events"            — < 5 events in last 90 days
+   *   "thin_pillars"           — < 3 pillars have non-fallback signal
+   *   "no_facility_coverage"   — zero FacilityMaterialLink rows with
+   *                              annual_capacity_tpy set (operational
+   *                              pillar can't get credible signal)
+   */
+  reasons: string[];
+}
+
+export interface CoverageGaps {
+  count: number;
+  materials: CoverageGapItem[];
+}
+
+// ---------------------------------------------------------------------------
+// Coverage matrix (separate endpoint, 2026-05-11)
+// ---------------------------------------------------------------------------
+
+export interface CoverageMatrixPillar {
+  name: string;        // e.g. "material_concentration_score"
+  label: string;       // e.g. "Material Concentration"
+  score: number | null;
+  /** True when score > 0 — the cell has real data behind it.  False when
+   *  score is 0 (fallback / floor) or null (no row at all). */
+  has_signal: boolean;
+}
+
+export interface CoverageMatrixSourceCount {
+  source_name: string;
+  event_count_90d: number;
+}
+
+export interface CoverageMatrixRow {
+  material_id: number; // -1 sentinel = material not in DB
+  canonical_name: string;
+  sources: CoverageMatrixSourceCount[];
+  pillars: CoverageMatrixPillar[];
+}
+
+export interface PillarCoverageStat {
+  /** Column attribute name on MaterialGlobalRiskScore. */
+  name: string;
+  /** Display label, e.g. "Material Concentration". */
+  label: string;
+  /** Launch-list materials where this pillar's score > 0. */
+  materials_with_signal: number;
+  /** Launch-list materials where this pillar's score is non-null
+   *  (includes 0 / fallback values). */
+  materials_with_score: number;
+  /** Launch-list size minus sentinel rows.  Denominator for the bar. */
+  total: number;
+}
+
+export interface CoverageMatrix {
+  window_days: number;       // 90 in the current calibration
+  /** All sources that produced any event in the window, ordered by
+   *  descending total event count (highest-signal source first). */
+  sources_in_order: string[];
+  /** Pillar column labels in canonical order. */
+  pillar_columns: string[];
+  /** One row per launch-list material, in canonical launch-list order. */
+  rows: CoverageMatrixRow[];
+  /** Per-pillar aggregate stats over the launch list.  Drives the
+   *  dedicated Pillar Coverage card.  Same data as ``rows[].pillars[]``
+   *  in a different shape. */
+  pillar_coverage: PillarCoverageStat[];
+}
+
 // Extended until api.ts is regenerated after new dashboard fields are deployed
 export type DashboardOverview = Schemas["DashboardOverview"] & {
+  // Legacy fields — present for backwards-compat with the 2026-04 KPI
+  // strip; the new analyst-view strip ignores these.
   material_count_total?: number;
   material_count_this_quarter?: number;
   suspect_mappings_count?: number;
   recent_notes_entity_count_7d?: number;
+  // 2026-05-11 launch-list-centric KPIs
+  core_minerals_scored?: CoreMineralsScored | null;
+  recent_risk_events_30d?: RecentRiskEvents30d | null;
+  coverage_gaps?: CoverageGaps | null;
+  // Sections below the KPI strip
   top_materials_by_risk?: TopMaterialRisk[];
   score_run_progress?: ScoreRunProgress | null;
   recent_activity?: RecentNoteItem[];

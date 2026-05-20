@@ -47,6 +47,14 @@ export interface HsMappingNode extends HsCodeMaterialMappingRead {
   events_open?: number | null;
   /** ISO date the score was computed. */
   scored_at?: string | null;
+  /**
+   * Node-level scoring method roll-up (added 2026-05-06).
+   *   - "hhi_anchored"     → at least one geography has production data
+   *   - "event_only_no_hhi" → all scores came from the event-only fallback
+   *   - null               → not yet scored
+   * Drives the "no production base" badge on the group header.
+   */
+  score_method?: "hhi_anchored" | "event_only_no_hhi" | string | null;
   /** ISO timestamp of the latest partner review. */
   reviewed_at?: string | null;
   /** Per-row review status from the partner workflow. */
@@ -69,6 +77,11 @@ export interface HsMappingGeographyScore {
   source?: string | null;
   /** Reference year of the underlying data. */
   reference_year?: number | null;
+  /**
+   * Per-country method label (matches the node-level enum).  Set when the
+   * country was actually scored; null on production-share-only rows.
+   */
+  score_method?: "hhi_anchored" | "event_only_no_hhi" | string | null;
   review_status?: "unreviewed" | "approved" | "flagged" | string | null;
 }
 
@@ -535,8 +548,26 @@ function StageRow({
 }
 
 // ---------------------------------------------------------------------------
-// Sub-table inside expanded stage — per HS × geography rows
+// Sub-table inside expanded stage — per-HS-code header + per-country rows
 // ---------------------------------------------------------------------------
+//
+// Layout (2026-05-06 restructure):
+//
+//   ┌─ HS code header (one per mapping) ────────────────────────────────┐
+//   │ HS prefix · description · HHI · source · age · Events badge ·     │
+//   │   "No production base" badge (if score_method=event_only_no_hhi)  │
+//   ├─ Per-country rows (slim) ─────────────────────────────────────────┤
+//   │   country · share · tariff · export · score                       │
+//   └───────────────────────────────────────────────────────────────────┘
+//
+// Pre-restructure, every row repeated HHI / source / age / mapping
+// metadata, which made same-stage rows look identical and obscured the
+// score_method.  Pushing node-level fields to the header de-duplicates
+// the noise and frees per-country rows to focus on country-specific
+// signals.
+
+const COUNTRY_ROW_GRID =
+  "grid-cols-[1fr_0.6fr_0.7fr_0.5fr_0.7fr_0.7fr]";
 
 function NodeSubTable({
   mappings,
@@ -545,96 +576,189 @@ function NodeSubTable({
   mappings: HsMappingNode[];
   materialId: string;
 }) {
-  const rows: ExpandedRow[] = [];
-  for (const m of mappings) {
-    const geos = m.geographies ?? [];
-    if (geos.length === 0) {
-      rows.push({ mapping: m, geo: null });
-    } else {
-      for (const geo of geos) {
-        rows.push({ mapping: m, geo });
-      }
-    }
+  if (mappings.length === 0) {
+    return (
+      <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+        No HS codes in this stage.
+      </div>
+    );
   }
 
   return (
-    <div className="rounded-md border bg-card">
-      <div className="grid grid-cols-[1fr_1.5fr_0.7fr_0.6fr_0.6fr_0.7fr_0.5fr_0.7fr_1fr_0.9fr] gap-2 border-b bg-muted/30 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        <div>HS code</div>
-        <div>Description</div>
-        <div>Geography</div>
-        <div>Share</div>
-        <div>HHI</div>
-        <div>Tariff</div>
-        <div>Export</div>
-        <div>Score</div>
-        <div>Source · age</div>
-        <div className="text-right">Action</div>
-      </div>
-
-      {rows.map((row, i) => (
-        <NodeRow
-          key={`${row.mapping.id}-${row.geo?.country_code ?? "none"}-${i}`}
-          row={row}
-          materialId={materialId}
-          isLast={i === rows.length - 1}
-        />
+    <div className="flex flex-col gap-2">
+      {mappings.map((m) => (
+        <HsCodeGroup key={m.id} mapping={m} materialId={materialId} />
       ))}
     </div>
   );
 }
 
-interface ExpandedRow {
+function HsCodeGroup({
+  mapping: m,
+  materialId,
+}: {
   mapping: HsMappingNode;
-  geo: HsMappingGeographyScore | null;
+  materialId: string;
+}) {
+  const geos = m.geographies ?? [];
+  const status = (m.review_status ?? "unreviewed") as string;
+
+  // Node-level source/age — derive from the first geography that carries
+  // a source string, else fall back to mapping.created_at.  Pre-restructure
+  // this was repeated on every row.
+  const sourceGeo = geos.find((g) => g.source) ?? null;
+  const isEventOnly = m.score_method === "event_only_no_hhi";
+
+  return (
+    <div className="rounded-md border bg-card">
+      {/* ── HS-code header ──────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b bg-muted/30 px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-sm font-semibold">
+            {m.hs_code_prefix}
+          </span>
+          <span
+            className="rounded bg-muted px-1 py-px text-[10px] font-medium text-muted-foreground"
+            title={`${m.digit_count}-digit prefix`}
+          >
+            {m.digit_count}d
+          </span>
+          {m.description ? (
+            <span className="text-xs text-muted-foreground">
+              {m.description}
+            </span>
+          ) : (
+            <span className="text-xs italic text-amber-700 dark:text-amber-300">
+              missing description
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+          {/* HHI — node-level (same across all countries on the node) */}
+          {m.hhi != null && (
+            <span className="rounded bg-muted px-1.5 py-0.5 tabular-nums text-foreground">
+              HHI {m.hhi.toFixed(2)}
+            </span>
+          )}
+          {/* Open events count — node-level total */}
+          {m.events_open != null && m.events_open > 0 && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 font-medium text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+              Events {m.events_open}
+            </span>
+          )}
+          {/* Option B: "No production base" badge — fires when the only
+              scores on this node came from the event-only fallback (i.e.
+              USGS doesn't publish per-country production for this HS
+              stage, so HHI couldn't anchor the composite). */}
+          {isEventOnly && (
+            <span
+              className="rounded bg-blue-100 px-1.5 py-0.5 font-medium text-blue-900 dark:bg-blue-950 dark:text-blue-200"
+              title="No production-share data at this HS stage. Composite scored from tariff + export events only."
+            >
+              No production base
+            </span>
+          )}
+          {/* Source · age — node-level (was repeated per-row pre-restructure) */}
+          <span className="text-muted-foreground">
+            {sourceGeo?.source ? (
+              <>
+                {sourceGeo.source}
+                {sourceGeo.reference_year ? ` · ref ${sourceGeo.reference_year}` : ""}
+              </>
+            ) : m.scored_at ? (
+              <>scored {formatDate(m.scored_at)}</>
+            ) : m.created_at ? (
+              <>created {formatDate(m.created_at)}</>
+            ) : (
+              "—"
+            )}
+          </span>
+          {/* Per-row review status — kept on the header since reviews
+              currently apply to the mapping, not per-country. */}
+          <span
+            className={cn(
+              "font-medium",
+              REVIEW_STATUS_TINT[status] ?? REVIEW_STATUS_TINT.unreviewed,
+            )}
+          >
+            {REVIEW_STATUS_LABEL[status] ?? "Unreviewed"}
+          </span>
+          <RowActionsMenu
+            entityType="hs_code_material_mapping"
+            entityId={String(m.id)}
+            parentId={materialId}
+            entityLabel={`HS ${m.hs_code_prefix}`}
+            sectionLabel="HS Codes & Stages"
+          />
+        </div>
+      </div>
+
+      {/* ── Per-country rows (slim) ────────────────────────────── */}
+      {geos.length === 0 ? (
+        <div className="px-3 py-3 text-xs italic text-muted-foreground">
+          {isEventOnly
+            ? "Scored from events only — no per-country breakdown without production data."
+            : "No production data or scored countries on this HS code yet."}
+        </div>
+      ) : (
+        <>
+          <div
+            className={cn(
+              "grid gap-2 border-b bg-muted/20 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground",
+              COUNTRY_ROW_GRID,
+            )}
+          >
+            <div>Country</div>
+            <div>Share</div>
+            <div>Tariff</div>
+            <div>Export</div>
+            <div>Score</div>
+            <div>Method</div>
+          </div>
+          {geos.map((geo, i) => (
+            <CountryRow
+              key={`${m.id}-${geo.country_code}-${i}`}
+              geo={geo}
+              isLast={i === geos.length - 1}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
 }
 
-function NodeRow({
-  row,
-  materialId,
+function CountryRow({
+  geo,
   isLast,
 }: {
-  row: ExpandedRow;
-  materialId: string;
+  geo: HsMappingGeographyScore;
   isLast: boolean;
 }) {
-  const { mapping: m, geo } = row;
-  const score = geo?.score ?? m.node_score ?? null;
-  const hhi = geo?.hhi ?? m.hhi ?? null;
-  const status = (geo?.review_status ?? m.review_status ?? "unreviewed") as string;
-
   return (
     <div
       className={cn(
-        "grid grid-cols-[1fr_1.5fr_0.7fr_0.6fr_0.6fr_0.7fr_0.5fr_0.7fr_1fr_0.9fr] items-center gap-2 px-3 py-2.5 text-sm",
+        "grid items-center gap-2 px-3 py-2 text-sm",
+        COUNTRY_ROW_GRID,
         !isLast && "border-b",
       )}
     >
-      <div className="font-mono text-xs">{m.hs_code_prefix}</div>
-      <div className="truncate text-xs text-muted-foreground" title={m.description ?? undefined}>
-        {m.description ?? <span className="italic">missing</span>}
-      </div>
       <div>
-        {geo ? (
-          <CountrySharePill code={geo.country_code} />
-        ) : (
-          <span className="text-xs italic text-muted-foreground">no geo</span>
-        )}
+        <CountrySharePill code={geo.country_code} />
       </div>
       <div className="text-xs tabular-nums">
-        {geo?.production_share != null
+        {geo.production_share != null
           ? `${Math.round(geo.production_share * 100)}%`
           : "—"}
       </div>
-      <div className="text-xs tabular-nums">
-        {hhi != null ? hhi.toFixed(2) : "—"}
-      </div>
       <div className="text-xs">
-        {geo?.tariff_exposure != null ? (
+        {geo.tariff_exposure != null ? (
           <span
             className={cn(
               "tabular-nums",
-              geo.tariff_exposure >= 0.15 && "font-medium text-red-700 dark:text-red-400",
+              geo.tariff_exposure >= 0.15 &&
+                "font-medium text-red-700 dark:text-red-400",
             )}
           >
             {(geo.tariff_exposure * 100).toFixed(1)}%
@@ -644,7 +768,7 @@ function NodeRow({
         )}
       </div>
       <div className="text-xs">
-        {geo?.export_restriction == null ? (
+        {geo.export_restriction == null ? (
           "—"
         ) : geo.export_restriction ? (
           <span className="font-medium text-red-700 dark:text-red-400">Yes</span>
@@ -653,42 +777,22 @@ function NodeRow({
         )}
       </div>
       <div>
-        {score != null ? (
-          <ScoreChip score={score} showBandLabel={false} />
+        {geo.score != null ? (
+          <ScoreChip score={geo.score} showBandLabel={false} />
         ) : (
           <span className="text-xs italic text-muted-foreground">—</span>
         )}
       </div>
-      <div className="text-[11px] leading-tight text-muted-foreground">
-        {geo?.source ? (
-          <>
-            <div>{geo.source}</div>
-            {geo.reference_year && <div>ref. yr {geo.reference_year}</div>}
-          </>
-        ) : m.created_at ? (
-          <>created {formatDate(m.created_at)}</>
+      <div className="text-[11px] text-muted-foreground">
+        {geo.score_method === "event_only_no_hhi" ? (
+          <span title="Scored from tariff + export events only (no production share at this stage)">
+            events
+          </span>
+        ) : geo.score_method === "hhi_anchored" ? (
+          <span title="Anchored on production share + HHI">anchored</span>
         ) : (
           "—"
         )}
-      </div>
-      <div className="flex items-center justify-end gap-1.5">
-        <span
-          className={cn(
-            "text-[11px] font-medium",
-            REVIEW_STATUS_TINT[status] ?? REVIEW_STATUS_TINT.unreviewed,
-          )}
-        >
-          {REVIEW_STATUS_LABEL[status] ?? "Unreviewed"}
-        </span>
-        <RowActionsMenu
-          entityType="hs_code_material_mapping"
-          entityId={String(m.id)}
-          parentId={materialId}
-          entityLabel={`HS ${m.hs_code_prefix}${
-            geo ? ` · ${geo.country_code}` : ""
-          }`}
-          sectionLabel="HS Codes & Stages"
-        />
       </div>
     </div>
   );

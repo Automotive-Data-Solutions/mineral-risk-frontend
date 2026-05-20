@@ -12,12 +12,15 @@ import {
   PlatformCardHeader,
   PlatformCardBody,
 } from "@/components/platform/platform-card";
-import { useDashboardOverview } from "@/lib/hooks/use-dashboard";
+import { useCoverageMatrix, useDashboardOverview } from "@/lib/hooks/use-dashboard";
+import { CoverageMatrixCard } from "@/components/platform/coverage-matrix-card";
+import { ScoreCoverageCard } from "@/components/platform/score-coverage-card";
 import { formatNumber, formatRelative, humanize, NOTE_TYPE_BADGE, NOTE_TYPE_LABEL } from "@/lib/utils/format";
+import { scoreToBand, RISK_BAND_LABEL } from "@/lib/utils/risk-band";
 import type {
   TopMaterialRisk,
-  ScoreRunProgress,
   RecentNoteItem,
+  RiskBand,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -29,52 +32,36 @@ function scorePct(n: number, total: number): number {
   return Math.round((n / total) * 100);
 }
 
-function riskTier(score: number): "high" | "med" | "low" {
-  if (score >= 70) return "high";
-  if (score >= 40) return "med";
+/** Map a 4-tier RiskBand to the platform.css class suffix.  Single source
+ *  of truth for band → color across this page; uses scoreToBand under the
+ *  hood so threshold changes only need to happen in risk-band.ts. */
+function bandClassSuffix(band: RiskBand | null): "low" | "mod" | "high" | "crit" | "low" {
+  if (band === "CRIT") return "crit";
+  if (band === "HIGH") return "high";
+  if (band === "MOD") return "mod";
   return "low";
 }
 
-function riskLabel(score: number): string {
-  const t = riskTier(score);
-  return t === "high" ? "High" : t === "med" ? "Med" : "Low";
+/** CSS var name for the band's primary color, used in inline styles
+ *  (table dots, trend arrows, KPI sub colors). */
+function bandColorVar(band: RiskBand | null): string {
+  if (band === "CRIT") return "var(--p-risk-crit)";
+  if (band === "HIGH") return "var(--p-risk-high)";
+  if (band === "MOD") return "var(--p-risk-mod)";
+  return "var(--p-risk-low)";
 }
-
-
-const PILLAR_COLOR_VAR: Record<string, string> = {
-  material_concentration_score: "var(--p-pillar-material)",
-  geopolitical_trade_score: "var(--p-pillar-geo)",
-  regulatory_compliance_score: "var(--p-pillar-regulatory)",
-  operational_score: "var(--p-pillar-operational)",
-  financial_pressure_score: "var(--p-pillar-financial)",
-};
 
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
-
-function BarList({ items }: { items: { label: string; value: number }[] }) {
-  const max = Math.max(1, ...items.map((i) => i.value));
-  const sorted = [...items].sort((a, b) => b.value - a.value);
-  return (
-    <div className="p-bar-list">
-      {sorted.map((item) => (
-        <div key={item.label} className="p-bar-row">
-          <div className="p-bar-row-top">
-            <span className="p-bar-lbl">{item.label}</span>
-            <span className="p-bar-val">{formatNumber(item.value)}</span>
-          </div>
-          <div className="p-bar-track">
-            <div
-              className="p-bar-fill"
-              style={{ width: `${(item.value / max) * 100}%` }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
+//
+// Note (2026-05-11): BarList, ScoreRunCard, and PILLAR_COLOR_VAR were
+// removed in this revision.  Companies-by-stage and Score-run progress
+// retired from the Overview; the new CoverageMatrixCard subsumes both
+// (per-material × per-pillar view replaces aggregate score-run; per-source
+// view replaces the company-stage bar list).  If those views need to
+// resurface on an admin / system-status page later, recover from git
+// history rather than maintaining unused code here.
 
 function TopMaterialsCard({ materials }: { materials: TopMaterialRisk[] }) {
   return (
@@ -129,7 +116,12 @@ function TopMaterialsCard({ materials }: { materials: TopMaterialRisk[] }) {
           </thead>
           <tbody>
             {materials.map((m) => {
-              const tier = riskTier(m.overall_risk_score);
+              // Unified band logic: 4-tier (LOW/MOD/HIGH/CRIT) via the
+              // single scoreToBand utility.  No inline thresholds.
+              const band = scoreToBand(m.overall_risk_score);
+              const suffix = bandClassSuffix(band);
+              const dotColor = bandColorVar(band);
+              const bandLabel = band ? RISK_BAND_LABEL[band] : "—";
               const trend = m.trend?.toLowerCase();
               return (
                 <tr
@@ -151,12 +143,7 @@ function TopMaterialsCard({ materials }: { materials: TopMaterialRisk[] }) {
                           width: 8,
                           height: 8,
                           borderRadius: "50%",
-                          background:
-                            tier === "high"
-                              ? "var(--p-risk-high)"
-                              : tier === "med"
-                              ? "var(--p-risk-med)"
-                              : "var(--p-risk-low)",
+                          background: dotColor,
                           flexShrink: 0,
                         }}
                       />
@@ -184,15 +171,16 @@ function TopMaterialsCard({ materials }: { materials: TopMaterialRisk[] }) {
                   </td>
                   {/* Risk score */}
                   <td style={{ padding: "12px 16px" }}>
-                    <span className={`p-score p-score-${tier}`}>
-                      <span className={`p-score-dot p-dot-${tier}`} />
-                      {m.overall_risk_score} · {riskLabel(m.overall_risk_score)}
+                    <span className={`p-score p-score-${suffix}`}>
+                      <span className={`p-score-dot p-dot-${suffix}`} />
+                      {m.overall_risk_score} · {bandLabel}
                     </span>
                   </td>
-                  {/* Trend */}
+                  {/* Trend — uses CRIT color for rising (most attention-
+                      grabbing) and LOW color for declining (favorable). */}
                   <td style={{ padding: "12px 16px" }}>
                     {trend === "rising" ? (
-                      <span style={{ color: "var(--p-risk-high)", fontSize: 12, fontWeight: 500 }}>
+                      <span style={{ color: "var(--p-risk-crit)", fontSize: 12, fontWeight: 500 }}>
                         ↗ Rising
                       </span>
                     ) : trend === "declining" ? (
@@ -210,185 +198,6 @@ function TopMaterialsCard({ materials }: { materials: TopMaterialRisk[] }) {
             })}
           </tbody>
         </table>
-      </PlatformCardBody>
-    </PlatformCard>
-  );
-}
-
-function ScoreRunCard({ progress }: { progress: ScoreRunProgress }) {
-  const totalPairs = Math.max(
-    progress.scored_geographies * progress.scored_materials,
-    1,
-  );
-  void totalPairs; // used only for context; pillar %s come from the API
-
-  return (
-    <PlatformCard>
-      <PlatformCardHeader
-        title="Score-run progress"
-        subtitle={
-          progress.last_run_date
-            ? `Last full run: ${new Date(progress.last_run_date).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })} UTC`
-            : undefined
-        }
-      />
-      <PlatformCardBody>
-        {/* Stats row */}
-        <div
-          className="grid grid-cols-2 sm:grid-cols-3"
-          style={{ gap: 12, marginBottom: 20 }}
-        >
-          {[
-            {
-              label: "GEOGRAPHIES",
-              valid: progress.valid_geographies,
-              scored: progress.scored_geographies,
-              total: progress.total_geographies,
-            },
-            {
-              label: "MATERIALS",
-              valid: progress.valid_materials,
-              scored: progress.scored_materials,
-              total: progress.total_materials,
-            },
-            { label: "PILLARS", valid: 5, scored: 5, total: 5 },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              style={{
-                padding: "12px 16px",
-                background: "var(--p-bg-subtle)",
-                borderRadius: "var(--p-radius-md)",
-                border: "1px solid var(--p-border)",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color: "var(--p-text-muted)",
-                  marginBottom: 4,
-                }}
-              >
-                {stat.label}
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 600, color: "var(--p-text)", lineHeight: 1.1 }}>
-                {stat.valid}
-                <span style={{ fontSize: 13, fontWeight: 400, color: "var(--p-text-muted)" }}>
-                  {" "}/ {stat.total}
-                </span>
-              </div>
-              {stat.valid !== stat.scored && (
-                <div style={{ fontSize: 11, color: "var(--p-text-faint)", marginTop: 3 }}>
-                  {stat.scored} scored, {stat.total - stat.valid} no data
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Pillar bars */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {progress.pillars.map((p) => {
-            const color = PILLAR_COLOR_VAR[p.name] ?? "var(--p-slate-700)";
-            const gapPct = p.computed_pct - p.signal_pct;
-            return (
-              <div key={p.name}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    fontSize: 12,
-                    marginBottom: 5,
-                  }}
-                >
-                  <span style={{ color: "var(--p-text-muted)" }}>{p.label}</span>
-                  <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <span style={{ fontWeight: 600, color: "var(--p-text)" }}>
-                      {p.signal_pct}%
-                      <span style={{ fontWeight: 400, color: "var(--p-text-muted)", marginLeft: 3 }}>
-                        have signal
-                      </span>
-                    </span>
-                    {gapPct > 0 && (
-                      <span style={{ fontSize: 11, color: "var(--p-text-faint)" }}>
-                        {gapPct}% floor
-                      </span>
-                    )}
-                  </span>
-                </div>
-                {/* Stacked bar: signal (full) + floor zeros (dim) + uncovered (bg) */}
-                <div
-                  style={{
-                    height: 7,
-                    background: "var(--p-bg-muted)",
-                    borderRadius: 4,
-                    overflow: "hidden",
-                    display: "flex",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${p.signal_pct}%`,
-                      height: "100%",
-                      background: color,
-                      transition: "width 0.4s ease",
-                    }}
-                  />
-                  {gapPct > 0 && (
-                    <div
-                      style={{
-                        width: `${gapPct}%`,
-                        height: "100%",
-                        background: color,
-                        opacity: 0.2,
-                        transition: "width 0.4s ease",
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Legend */}
-        <div
-          style={{
-            display: "flex",
-            gap: 16,
-            marginTop: 14,
-            fontSize: 11,
-            color: "var(--p-text-faint)",
-          }}
-        >
-          {[
-            { label: "Has signal", opacity: 1 },
-            { label: "Scored, no data", opacity: 0.2 },
-            { label: "Not covered", bg: "var(--p-bg-muted)", opacity: 1 },
-          ].map(({ label, opacity, bg }) => (
-            <span key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span
-                style={{
-                  width: 10,
-                  height: 6,
-                  borderRadius: 2,
-                  background: bg ?? "var(--p-pillar-material)",
-                  opacity,
-                  display: "inline-block",
-                }}
-              />
-              {label}
-            </span>
-          ))}
-        </div>
       </PlatformCardBody>
     </PlatformCard>
   );
@@ -521,10 +330,16 @@ function CardEmpty({ title, subtitle, message }: { title: string; subtitle?: str
 
 export default function DashboardOverviewPage() {
   const { data, isLoading, error, refetch } = useDashboardOverview();
-  const stageCounts = data?.company_count_by_stage ?? [];
+  const {
+    data: coverageMatrix,
+    isLoading: isLoadingMatrix,
+  } = useCoverageMatrix();
   const topMaterials = data?.top_materials_by_risk ?? [];
-  const scoreRun = data?.score_run_progress ?? null;
   const recentActivity = data?.recent_activity ?? [];
+  // Companies-by-stage and Score-run progress are no longer rendered on
+  // Overview as of 2026-05-11; the coverage matrix replaces both views.
+  // Data still arrives in the overview response for backwards-compat —
+  // we just don't consume it here.
 
   return (
     <PageLayout>
@@ -537,40 +352,108 @@ export default function DashboardOverviewPage() {
         <ErrorState error={error} onRetry={() => refetch()} />
       ) : (
         <>
-          {/* KPI grid */}
+          {/* KPI grid — launch-list-centric analyst view (2026-05-11) */}
           <div className="p-kpi-grid">
+            {/* 1. Core minerals scored — fraction of the 10-mineral launch
+                list that currently has a global risk score. The headline
+                metric for "is the analysis covering what we said it would?" */}
             <KpiCard
-              label="Materials Tracked"
-              value={isLoading ? null : formatNumber(data?.material_count_total ?? null)}
-              sub={
-                !isLoading && data?.material_count_this_quarter != null &&
-                data.material_count_this_quarter > 0 ? (
+              label="Core Minerals Scored"
+              value={
+                isLoading || !data?.core_minerals_scored ? null : (
                   <span>
-                    <span className="p-delta-up">+{data.material_count_this_quarter}</span> this quarter
+                    {data.core_minerals_scored.scored}
+                    <span style={{ fontSize: 16, fontWeight: 400, color: "var(--p-text-muted)" }}>
+                      {" "}/ {data.core_minerals_scored.total}
+                    </span>
                   </span>
-                ) : "Battery supply chain materials"
+                )
+              }
+              sub={
+                !isLoading && data?.core_minerals_scored ? (
+                  data.core_minerals_scored.unscored_names.length === 0 ? (
+                    <span>Launch list fully scored</span>
+                  ) : (
+                    <span title={data.core_minerals_scored.unscored_names.join(", ")}>
+                      Missing:{" "}
+                      <strong>
+                        {data.core_minerals_scored.unscored_names.length > 2
+                          ? `${data.core_minerals_scored.unscored_names.slice(0, 2).join(", ")} +${data.core_minerals_scored.unscored_names.length - 2}`
+                          : data.core_minerals_scored.unscored_names.join(", ")}
+                      </strong>
+                    </span>
+                  )
+                ) : "Launch-list global risk score coverage"
               }
               isLoading={isLoading}
             />
+
+            {/* 2. Risk events (30d) — ingestion volume in the last month,
+                with delta vs the prior 30d so the analyst can see whether
+                signal is flowing or has stalled. */}
             <KpiCard
-              label="Companies Scored"
-              value={isLoading ? null : formatNumber(data?.companies_with_score ?? null)}
+              label="Risk Events (30d)"
+              value={
+                isLoading || !data?.recent_risk_events_30d
+                  ? null
+                  : formatNumber(data.recent_risk_events_30d.count)
+              }
               sub={
-                !isLoading && data ? (
-                  <span>
-                    of {formatNumber(data.company_count_total)} ·{" "}
-                    <strong>{scorePct(data.companies_with_score, data.company_count_total)}%</strong>
-                  </span>
-                ) : undefined
+                !isLoading && data?.recent_risk_events_30d ? (
+                  (() => {
+                    const cur = data.recent_risk_events_30d.count;
+                    const prev = data.recent_risk_events_30d.prev_period_count;
+                    if (prev === 0 && cur === 0) {
+                      return <span>No events in prior 60 days</span>;
+                    }
+                    if (prev === 0) {
+                      return <span><span className="p-delta-up">new signal</span> · prior 30d was 0</span>;
+                    }
+                    const deltaPct = Math.round(((cur - prev) / prev) * 100);
+                    const cls = deltaPct > 0 ? "p-delta-up" : deltaPct < 0 ? "p-delta-down" : "";
+                    const arrow = deltaPct > 0 ? "↗" : deltaPct < 0 ? "↘" : "→";
+                    return (
+                      <span>
+                        <span className={cls}>{arrow} {Math.abs(deltaPct)}%</span>{" "}
+                        vs prior 30d
+                      </span>
+                    );
+                  })()
+                ) : "New risk events in the last 30 days"
               }
               isLoading={isLoading}
             />
+
+            {/* 3. Coverage gaps — count of launch-list minerals failing any
+                quality bar (no score / stale / thin events / thin pillars).
+                This is the "where do I focus my next data work?" KPI. */}
             <KpiCard
-              label="Suspect Mappings"
-              value={isLoading ? null : formatNumber(data?.suspect_mappings_count ?? null)}
-              sub="Low-confidence or cross-mapped HS codes"
+              label="Coverage Gaps"
+              value={
+                isLoading || !data?.coverage_gaps
+                  ? null
+                  : formatNumber(data.coverage_gaps.count)
+              }
+              sub={
+                !isLoading && data?.coverage_gaps ? (
+                  data.coverage_gaps.count === 0 ? (
+                    <span style={{ color: "var(--p-risk-low)" }}>All launch-list minerals pass</span>
+                  ) : (
+                    <span
+                      title={data.coverage_gaps.materials
+                        .map((m) => `${m.canonical_name} (${m.reasons.join(", ")})`)
+                        .join("\n")}
+                    >
+                      Minerals needing attention
+                    </span>
+                  )
+                ) : "Launch-list minerals failing the quality bar"
+              }
               isLoading={isLoading}
             />
+
+            {/* 4. Notes (7d) — analyst activity indicator. Unchanged from
+                the prior strip; still useful once notes flow. */}
             <KpiCard
               label="Notes (7d)"
               value={isLoading ? null : formatNumber(data?.recent_notes_count_7d ?? null)}
@@ -586,62 +469,41 @@ export default function DashboardOverviewPage() {
             />
           </div>
 
-          {/* Top materials + Companies by stage */}
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-[1fr_380px]">
-            {isLoading ? (
-              <CardSkeleton title="Top materials by risk" />
-            ) : topMaterials.length > 0 ? (
-              <TopMaterialsCard materials={topMaterials} />
-            ) : (
-              <CardEmpty
-                title="Top materials by risk"
-                subtitle="Global risk score, weighted by trade exposure"
-                message="No global risk scores computed yet. Run a market rescore to populate."
-              />
-            )}
+          {/* Top materials by risk — full width since Companies-by-stage
+              was retired from the Overview as of 2026-05-11. */}
+          {isLoading ? (
+            <CardSkeleton title="Top materials by risk" />
+          ) : topMaterials.length > 0 ? (
+            <TopMaterialsCard materials={topMaterials} />
+          ) : (
+            <CardEmpty
+              title="Top materials by risk"
+              subtitle="Global risk score, weighted by trade exposure"
+              message="No global risk scores computed yet. Run a market rescore to populate."
+            />
+          )}
 
-            <PlatformCard>
-              <PlatformCardHeader
-                title="Companies by stage"
-                subtitle="Distribution across the supply chain"
-              />
-              <PlatformCardBody>
-                {isLoading ? (
-                  <Skeleton className="h-56 w-full" />
-                ) : stageCounts.length === 0 ? (
-                  <div style={{ color: "var(--p-text-muted)", fontSize: 13 }}>No stage data</div>
-                ) : (
-                  <BarList
-                    items={stageCounts.map((s) => ({
-                      label: humanize(s.stage),
-                      value: s.count,
-                    }))}
-                  />
-                )}
-              </PlatformCardBody>
-            </PlatformCard>
-          </div>
-
-          {/* Score-run progress + Recent activity */}
+          {/* Score coverage + Recent activity — paired on one row.
+              Score coverage on the left (per-pillar share-of-launch-list
+              bars), Notes/activity on the right.  Collapses to a single
+              column under md breakpoint so the bars stay readable on
+              narrow viewports. */}
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            {isLoading ? (
-              <CardSkeleton title="Score-run progress" />
-            ) : scoreRun ? (
-              <ScoreRunCard progress={scoreRun} />
-            ) : (
-              <CardEmpty
-                title="Score-run progress"
-                subtitle="No scoring runs found"
-                message="Trigger a rescore via POST /market/rescore to populate this section."
-              />
-            )}
-
+            <ScoreCoverageCard
+              pillars={coverageMatrix?.pillar_coverage}
+              isLoading={isLoadingMatrix}
+            />
             {isLoading ? (
               <CardSkeleton title="Recent analyst activity" />
             ) : (
               <RecentActivityCard notes={recentActivity} />
             )}
           </div>
+
+          {/* Coverage matrix — per launch-list material × source.  Pillar
+              columns moved to the dedicated ScoreCoverageCard above to
+              avoid cramping (2026-05-11). */}
+          <CoverageMatrixCard data={coverageMatrix} isLoading={isLoadingMatrix} />
         </>
       )}
     </PageLayout>

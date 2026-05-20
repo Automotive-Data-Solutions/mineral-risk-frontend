@@ -14,7 +14,9 @@ export interface MaterialListParams {
   category?: string;
   is_ira_critical?: boolean;
   is_eu_crma_critical?: boolean;
-  has_mismatched_mappings?: boolean;
+  /** 2026-05-11: scope to launch-list materials (the core 10 v1 minerals).
+   *  Replaces the retired ``has_mismatched_mappings`` filter. */
+  is_launch_list?: boolean;
 }
 
 export async function getMaterials(
@@ -139,6 +141,17 @@ export async function getMaterialHsCodeMappings(
   return (data ?? []).map(normalizeHsCodeMappingRow);
 }
 
+// ---------------------------------------------------------------------------
+// HS-code mapping mismatch helpers — retired 2026-05-11
+// ---------------------------------------------------------------------------
+//
+// ``getHsCodeMappingMismatches`` / ``HsCodeMappingMismatchParams`` used to
+// power the global mismatches view that was deleted from the Materials
+// page in the 2026-05-11 refresh.  Function signatures retained for one
+// release cycle as no-op shims so any straggling caller (none known) gets
+// a typed empty response rather than a thrown error.  Backend route was
+// removed in the same commit; the URL below now 404s.
+
 export interface HsCodeMappingMismatchParams {
   page?: number;
   limit?: number;
@@ -146,17 +159,19 @@ export interface HsCodeMappingMismatchParams {
 }
 
 export async function getHsCodeMappingMismatches(
-  client: ApiClient,
-  params: HsCodeMappingMismatchParams = {},
+  _client: ApiClient,
+  _params: HsCodeMappingMismatchParams = {},
 ): Promise<HsCodeMappingMismatchListResponse> {
-  const { data } = await client.get<HsCodeMappingMismatchListResponse>(
-    "/api/v1/hs-code-mappings/mismatches",
-    { params },
-  );
+  // Retired endpoint — return an empty paginated response shape so any
+  // residual caller treats the result as "no mismatches" rather than
+  // hitting an unhandled error path.  Remove this shim once we confirm
+  // no callers remain.
   return {
-    ...data,
-    data: (data.data ?? []).map(normalizeHsCodeMappingRow),
-  };
+    data: [],
+    total: 0,
+    page: 1,
+    limit: 50,
+  } as HsCodeMappingMismatchListResponse;
 }
 
 export async function getMaterialGlobalScore(

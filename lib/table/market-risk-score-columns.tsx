@@ -47,6 +47,13 @@ export function buildMarketRiskScoreColumns(options: {
   showMaterialColumn: boolean;
   /** When true: full `ScoreChip` with band label; when false: compact numeric + dot. */
   overallBandLabels: boolean;
+  /**
+   * When true, render the per-material exposure columns (production share %,
+   * facility count).  Only meaningful when the rows come from
+   * `/materials/{id}/market-scores` — the cross-material `/market/scores`
+   * browse view does not populate these fields.
+   */
+  showExposureColumns?: boolean;
 }): ColumnDef<MaterialGeographyScoreRead, unknown>[] {
   const cols: ColumnDef<MaterialGeographyScoreRead, unknown>[] = [];
 
@@ -65,6 +72,53 @@ export function buildMarketRiskScoreColumns(options: {
     header: "Geography",
     cell: ({ row }) => <GeographyCodePill code={row.original.geography_code} />,
   });
+
+  if (options.showExposureColumns) {
+    cols.push({
+      accessorKey: "production_share_pct",
+      header: () => <span className="block text-right">Share</span>,
+      cell: ({ row }) => {
+        const share = row.original.production_share_pct;
+        if (share == null) {
+          return (
+            <div className="text-right tabular-nums text-muted-foreground/40">—</div>
+          );
+        }
+        // Highlight ≥10% (concentrated producer) — otherwise dim.
+        const cls =
+          share >= 10
+            ? "font-semibold text-foreground"
+            : share >= 1
+              ? "text-foreground"
+              : "text-muted-foreground";
+        return (
+          <div className={cn("text-right tabular-nums text-xs", cls)}>
+            {share}%
+          </div>
+        );
+      },
+    });
+
+    cols.push({
+      accessorKey: "facility_count",
+      header: () => <span className="block text-right">Facilities</span>,
+      cell: ({ row }) => {
+        const count = row.original.facility_count ?? 0;
+        if (count === 0) {
+          return (
+            <div className="text-right tabular-nums text-muted-foreground/40 text-xs">
+              —
+            </div>
+          );
+        }
+        return (
+          <div className="text-right tabular-nums text-xs font-semibold">
+            {count}
+          </div>
+        );
+      },
+    });
+  }
 
   cols.push({
     accessorKey: "overall_risk_score",
@@ -106,11 +160,30 @@ export function buildMarketRiskScoreColumns(options: {
   }
 
   cols.push({
-    accessorKey: "event_count",
+    // Events column shows the INTERSECTION (event_count_geo_specific) —
+    // events tagged to BOTH this material AND this country.  Falls back to
+    // the legacy UNION `event_count` only when the row predates migration
+    // 042 (signalled by null geo_specific) — but renders as "—" with a
+    // tooltip in that case so analysts know it's stale and a rescore would
+    // change the number.  See migration 042 docstring for why we don't
+    // silently substitute.
+    accessorKey: "event_count_geo_specific",
     header: () => <span className="block text-right">Events</span>,
     cell: ({ row }) => {
-      const count = row.original.event_count ?? 0;
-      if (count === 0) {
+      const geoSpecific = row.original.event_count_geo_specific;
+      if (geoSpecific == null) {
+        // Pre-042 row — show "—" with a hover hint rather than the
+        // misleading union number.  A rescore will populate it.
+        return (
+          <div
+            className="flex justify-end"
+            title="Pre-042 row · rescore to populate geo-specific event count"
+          >
+            <span className="text-xs text-muted-foreground/40 tabular-nums">—</span>
+          </div>
+        );
+      }
+      if (geoSpecific === 0) {
         return (
           <div className="flex justify-end">
             <span className="text-xs text-muted-foreground/40 tabular-nums">0</span>
@@ -118,7 +191,7 @@ export function buildMarketRiskScoreColumns(options: {
         );
       }
       const chipClass =
-        count >= 5
+        geoSpecific >= 5
           ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800"
           : "bg-muted text-muted-foreground border border-border";
       return (
@@ -128,8 +201,9 @@ export function buildMarketRiskScoreColumns(options: {
               "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums",
               chipClass,
             )}
+            title={`${geoSpecific} events tagged to this material AND this country · union total (consumed by scoring): ${row.original.event_count ?? 0}`}
           >
-            {count}
+            {geoSpecific}
           </span>
         </div>
       );

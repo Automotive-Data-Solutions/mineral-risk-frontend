@@ -13,20 +13,25 @@ import {
 } from "@/components/ui/select";
 import { DataTableToolbar } from "@/components/data-table/toolbar";
 
+// 2026-05-11: filter bar simplified.  Dropped the IRA / EU CRMA / HS-
+// mismatch toggles — those were either redundant with how we now display
+// rows (badges retired) or referenced UI that no longer exists (mismatch
+// view).  Replaced with a single "Launch list only" toggle defaulted on,
+// so the page lands on the core 10 minerals for the analyst audience and
+// users have to opt-in to see the long tail.
+
 export interface MaterialsFilters {
   search: string;
   category: string;
-  is_ira_critical: boolean;
-  is_eu_crma_critical: boolean;
-  has_mismatched_mappings: boolean;
+  /** Scope the table to launch-list materials (the v1 core 10).
+   *  Defaults to true so the analyst lands on the relevant set. */
+  launch_list_only: boolean;
 }
 
 export const INITIAL_MATERIAL_FILTERS: MaterialsFilters = {
   search: "",
   category: "",
-  is_ira_critical: false,
-  is_eu_crma_critical: false,
-  has_mismatched_mappings: false,
+  launch_list_only: true,
 };
 
 // Curated category list. The backend should still accept arbitrary categories
@@ -67,12 +72,13 @@ export function MaterialsFilterBar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localSearch]);
 
-  const hasFilters =
+  // "Has filters" — used to decide whether to render the Clear button.
+  // Launch-list-only is the DEFAULT, so treat it as "set" only when the
+  // user has flipped it off (which is the non-default state).
+  const hasNonDefaultFilters =
     value.search ||
     value.category ||
-    value.is_ira_critical ||
-    value.is_eu_crma_critical ||
-    value.has_mismatched_mappings;
+    value.launch_list_only !== INITIAL_MATERIAL_FILTERS.launch_list_only;
 
   return (
     <DataTableToolbar
@@ -112,42 +118,21 @@ export function MaterialsFilterBar({
       </Select>
 
       <FilterToggle
-        label="IRA critical"
-        active={value.is_ira_critical}
+        label="Launch list only"
+        active={value.launch_list_only}
         onClick={() =>
-          onChange({ ...value, is_ira_critical: !value.is_ira_critical })
+          onChange({ ...value, launch_list_only: !value.launch_list_only })
         }
-      />
-      <FilterToggle
-        label="EU CRMA"
-        active={value.is_eu_crma_critical}
-        onClick={() =>
-          onChange({
-            ...value,
-            is_eu_crma_critical: !value.is_eu_crma_critical,
-          })
-        }
-      />
-      <FilterToggle
-        label="Mismatched mappings only"
-        active={value.has_mismatched_mappings}
-        onClick={() =>
-          onChange({
-            ...value,
-            has_mismatched_mappings: !value.has_mismatched_mappings,
-          })
-        }
-        tone="amber"
       />
 
-      {hasFilters && (
+      {hasNonDefaultFilters && (
         <Button
           variant="ghost"
           size="sm"
           onClick={() => onChange(INITIAL_MATERIAL_FILTERS)}
         >
           <X className="h-3.5 w-3.5" />
-          Clear
+          Reset
         </Button>
       )}
     </DataTableToolbar>
@@ -158,26 +143,20 @@ interface FilterToggleProps {
   label: string;
   active: boolean;
   onClick: () => void;
-  tone?: "default" | "amber";
 }
 
-function FilterToggle({
-  label,
-  active,
-  onClick,
-  tone = "default",
-}: FilterToggleProps) {
-  const activeClass =
-    tone === "amber"
-      ? "border-amber-500 bg-amber-100 text-amber-900 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"
-      : "border-primary bg-primary/10 text-primary hover:bg-primary/20";
+function FilterToggle({ label, active, onClick }: FilterToggleProps) {
   return (
     <Button
       type="button"
       variant="outline"
       size="sm"
       onClick={onClick}
-      className={active ? activeClass : undefined}
+      className={
+        active
+          ? "border-primary bg-primary/10 text-primary hover:bg-primary/20"
+          : undefined
+      }
       aria-pressed={active}
     >
       {label}

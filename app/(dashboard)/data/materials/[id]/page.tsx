@@ -15,6 +15,7 @@ import { EntityFlagIssueDialog } from "@/components/shared/entity-flag-issue-dia
 import { ErrorState } from "@/components/shared/error-state";
 import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
 import { PlatformTable } from "@/components/platform/platform-table";
+import { HsMappingsCard } from "@/components/materials/hs-mappings-card";
 import {
   useMaterial,
   useMaterialGlobalScore,
@@ -25,13 +26,14 @@ import {
 import { useToggleMaterialVerified } from "@/lib/hooks/use-verified";
 import { useEntityNotes } from "@/lib/hooks/use-entity-notes";
 import {
-  sortMarketRiskScoreRows,
   buildMarketRiskScoreColumns,
 } from "@/lib/table/market-risk-score-columns";
-import {
-  HsCodesAndStagesTab,
-  type HsMappingNode,
-} from "@/components/materials/hs-codes-stages-tab";
+// HsCodesAndStagesTab import preserved (commented) so re-enabling the tab
+// after partner facility data lands is a one-line change.
+// import {
+//   HsCodesAndStagesTab,
+//   type HsMappingNode,
+// } from "@/components/materials/hs-codes-stages-tab";
 import type {
   MaterialGeographyScoreRead,
   MaterialGlobalScoreRead,
@@ -39,15 +41,25 @@ import type {
 import { formatDate, formatDateTime, formatRelative, humanize, NOTE_TYPE_BADGE, NOTE_TYPE_LABEL } from "@/lib/utils/format";
 import { useBreadcrumbLabel } from "@/components/platform/breadcrumb-context";
 
+// MVP detail-page layout (2026-05-09): three top-level tabs only.
+//
+// What was removed:
+//   - "HS Codes & Stages" — the data is too thin pre-G4c facility seed
+//     to be the front door (HS-node scoring covers the ore stage well
+//     but not refined / intermediate / battery_grade for most materials).
+//     Component file kept intact in components/materials/ so re-enabling
+//     is a one-line change once partner facility data lands.
+//   - "Notes" tab — folded into a collapsible at the bottom of Overview
+//     so analyst notes stay accessible without taking a tab slot.
+//
+// What replaced them:
+//   - "Risk events" — placeholder card pointing at the global risk-events
+//     page until the per-material events feed (with material_id filter
+//     + free-text search) ships.
 const TABS = [
   { value: "overview", label: "Overview" },
-  // Combined tab — replaces the old "HS Mappings" tab.  Adds stage
-  // grouping, per-geography drill-down, and partner-review state.
-  // Keeps all functionality from the old flat mappings table via the
-  // "Flat list" view-mode toggle inside the tab.
-  { value: "mappings", label: "HS Codes & Stages" },
-  { value: "scores", label: "Market Scores" },
-  { value: "notes", label: "Notes" },
+  { value: "scores", label: "Country scores" },
+  { value: "events", label: "Risk events" },
 ] as const;
 
 type TabValue = (typeof TABS)[number]["value"];
@@ -166,11 +178,7 @@ export default function MaterialDetailPage({
       <div className="p-tabs">
         {TABS.map((t) => {
           const count =
-            t.value === "mappings"
-              ? material.hs_code_mappings.length
-              : t.value === "scores"
-              ? marketScores.length
-              : null;
+            t.value === "scores" ? marketScores.length : null;
           return (
             <button
               key={t.value}
@@ -188,40 +196,60 @@ export default function MaterialDetailPage({
 
       <div className="mt-4">
         {tab === "overview" && (
-          <OverviewTab material={material} globalScore={globalScore} />
-        )}
-        {tab === "mappings" && (
-          <HsCodesAndStagesTab
+          <OverviewTab
             materialId={String(material.id)}
-            materialName={material.canonical_name}
-            // The wire shape now carries supply_chain_stage, market_scope,
-            // digit_count, and keywords directly from the API. Score
-            // fields remain optional and render as "—" until the scoring
-            // engine writes them.
-            mappings={material.hs_code_mappings as HsMappingNode[]}
+            material={material}
+            globalScore={globalScore}
           />
         )}
         {tab === "scores" && <ScoresTab materialId={String(material.id)} scores={marketScores} />}
-        {tab === "notes" && <NotesTab materialId={String(material.id)} />}
+        {tab === "events" && (
+          <EventsPlaceholderTab materialName={material.canonical_name} />
+        )}
       </div>
     </PageLayout>
   );
 }
 
 interface OverviewTabProps {
+  materialId: string;
   material: import("@/lib/types").MaterialDetail;
   globalScore: MaterialGlobalScoreRead | null;
 }
 
-const TREND_CONFIG: Record<string, { label: string; color: string }> = {
-  rising: { label: "Rising", color: "text-red-600 dark:text-red-400" },
-  stable: { label: "Stable", color: "text-amber-600 dark:text-amber-400" },
-  declining: { label: "Declining", color: "text-emerald-600 dark:text-emerald-400" },
+// Risk-score trend (latest MaterialGlobalRiskScore.overall vs the most
+// recent snapshot at least 7 days older).  Rising = composite score
+// went UP → risk increased → red.  Declining = composite score went
+// DOWN → risk improved → green.  Stable = moved by ≤5 points →
+// neutral gray (not amber — "stable" doesn't warrant a warning color
+// when the underlying signal is the actual score, not event count).
+const TREND_CONFIG: Record<string, { label: string; arrow: string; color: string }> = {
+  rising: {
+    label: "Rising",
+    arrow: "↗",
+    color: "text-red-600 dark:text-red-400",
+  },
+  stable: {
+    label: "Stable",
+    arrow: "→",
+    color: "text-muted-foreground",
+  },
+  declining: {
+    label: "Declining",
+    arrow: "↘",
+    color: "text-emerald-600 dark:text-emerald-400",
+  },
 };
 
-function OverviewTab({ material, globalScore }: OverviewTabProps) {
-  const trend = material.patent_occurrence_trend
-    ? TREND_CONFIG[material.patent_occurrence_trend]
+function OverviewTab({ materialId, material, globalScore }: OverviewTabProps) {
+  // 2026-05-11: trend now sourced from score_trend_7d (computed by the
+  // /materials/{id} route from the MaterialGlobalRiskScore time series).
+  // Previously experimented with event-count trend, but the user
+  // correctly flagged that more events doesn't mean more risk (e.g.,
+  // IEA INVESTMENT_PLEDGE events are constructive signals).  Score-
+  // trend answers the actual analyst question semantically.
+  const trend = material.score_trend_7d
+    ? TREND_CONFIG[material.score_trend_7d]
     : null;
 
   return (
@@ -254,34 +282,77 @@ function OverviewTab({ material, globalScore }: OverviewTabProps) {
               </div>
               <span className="text-sm">{humanize(material.category) || "—"}</span>
             </div>
+            {/* "Data availability" and "Price basis" tiles retired
+                2026-05-11 — both were internal scoring metadata that
+                aren't analyst-actionable as standalone fields and were
+                "—" for most materials anyway (the seed never sets them
+                for the bulk of the launch list).  Backend response
+                still carries both for backwards-compat. */}
+
             <div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                Data availability
+              <div
+                className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1"
+                title={
+                  "Composite risk-score movement.  Compares the latest " +
+                  "global score to the most recent snapshot at least 7 " +
+                  "days older (max 30-day lookback).  ±5-point threshold " +
+                  "on the 0-100 scale.  Rising = risk increased; " +
+                  "declining = risk improved."
+                }
+              >
+                Risk trend (7d)
               </div>
-              <span className="text-sm">{humanize(material.data_availability) || "—"}</span>
+              {trend ? (
+                <span className={`text-sm font-medium ${trend.color}`}>
+                  {trend.arrow} {trend.label}
+                </span>
+              ) : (
+                <span
+                  className="text-sm text-muted-foreground"
+                  title="No prior score snapshot at least 7 days older available (insufficient scoring history).  Will populate once scoring has been running for ≥1 week."
+                >
+                  —
+                </span>
+              )}
             </div>
+
+            {/* 2026-05-11 analyst-view stats — recent event volume and
+                facility coverage.  Both anchor whether the score behind
+                this material is built on credible data. */}
             <div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                Price basis
+                Risk events (90d)
               </div>
-              <span className="text-sm font-mono">
-                {material.price_unit === "per_mt"
-                  ? "per metric ton"
-                  : material.price_unit === "per_kg"
-                  ? "per kilogram"
-                  : "—"}
+              <span
+                className="font-mono text-sm font-semibold tabular-nums"
+                style={{
+                  color:
+                    (material.recent_event_count_90d ?? 0) >= 5
+                      ? "var(--p-text)"
+                      : "var(--p-text-muted)",
+                }}
+                title="Events in the last 90 days mapped to this material via RiskEventMaterial.  Matches the dashboard Coverage Gaps threshold."
+              >
+                {material.recent_event_count_90d ?? 0}
               </span>
             </div>
-            {trend && (
-              <div>
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-                  Patent trend
-                </div>
-                <span className={`text-sm font-medium ${trend.color}`}>
-                  {trend.label}
-                </span>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+                Facilities tracked
               </div>
-            )}
+              <span
+                className="font-mono text-sm font-semibold tabular-nums"
+                style={{
+                  color:
+                    (material.facility_count ?? 0) > 0
+                      ? "var(--p-text)"
+                      : "var(--p-risk-crit)",
+                }}
+                title="FacilityMaterialLink rows for this material.  Drives the operational pillar's structural input.  0 = launch-blocker for that pillar."
+              >
+                {material.facility_count ?? 0}
+              </span>
+            </div>
             {(material.country_production_shares.length > 0 ||
               (material.primary_producing_countries ?? []).length > 0) && (
               <div className="sm:col-span-2 lg:col-span-4">
@@ -312,6 +383,13 @@ function OverviewTab({ material, globalScore }: OverviewTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── HS code mappings — the partner's accuracy-review surface.
+          Lives between Material profile and Found in batteries because
+          the HS codes drive trade-event attribution (which feeds the
+          score above), so the analyst flow reads: score → material
+          identity → HS codes feeding the score → battery chemistry use. */}
+      <HsMappingsCard mappings={material.hs_code_mappings ?? []} />
 
       {/* ── Found in batteries ── */}
       <Card className="md:col-span-3">
@@ -367,11 +445,103 @@ function OverviewTab({ material, globalScore }: OverviewTabProps) {
         </CardContent>
       </Card>
 
-      {/* HS-mapping health card removed (May 2026) — the same checks
-          live inside the HS Codes & Stages tab via the mismatch_reasons
-          column on each row, which is the actionable place to surface
-          them.  Overview no longer needs a duplicate summary. */}
+      {/* Analyst notes — folded into Overview as a collapsible section
+          (May 2026 strip-down).  Used to live in its own tab.  Most
+          materials have zero notes today; collapsing it by default keeps
+          Overview clean while still reachable in one click. */}
+      <div className="md:col-span-3">
+        <NotesSection materialId={materialId} />
+      </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Risk events placeholder — replaces the deferred events feed
+// ---------------------------------------------------------------------------
+
+function EventsPlaceholderTab({ materialName }: { materialName: string }) {
+  return (
+    <PlatformCard>
+      <PlatformCardHeader
+        title={`Risk events for ${materialName}`}
+        subtitle="Per-material events feed with filters and free-text search is in flight."
+      />
+      <PlatformCardBody>
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            The platform tracks tariff changes, export restrictions,
+            sanctions, regulatory developments, mine status changes, and
+            company filings — every event flowing in is tagged to the
+            materials it affects so we can score them.
+          </p>
+          <p>
+            Until the per-material events panel ships, the global feed
+            (with all minerals + filters) is at{" "}
+            <Link
+              href="/data/risk-events"
+              className="text-primary underline-offset-2 hover:underline"
+            >
+              /data/risk-events
+            </Link>
+            . Filter by category and source there.
+          </p>
+        </div>
+      </PlatformCardBody>
+    </PlatformCard>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Notes section — collapsible in Overview (replaces the old top-level tab)
+// ---------------------------------------------------------------------------
+
+function NotesSection({ materialId }: { materialId: string }) {
+  const [open, setOpen] = useState(false);
+  const { data = [], isLoading } = useEntityNotes("material", materialId);
+
+  // Hide entirely if we're not loading and there are no notes — no point
+  // showing a "0 notes" affordance for the steady state.
+  if (!isLoading && data.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader
+        className="cursor-pointer pb-2"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <CardTitle className="flex items-center justify-between text-base">
+          <span>Analyst notes ({data.length})</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {open ? "Hide" : "Show"}
+          </span>
+        </CardTitle>
+      </CardHeader>
+      {open && (
+        <CardContent className="space-y-3">
+          {data.map((note) => {
+            const badgeClass = NOTE_TYPE_BADGE[note.note_type] ?? "p-badge-soft";
+            const noteLabel = NOTE_TYPE_LABEL[note.note_type] ?? humanize(note.note_type);
+            return (
+              <div key={note.id} className="border-b border-border/60 pb-3 last:border-0">
+                <div className="mb-1.5 flex items-center gap-2">
+                  <span className={`p-badge ${badgeClass}`}>{noteLabel}</span>
+                  <span
+                    className="ml-auto text-[11px] text-muted-foreground"
+                    title={formatDateTime(note.created_at)}
+                  >
+                    {formatRelative(note.created_at)}
+                  </span>
+                </div>
+                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  {note.note_text}
+                </p>
+              </div>
+            );
+          })}
+        </CardContent>
+      )}
+    </Card>
   );
 }
 
@@ -485,18 +655,67 @@ interface ScoresTabProps {
   scores: MaterialGeographyScoreRead[];
 }
 
+// Country-scores display strategy (2026-05-12 revision — Option 4):
+// Replaced the OR-based hasMaterialExposure filter with a top-N display.
+// The filter was permissive (any one of share/events/facilities ≥ threshold
+// passed) and tended to retain ~20–25 countries even after the
+// event_count_geo_specific fix, because facility_count ≥ 1 caught every
+// country with any MRDS row.  Top-N is more honest: rank countries by what
+// matters most (production share, then overall risk), show the top slice,
+// and provide an explicit "Show all" toggle for the long tail.
+//
+// Sort rules:
+//   1. Countries with production_share_pct > 0 sort first, by share desc.
+//      This puts the actual producers at the top regardless of whether
+//      they have flashy event counts.
+//   2. Countries with no tracked production share sort below, by
+//      overall_risk_score desc.  These are processing hubs, consumer
+//      countries, and policy-action geographies that affect the material
+//      without producing it.
+const COUNTRY_SCORES_DEFAULT_LIMIT = 15;
+
+function sortCountryScoresForDisplay(
+  rows: MaterialGeographyScoreRead[],
+): MaterialGeographyScoreRead[] {
+  return [...rows].sort((a, b) => {
+    const aShare = a.production_share_pct ?? 0;
+    const bShare = b.production_share_pct ?? 0;
+    // Producers always above non-producers.
+    if (aShare > 0 && bShare === 0) return -1;
+    if (aShare === 0 && bShare > 0) return 1;
+    // Both producers — sort by share desc.
+    if (aShare > 0 && bShare > 0) {
+      if (bShare !== aShare) return bShare - aShare;
+      // Tie-break on overall risk so two same-share producers order sensibly.
+      return (b.overall_risk_score ?? -1) - (a.overall_risk_score ?? -1);
+    }
+    // Both non-producers — sort by overall risk desc.
+    return (b.overall_risk_score ?? -1) - (a.overall_risk_score ?? -1);
+  });
+}
+
 function ScoresTab({ materialId, scores }: ScoresTabProps) {
   const [expandedGeo, setExpandedGeo] = useState<string | null>(null);
+  const [showAllCountries, setShowAllCountries] = useState(false);
 
   const columns = useMemo(
     () =>
       buildMarketRiskScoreColumns({
         showMaterialColumn: false,
         overallBandLabels: false,
+        showExposureColumns: true,
       }),
     [],
   );
-  const sortedData = useMemo(() => sortMarketRiskScoreRows(scores), [scores]);
+
+  const sortedData = useMemo(
+    () => sortCountryScoresForDisplay(scores),
+    [scores],
+  );
+
+  const visibleData = showAllCountries
+    ? sortedData
+    : sortedData.slice(0, COUNTRY_SCORES_DEFAULT_LIMIT);
 
   function handleRowClick(row: MaterialGeographyScoreRead) {
     setExpandedGeo((prev) =>
@@ -509,7 +728,7 @@ function ScoresTab({ materialId, scores }: ScoresTabProps) {
       <PlatformCard>
         <PlatformCardHeader
           title="Country-level risk scores"
-          subtitle="Sorted by overall risk descending"
+          subtitle="Sorted by share desc, then risk desc"
         />
         <PlatformCardBody>
           <p style={{ fontSize: 13, color: "var(--p-text-muted)", textAlign: "center", padding: "24px 0" }}>
@@ -520,26 +739,52 @@ function ScoresTab({ materialId, scores }: ScoresTabProps) {
     );
   }
 
+  const cappedLimit = Math.min(COUNTRY_SCORES_DEFAULT_LIMIT, sortedData.length);
+  const subtitle = showAllCountries
+    ? `Showing all ${sortedData.length} scored countries · click a row to see the score breakdown · producers first (by share), then by overall risk`
+    : `Showing top ${cappedLimit} of ${sortedData.length} · producers first (by share), then by overall risk · toggle below to show all`;
+
   return (
     <PlatformCard>
       <PlatformCardHeader
         title="Country-level risk scores"
-        subtitle="Click a row to see the score breakdown · sorted by overall risk descending"
+        subtitle={subtitle}
+        actions={
+          <label
+            className="inline-flex items-center gap-2 text-[11px]"
+            style={{ color: "var(--p-text-muted)", cursor: "pointer" }}
+            title={`Default view shows top ${COUNTRY_SCORES_DEFAULT_LIMIT} countries ranked by production share then overall risk — toggle to see the full list of ${sortedData.length}`}
+          >
+            <input
+              type="checkbox"
+              checked={showAllCountries}
+              onChange={(e) => setShowAllCountries(e.target.checked)}
+              style={{ accentColor: "var(--p-accent)" }}
+            />
+            Show all countries
+          </label>
+        }
       />
       <PlatformCardBody noPadding>
-        <PlatformTable
-          embedded
-          data={sortedData}
-          columns={columns}
-          onRowClick={handleRowClick}
-          isRowExpanded={(row) => row.geography_code === expandedGeo}
-          renderSubComponent={(row) => (
-            <ScoreRationalePanel
-              materialId={materialId}
-              geoCode={row.geography_code}
-            />
-          )}
-        />
+        {visibleData.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--p-text-muted)", textAlign: "center", padding: "24px 16px" }}>
+            No scored countries to display.
+          </p>
+        ) : (
+          <PlatformTable
+            embedded
+            data={visibleData}
+            columns={columns}
+            onRowClick={handleRowClick}
+            isRowExpanded={(row) => row.geography_code === expandedGeo}
+            renderSubComponent={(row) => (
+              <ScoreRationalePanel
+                materialId={materialId}
+                geoCode={row.geography_code}
+              />
+            )}
+          />
+        )}
       </PlatformCardBody>
     </PlatformCard>
   );
@@ -673,102 +918,5 @@ function ScoreRationalePanel({ materialId, geoCode }: ScoreRationalePanelProps) 
   );
 }
 
-// ---------------------------------------------------------------------------
-// Notes tab
-// ---------------------------------------------------------------------------
-
-function NotesTab({ materialId }: { materialId: string }) {
-  const { data = [], isLoading, error, refetch } = useEntityNotes(
-    "material",
-    materialId,
-  );
-
-  if (isLoading) {
-    return (
-      <PlatformCard>
-        <PlatformCardBody>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} style={{ height: 72, borderRadius: "var(--p-radius)", background: "var(--p-bg-muted)" }} />
-            ))}
-          </div>
-        </PlatformCardBody>
-      </PlatformCard>
-    );
-  }
-
-  if (error) {
-    return (
-      <PlatformCard>
-        <PlatformCardBody>
-          <ErrorState error={error} onRetry={() => refetch()} />
-        </PlatformCardBody>
-      </PlatformCard>
-    );
-  }
-
-  return (
-    <PlatformCard>
-      <PlatformCardHeader
-        title="Analyst notes"
-        subtitle='Recorded via "Flag Issue". Use the button in the page header to add a new note.'
-      />
-      <PlatformCardBody noPadding>
-        {data.length === 0 ? (
-          <div
-            style={{
-              padding: "32px 16px",
-              textAlign: "center",
-              fontSize: 13,
-              color: "var(--p-text-muted)",
-            }}
-          >
-            No notes yet for this material.
-          </div>
-        ) : (
-          data.map((note, i) => {
-            const badgeClass = NOTE_TYPE_BADGE[note.note_type] ?? "p-badge-soft";
-            const noteLabel = NOTE_TYPE_LABEL[note.note_type] ?? humanize(note.note_type);
-            return (
-              <div
-                key={note.id}
-                style={{
-                  padding: "14px 16px",
-                  borderBottom: i < data.length - 1 ? "1px solid var(--p-rule)" : "none",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <span className={`p-badge ${badgeClass}`} style={{ flexShrink: 0 }}>
-                    {noteLabel}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: "var(--p-text-faint)",
-                      marginLeft: "auto",
-                      flexShrink: 0,
-                    }}
-                    title={formatDateTime(note.created_at)}
-                  >
-                    {formatRelative(note.created_at)}
-                  </span>
-                </div>
-                <p
-                  style={{
-                    margin: 0,
-                    fontSize: 13,
-                    color: "var(--p-text-muted)",
-                    lineHeight: 1.6,
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {note.note_text}
-                </p>
-              </div>
-            );
-          })
-        )}
-      </PlatformCardBody>
-    </PlatformCard>
-  );
-}
+// NotesTab was removed in the May 2026 strip-down — analyst notes now
+// render inside Overview as a collapsible (see ``NotesSection`` above).

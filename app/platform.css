@@ -51,13 +51,23 @@
   --p-accent-soft:  #FBEDE5;
   --p-accent-tint:  #F8DDD0;
 
-  /* --- Risk semantics --- */
-  --p-risk-high:      #E11D48;
-  --p-risk-high-soft: #FFE4E6;
-  --p-risk-med:       #D97706;
-  --p-risk-med-soft:  #FEF3C7;
-  --p-risk-low:       #059669;
-  --p-risk-low-soft:  #D1FAE5;
+  /* --- Risk semantics (2026-05-11 4-tier calibration) ---
+     Bands defined in lib/utils/risk-band.ts + app/services/scoring/bands.py.
+     Color thresholds:
+       LOW   (0–29)  green
+       MOD   (30–59) amber
+       HIGH  (60–79) orange   <-- was red under the prior 3-tier system
+       CRIT  (80+)   red      <-- new band; takes over the old red colors  */
+  --p-risk-low:        #059669;   /* emerald-600 */
+  --p-risk-low-soft:   #D1FAE5;
+  --p-risk-med:        #D97706;   /* amber-600 — alias preserved for legacy callers */
+  --p-risk-med-soft:   #FEF3C7;
+  --p-risk-mod:        #D97706;   /* canonical MOD name; mirrors --p-risk-med */
+  --p-risk-mod-soft:   #FEF3C7;
+  --p-risk-high:       #EA580C;   /* orange-600 — new HIGH band under 4-tier system */
+  --p-risk-high-soft:  #FFEDD5;
+  --p-risk-crit:       #E11D48;   /* rose-600 — new CRIT band (was prior --p-risk-high) */
+  --p-risk-crit-soft:  #FFE4E6;
 
   /* --- Pillar colors --- */
   --p-pillar-material:    #7A4A8E;
@@ -500,7 +510,11 @@
   white-space: nowrap;
 }
 
-.mra-platform .p-score-high { background: var(--p-risk-high-soft); color: #9F1239; border-color: rgba(225, 29, 72, 0.18); }
+/* Score-chip backgrounds.  Mirrors the four risk-band tiers.  ``-mod`` is
+   a canonical alias for ``-med`` so callers can write either name. */
+.mra-platform .p-score-crit { background: var(--p-risk-crit-soft); color: #9F1239; border-color: rgba(225, 29, 72, 0.18); }
+.mra-platform .p-score-high { background: var(--p-risk-high-soft); color: #9A3412; border-color: rgba(234, 88, 12, 0.18); }
+.mra-platform .p-score-mod  { background: var(--p-risk-mod-soft);  color: #92400E; border-color: rgba(217, 119, 6, 0.18); }
 .mra-platform .p-score-med  { background: var(--p-risk-med-soft);  color: #92400E; border-color: rgba(217, 119, 6, 0.18); }
 .mra-platform .p-score-low  { background: var(--p-risk-low-soft);  color: #065F46; border-color: rgba(5, 150, 105, 0.18); }
 .mra-platform .p-score-none { background: var(--p-bg-muted);       color: var(--p-text-muted); }
@@ -513,7 +527,9 @@
   flex-shrink: 0;
 }
 
+.mra-platform .p-dot-crit   { background: var(--p-risk-crit); }
 .mra-platform .p-dot-high   { background: var(--p-risk-high); }
+.mra-platform .p-dot-mod    { background: var(--p-risk-mod); }
 .mra-platform .p-dot-med    { background: var(--p-risk-med); }
 .mra-platform .p-dot-low    { background: var(--p-risk-low); }
 .mra-platform .p-dot-none   { background: var(--p-slate-400); }
