@@ -477,8 +477,6 @@ export type RiskEventListResponse =
   PaginatedResponse<import("./index").RiskEventRead>;
 export type FacilityListResponse = PaginatedResponse<FacilityListItem>;
 export type ChemistryListResponse = PaginatedResponse<BatteryChemistryRead>;
-export type HsCodeMappingMismatchListResponse =
-  PaginatedResponse<HsCodeMaterialMappingRead>;
 export type MarketScoresResponse =
   PaginatedResponse<MaterialGeographyScoreRead>;
 

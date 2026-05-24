@@ -27,11 +27,6 @@ import type {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function scorePct(n: number, total: number): number {
-  if (!total) return 0;
-  return Math.round((n / total) * 100);
-}
-
 /** Map a 4-tier RiskBand to the platform.css class suffix.  Single source
  *  of truth for band → color across this page; uses scoreToBand under the
  *  hood so threshold changes only need to happen in risk-band.ts. */

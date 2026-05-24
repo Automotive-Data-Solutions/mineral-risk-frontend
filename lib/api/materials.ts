@@ -1,6 +1,5 @@
 import type { ApiClient } from "./client";
 import type {
-  HsCodeMappingMismatchListResponse,
   HsCodeMaterialMappingRead,
   MaterialDetail,
   MaterialGlobalScoreRead,
@@ -139,39 +138,6 @@ export async function getMaterialHsCodeMappings(
     { params },
   );
   return (data ?? []).map(normalizeHsCodeMappingRow);
-}
-
-// ---------------------------------------------------------------------------
-// HS-code mapping mismatch helpers — retired 2026-05-11
-// ---------------------------------------------------------------------------
-//
-// ``getHsCodeMappingMismatches`` / ``HsCodeMappingMismatchParams`` used to
-// power the global mismatches view that was deleted from the Materials
-// page in the 2026-05-11 refresh.  Function signatures retained for one
-// release cycle as no-op shims so any straggling caller (none known) gets
-// a typed empty response rather than a thrown error.  Backend route was
-// removed in the same commit; the URL below now 404s.
-
-export interface HsCodeMappingMismatchParams {
-  page?: number;
-  limit?: number;
-  severity?: "low" | "medium" | "high";
-}
-
-export async function getHsCodeMappingMismatches(
-  _client: ApiClient,
-  _params: HsCodeMappingMismatchParams = {},
-): Promise<HsCodeMappingMismatchListResponse> {
-  // Retired endpoint — return an empty paginated response shape so any
-  // residual caller treats the result as "no mismatches" rather than
-  // hitting an unhandled error path.  Remove this shim once we confirm
-  // no callers remain.
-  return {
-    data: [],
-    total: 0,
-    page: 1,
-    limit: 50,
-  } as HsCodeMappingMismatchListResponse;
 }
 
 export async function getMaterialGlobalScore(

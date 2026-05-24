@@ -6,19 +6,16 @@ import {
 } from "@tanstack/react-query";
 import { useApiClient } from "./use-api-client";
 import {
-  getHsCodeMappingMismatches,
   getMaterial,
   getMaterialGlobalScore,
   getMaterialHsCodeMappings,
   getMaterialMarketScores,
   getMaterialMarketScoreDetail,
   getMaterials,
-  type HsCodeMappingMismatchParams,
   type MaterialHsCodeMappingsParams,
   type MaterialListParams,
 } from "@/lib/api/materials";
 import type {
-  HsCodeMappingMismatchListResponse,
   HsCodeMaterialMappingRead,
   MaterialDetail,
   MaterialGeographyScoreDetail,
@@ -42,8 +39,6 @@ export const materialQueryKeys = {
     [...materialQueryKeys.detail(id), "market-scores"] as const,
   marketScoreDetail: (id: string, geoCode: string) =>
     [...materialQueryKeys.detail(id), "market-scores", geoCode] as const,
-  mismatches: (params: HsCodeMappingMismatchParams) =>
-    [...materialQueryKeys.all, "mismatches", params] as const,
 };
 
 export function useMaterials(
@@ -116,16 +111,5 @@ export function useMaterialHsCodeMappings(
     queryKey: materialQueryKeys.hsCodeMappings(id, params),
     queryFn: () => getMaterialHsCodeMappings(client, id, params),
     enabled: Boolean(id),
-  });
-}
-
-export function useHsCodeMappingMismatches(
-  params: HsCodeMappingMismatchParams = {},
-) {
-  const client = useApiClient();
-  return useQuery<HsCodeMappingMismatchListResponse>({
-    queryKey: materialQueryKeys.mismatches(params),
-    queryFn: () => getHsCodeMappingMismatches(client, params),
-    placeholderData: (prev) => prev,
   });
 }

@@ -10,8 +10,7 @@
 // the new Materials list rather than 404.
 //
 // Once we're confident no one is linking to /mismatches/ (a release cycle
-// or two after this lands), this file and the corresponding API hook +
-// route can be deleted.
+// or two after this lands), this redirect file can be deleted.
 
 import { redirect } from "next/navigation";
 
