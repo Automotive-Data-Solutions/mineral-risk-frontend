@@ -7,8 +7,15 @@ import type { MaterialGeographyScoreRead } from "@/lib/types";
 import { formatDate } from "@/lib/utils/format";
 import { cn } from "@/lib/utils";
 
+// Narrowed key type so callers can pass a pillarsToShow subset safely
+// (see RiskScorePillarKey export below).
 const RISK_SCORE_PILLARS: {
-  key: keyof MaterialGeographyScoreRead;
+  key:
+    | "material_concentration_score"
+    | "geopolitical_trade_score"
+    | "regulatory_compliance_score"
+    | "operational_score"
+    | "financial_pressure_score";
   header: string;
 }[] = [
   { key: "material_concentration_score", header: "Mat. Conc." },
@@ -42,6 +49,58 @@ export function sortMarketRiskScoreRows(
   );
 }
 
+/** Pillar keys that the country-scores view exposes. */
+export type RiskScorePillarKey =
+  | "material_concentration_score"
+  | "geopolitical_trade_score"
+  | "regulatory_compliance_score"
+  | "operational_score"
+  | "financial_pressure_score";
+
+/**
+ * Per-material × per-country weighted risk contribution.
+ * Production-share% × overall-risk / 100.  Numeric — same units as
+ * overall risk so values are comparable across countries.
+ * Returns null when share is missing/zero (non-producers contribute
+ * nothing to a weighted-exposure view).
+ */
+function weightedRisk(row: MaterialGeographyScoreRead): number | null {
+  const share = row.production_share_pct;
+  const risk = row.overall_risk_score;
+  if (share == null || share === 0 || risk == null) return null;
+  return (share * risk) / 100;
+}
+
+/**
+ * Sort by weighted-exposure (share × overall risk) DESC for the
+ * per-material country-scores view.  Non-producers (no share) fall
+ * below all producers and tie-break on overall risk DESC.
+ *
+ * This replaces the producer-vs-non-producer rule the old sort used:
+ * producers were ordered by share alone, which buried small-share
+ * countries that happened to be highest-risk.  Weighted exposure surfaces
+ * the country that actually contributes the most risk regardless of
+ * whether it's a top producer.
+ */
+export function sortCountryScoresByWeightedExposure(
+  rows: MaterialGeographyScoreRead[],
+): MaterialGeographyScoreRead[] {
+  return [...rows].sort((a, b) => {
+    const aw = weightedRisk(a);
+    const bw = weightedRisk(b);
+    // Both have weighted exposure — sort by it DESC.
+    if (aw != null && bw != null) {
+      if (bw !== aw) return bw - aw;
+      return (b.overall_risk_score ?? -1) - (a.overall_risk_score ?? -1);
+    }
+    // Only one is a producer — producers above non-producers.
+    if (aw != null) return -1;
+    if (bw != null) return 1;
+    // Neither produces — fall back to overall risk.
+    return (b.overall_risk_score ?? -1) - (a.overall_risk_score ?? -1);
+  });
+}
+
 /** Column defs for material × geography market risk score rows (`MaterialGeographyScoreRead`). */
 export function buildMarketRiskScoreColumns(options: {
   showMaterialColumn: boolean;
@@ -54,6 +113,21 @@ export function buildMarketRiskScoreColumns(options: {
    * browse view does not populate these fields.
    */
   showExposureColumns?: boolean;
+  /**
+   * Which pillar columns to render.  Defaults to all 5 for back-compat
+   * with the cross-material browse view.  The per-material country view
+   * passes a narrower list (Geopolitical, Regulatory, Operational) since
+   * Material Concentration and Financial Pressure are computed at the
+   * material level — they don't vary meaningfully by country and showing
+   * them per-row implies country-specific signal that doesn't exist.
+   */
+  pillarsToShow?: RiskScorePillarKey[];
+  /**
+   * When true, render a "Weighted" column = production-share% × overall
+   * risk / 100.  Only meaningful for per-material country breakdowns
+   * where production_share_pct is populated.  Defaults to false.
+   */
+  showWeightedRisk?: boolean;
 }): ColumnDef<MaterialGeographyScoreRead, unknown>[] {
   const cols: ColumnDef<MaterialGeographyScoreRead, unknown>[] = [];
 
@@ -131,7 +205,59 @@ export function buildMarketRiskScoreColumns(options: {
     ),
   });
 
-  for (const pillar of RISK_SCORE_PILLARS) {
+  if (options.showWeightedRisk) {
+    cols.push({
+      // Custom id since this isn't a server-side field — we derive it
+      // client-side from share × overall.
+      id: "weighted_risk",
+      accessorFn: (row) => weightedRisk(row) ?? 0,
+      header: () => (
+        <span
+          className="block text-right"
+          title="Production share × overall risk / 100 — this country's weighted contribution to the material's overall exposure"
+        >
+          Weighted
+        </span>
+      ),
+      cell: ({ row }) => {
+        const wr = weightedRisk(row.original);
+        if (wr == null) {
+          return (
+            <div className="text-right tabular-nums text-muted-foreground/40 text-xs">
+              —
+            </div>
+          );
+        }
+        // Use the same color band as overall risk so a high weighted-risk
+        // cell visually matches its raw-overall sibling.
+        return (
+          <div className="flex justify-end">
+            <span
+              className={cn(
+                "inline-block rounded px-1.5 py-0.5 text-xs font-semibold tabular-nums",
+                pillarColorClass(wr),
+                pillarBgClass(wr),
+              )}
+              title={`${row.original.production_share_pct}% share × overall ${Math.round(
+                row.original.overall_risk_score ?? 0,
+              )} = ${wr.toFixed(1)}`}
+            >
+              {wr.toFixed(1)}
+            </span>
+          </div>
+        );
+      },
+    });
+  }
+
+  // Default: all 5 pillars for back-compat with the cross-material browse view.
+  const pillarKeys =
+    options.pillarsToShow ?? RISK_SCORE_PILLARS.map((p) => p.key);
+  const visiblePillars = RISK_SCORE_PILLARS.filter((p) =>
+    pillarKeys.includes(p.key),
+  );
+
+  for (const pillar of visiblePillars) {
     cols.push({
       accessorKey: pillar.key,
       header: () => <span className="block text-right">{pillar.header}</span>,

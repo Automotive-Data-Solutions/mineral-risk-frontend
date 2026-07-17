@@ -11,17 +11,22 @@ import {
   getMaterialHsCodeMappings,
   getMaterialMarketScores,
   getMaterialMarketScoreDetail,
+  getMaterialMarketScoreEvidence,
+  getMaterialRiskEvents,
   getMaterials,
   type MaterialHsCodeMappingsParams,
   type MaterialListParams,
+  type MaterialRiskEventsParams,
 } from "@/lib/api/materials";
 import type {
   HsCodeMaterialMappingRead,
+  MarketScoreEvidence,
   MaterialDetail,
   MaterialGeographyScoreDetail,
   MaterialGeographyScoreRead,
   MaterialGlobalScoreRead,
   MaterialListResponse,
+  MaterialRiskEventsResponse,
 } from "@/lib/types";
 
 export const materialQueryKeys = {
@@ -39,6 +44,10 @@ export const materialQueryKeys = {
     [...materialQueryKeys.detail(id), "market-scores"] as const,
   marketScoreDetail: (id: string, geoCode: string) =>
     [...materialQueryKeys.detail(id), "market-scores", geoCode] as const,
+  marketScoreEvidence: (id: string, geoCode: string) =>
+    [...materialQueryKeys.detail(id), "market-scores", geoCode, "evidence"] as const,
+  riskEvents: (id: string, params: MaterialRiskEventsParams) =>
+    [...materialQueryKeys.detail(id), "risk-events", params] as const,
 };
 
 export function useMaterials(
@@ -99,6 +108,47 @@ export function useMaterialMarketScoreDetail(
     queryFn: () => getMaterialMarketScoreDetail(client, materialId, geoCode!),
     enabled: Boolean(materialId) && Boolean(geoCode),
     staleTime: 5 * 60 * 1000, // 5 min — rationale rarely changes within a session
+  });
+}
+
+/**
+ * Per-material risk events feed for the Risk events tab — summary cards
+ * + table rows.  All filters flow through to the backend so the summary
+ * and table stay in sync as the analyst narrows the view.
+ */
+export function useMaterialRiskEvents(
+  materialId: string,
+  params: MaterialRiskEventsParams = {},
+) {
+  const client = useApiClient();
+  return useQuery<MaterialRiskEventsResponse>({
+    queryKey: materialQueryKeys.riskEvents(materialId, params),
+    queryFn: () => getMaterialRiskEvents(client, materialId, params),
+    enabled: Boolean(materialId),
+    // Keep previous data while a new filter applies so the table doesn't
+    // flash empty during refetch — matches the table-pagination pattern
+    // used elsewhere in the app.
+    placeholderData: (prev) => prev,
+    staleTime: 60 * 1000,
+  });
+}
+
+/**
+ * Drill-down evidence — regulations + facilities + risk events at the
+ * (material × country) intersection — for the expanded country-scores row.
+ * Same lazy-fire pattern as ``useMaterialMarketScoreDetail``: pass null
+ * to keep the query idle until a row is opened.
+ */
+export function useMaterialMarketScoreEvidence(
+  materialId: string,
+  geoCode: string | null,
+) {
+  const client = useApiClient();
+  return useQuery<MarketScoreEvidence | null>({
+    queryKey: materialQueryKeys.marketScoreEvidence(materialId, geoCode ?? ""),
+    queryFn: () => getMaterialMarketScoreEvidence(client, materialId, geoCode!),
+    enabled: Boolean(materialId) && Boolean(geoCode),
+    staleTime: 5 * 60 * 1000,
   });
 }
 

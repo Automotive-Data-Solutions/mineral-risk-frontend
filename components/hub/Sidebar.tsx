@@ -10,12 +10,16 @@ const MATERIALS: MaterialRisk[] = [
   { name: "Manganese", level: "Low",  pct: 22 },
 ];
 
+import { PILLARS as PILLAR_SOURCE } from "./pillars";
+
+// Colours/labels from the shared pillar source; counts remain mock until
+// the per-pillar content-count endpoint exists.
 const PILLARS: PillarStat[] = [
-  { name: "Regulatory Compliance", count: 14, color: "#C8623A" },
-  { name: "Material Concentration", count: 12, color: "#7A4A8E" },
-  { name: "Geopolitical Trade",     count:  9, color: "#1F6B8A" },
-  { name: "Operational",            count:  7, color: "#6B5B3A" },
-  { name: "Financial Pressure",     count:  5, color: "#3B6E55" },
+  { name: PILLAR_SOURCE.regulatory_compliance.label,  count: 14, color: PILLAR_SOURCE.regulatory_compliance.color },
+  { name: PILLAR_SOURCE.material_concentration.label, count: 12, color: PILLAR_SOURCE.material_concentration.color },
+  { name: PILLAR_SOURCE.geopolitical_trade.label,     count:  9, color: PILLAR_SOURCE.geopolitical_trade.color },
+  { name: PILLAR_SOURCE.operational.label,            count:  7, color: PILLAR_SOURCE.operational.color },
+  { name: PILLAR_SOURCE.financial_pressure.label,     count:  5, color: PILLAR_SOURCE.financial_pressure.color },
 ];
 
 export function Sidebar() {

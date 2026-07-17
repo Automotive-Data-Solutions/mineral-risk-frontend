@@ -23,7 +23,7 @@ export function FeaturedReport({ post }: FeaturedReportProps) {
           </span>
         ))}
         <span className="ih-featured-meta">
-          {post.date} · {post.pages} pages
+          {post.date}{post.pages ? ` · ${post.pages} pages` : ""}
         </span>
       </div>
 
@@ -31,7 +31,7 @@ export function FeaturedReport({ post }: FeaturedReportProps) {
       <p className="ih-featured-lede">{post.lede}</p>
 
       <div className="ih-callouts">
-        {post.callouts.map((c, i) => (
+        {(post.callouts ?? []).map((c, i) => (
           <div key={i} className={`ih-callout ih-callout-${c.variant}`}>
             <div className="ih-callout-v">{c.value}</div>
             <div className="ih-callout-l">{c.label}</div>

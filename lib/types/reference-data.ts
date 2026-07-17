@@ -467,6 +467,135 @@ export interface RescoredResult {
 }
 
 // ---------------------------------------------------------------------------
+// Market-score drill-down evidence (single (material × country) aggregation)
+// ---------------------------------------------------------------------------
+
+/**
+ * One regulation scoping BOTH this material AND this country.
+ * Returned by GET /materials/{id}/market-scores/{geo}/evidence.
+ */
+export interface EvidenceRegulationItem {
+  id: number;
+  regulation_key: string;
+  title: string | null;
+  issuing_body: string | null;
+  status: string | null;
+  /** ISO date. */
+  effective_date: string | null;
+  summary: string | null;
+  /** covered | restricted | banned | disclosure_required — from RegulationMaterialScope.scope_type. */
+  material_scope_type: string;
+  /** jurisdiction | origin_country | targeted_country — from RegulationGeographyScope.scope_type. */
+  geography_scope_type: string;
+  /** Per-geography curation 0.0–1.0; null when default (0.50) applies. */
+  geography_compliance_weight: number | null;
+}
+
+/**
+ * One facility located in this country and linked to this material.
+ */
+export interface EvidenceFacilityItem {
+  /** UUID. */
+  id: string;
+  name: string | null;
+  /** mine | refinery | cell_factory | pack_plant | recycling | r_and_d | hq. */
+  facility_type: string;
+  /** operating | planned | under_construction | mothballed | closed. */
+  status: string;
+  region: string | null;
+  city: string | null;
+  capacity_notes: string | null;
+  is_primary_product: boolean;
+  /** Nameplate capacity in tonnes/year. */
+  annual_capacity_tpy: number | null;
+  /** ore | concentrate | intermediate | refined | battery_grade | fabricated | scrap. */
+  supply_chain_stage: string | null;
+}
+
+/**
+ * One risk event tagged to BOTH this material AND this country.
+ */
+export interface EvidenceRiskEventItem {
+  id: number;
+  title: string;
+  event_type: string;
+  event_subtype: string | null;
+  severity_score: number | null;
+  confidence_score: number | null;
+  /** ISO date or null. */
+  event_date: string | null;
+  summary: string | null;
+  /** Source.name — federal_register | global_trade_alert | eurlex | iea | etc. */
+  source_system: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Per-material Risk events tab (table rows + drawer + summary stats)
+// ---------------------------------------------------------------------------
+
+/** One row in the per-material Risk events table. */
+export interface MaterialRiskEventRow {
+  id: number;
+  title: string;
+  summary: string | null;
+  event_type: string;
+  event_subtype: string | null;
+  severity_score: number | null;
+  confidence_score: number | null;
+  /** ISO datetime. */
+  event_date: string | null;
+  verified: boolean;
+  /** Decoded pillar slugs from risk_categories_json. */
+  pillars_affected: string[];
+  /** Source.name — global_trade_alert / federal_register / etc. */
+  source_system: string | null;
+  /** Direct URL on the originating source (View source button). */
+  source_url: string | null;
+  /** ISO2 country codes tagged via RiskEventGeography. */
+  geography_codes: string[];
+}
+
+/** Top-of-tab signal summary card data. */
+export interface MaterialRiskEventsSummary {
+  /** Mirrored from the request — drives the "Trailing N days" label. */
+  window_days: number;
+  total_events: number;
+  /** Events with severity_score >= 0.75 within the window. */
+  high_severity_count: number;
+  verified_count: number;
+  /** Pillar slug → event count.  Sums can exceed total when events have
+   * multiple pillars. */
+  events_by_pillar: Record<string, number>;
+}
+
+/** Response for GET /api/v1/materials/{id}/risk-events. */
+export interface MaterialRiskEventsResponse {
+  summary: MaterialRiskEventsSummary;
+  events: MaterialRiskEventRow[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/**
+ * Aggregated evidence for one (material, country) pair.
+ * Strict intersection — see backend module docstring for membership semantics.
+ */
+export interface MarketScoreEvidence {
+  material_id: number;
+  geography_code: string;
+  regulations: EvidenceRegulationItem[];
+  facilities: EvidenceFacilityItem[];
+  risk_events: EvidenceRiskEventItem[];
+  /** Pre-truncation counts so the UI can render "showing 6 of 27". */
+  regulation_total: number;
+  facility_total: number;
+  risk_event_total: number;
+  /** Days of lookback used for risk events (matches longest EVIDENCE_WINDOWS entry). */
+  risk_event_window_days: number;
+}
+
+// ---------------------------------------------------------------------------
 // Paginated wrappers
 // ---------------------------------------------------------------------------
 

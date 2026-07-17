@@ -9,7 +9,10 @@ export interface FeedPost {
   type: ContentType;
   materials: string[];
   geographies: string[];
+  tags?: string[];
+  pillar?: string; // display label, e.g. "Regulatory Compliance"
   date: string;
+  pinned?: boolean; // editorial top-of-feed placement
   read?: number;   // minutes
   pages?: number;  // for Report type
   title: string;
@@ -21,10 +24,10 @@ export interface FeaturedPost {
   materials: string[];
   geographies: string[];
   date: string;
-  pages: number;
+  pages?: number;
   title: string;
   lede: string;
-  callouts: {
+  callouts?: {
     value: string;
     label: string;
     variant: "high" | "med" | "neutral";

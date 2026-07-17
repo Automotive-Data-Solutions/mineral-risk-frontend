@@ -195,3 +195,63 @@ export async function getMaterialMarketScoreDetail(
     throw err;
   }
 }
+
+export interface MaterialRiskEventsParams {
+  window_days?: number;
+  pillar?: string;
+  source?: string;
+  event_type?: string;
+  severity_min?: number;
+  verified_only?: boolean;
+  search?: string;
+  /** title | event_type | source_system | severity_score | event_date */
+  sort_by?: string;
+  /** asc | desc */
+  sort_dir?: string;
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Per-material risk events tab feed — summary cards + table rows.
+ * Window/source/pillar/type/severity/verified filters all flow through
+ * to the backend so summary cards stay in sync with the table.
+ */
+export async function getMaterialRiskEvents(
+  client: ApiClient,
+  materialId: string,
+  params: MaterialRiskEventsParams = {},
+): Promise<import("@/lib/types").MaterialRiskEventsResponse> {
+  const { data } = await client.get<
+    import("@/lib/types").MaterialRiskEventsResponse
+  >(`/api/v1/materials/${materialId}/risk-events`, { params });
+  return data;
+}
+
+/**
+ * Drill-down evidence for one (material × country) pair — regulations,
+ * facilities, risk events at strict intersection.  Backs the expanded
+ * country-scores row on the material detail page.
+ */
+export async function getMaterialMarketScoreEvidence(
+  client: ApiClient,
+  materialId: string,
+  geoCode: string,
+): Promise<import("@/lib/types").MarketScoreEvidence | null> {
+  try {
+    const { data } = await client.get<import("@/lib/types").MarketScoreEvidence>(
+      `/api/v1/materials/${materialId}/market-scores/${geoCode}/evidence`,
+    );
+    return data;
+  } catch (err: unknown) {
+    if (
+      err != null &&
+      typeof err === "object" &&
+      "response" in err &&
+      (err as { response?: { status?: number } }).response?.status === 404
+    ) {
+      return null;
+    }
+    throw err;
+  }
+}

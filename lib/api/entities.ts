@@ -1,0 +1,188 @@
+/**
+ * Typed client for the PUBLIC intelligence entity endpoints —
+ * mirrors app/schemas/intelligence_entities.py on the FastAPI side.
+ *
+ * These are the public-hub endpoints (slug / regulation_key identifiers,
+ * is_published / verified gated). The internal dashboard uses the separate
+ * numeric-id clients in companies.ts / regulations.ts — do not mix.
+ *
+ * Unauthenticated: the hub is public, so plain fetch (same convention as
+ * app/(hub)/intelligence/page.tsx), no Clerk dependency.
+ *
+ * NOTE (informative-first launch, 2026-07-15): the API returns band /
+ * risk_score fields; the frontend deliberately does not render them yet.
+ * Types keep the fields so scores can light up without client changes.
+ */
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BASE = `${API_BASE}/api/v1/intelligence`;
+
+export interface RiskBandOut {
+  label: string;
+  level: "low" | "med" | "high" | "crit";
+  score: number | null;
+}
+
+export interface PublicCompanyListItem {
+  slug: string;
+  name: string;
+  legal_name: string | null;
+  stage_label: string | null;
+  hq_country: string | null;
+  materials: string[];
+  band: RiskBandOut | null; // not rendered at launch
+}
+
+export interface CompanyFactOut {
+  label: string;
+  value: string;
+  mono: boolean;
+}
+
+export interface ExposureOut {
+  material: string;
+  stage_label: string | null;
+  geography: string | null;
+  exposure_score: number | null; // not rendered at launch
+  risk_score: number | null;     // not rendered at launch
+  band: RiskBandOut | null;      // not rendered at launch
+}
+
+export interface FacilityOut {
+  name: string | null;
+  facility_type: string;
+  country: string;
+  place: string | null; // city, else region, else null (backend rule)
+  status: string;
+  status_level: "op" | "ramp" | "build" | "idle" | "closed";
+}
+
+export interface LinkedPostOut {
+  slug: string;
+  title: string;
+  content_type: string;
+  pillar: string | null;
+  materials: string[] | null;
+  geographies: string[] | null;
+  summary: string | null;
+  published_at: string | null;
+  read_time_minutes: number | null;
+}
+
+export interface LinkedEventOut {
+  title: string;
+  event_type: string;
+  event_subtype: string | null;
+  event_date: string | null;
+  severity_score: number | null;
+}
+
+export interface PublicCompanyProfile {
+  slug: string;
+  name: string;
+  legal_name: string | null;
+  band: RiskBandOut | null; // not rendered at launch
+  facts: CompanyFactOut[];
+  intro: string | null; // companies.public_intro — omit lede when null
+  exposures: ExposureOut[];
+  facilities: FacilityOut[];
+  facilities_total: number;
+  linked_posts: LinkedPostOut[];   // hidden at launch
+  linked_events: LinkedEventOut[]; // hidden at launch
+}
+
+export interface PublicRegulationListItem {
+  regulation_key: string;
+  title: string | null;
+  issuer: string | null;
+  geography: string | null;
+  theme: string | null; // display label; null = pending triage → render "—"
+  status: string | null;
+  status_level: "inforce" | "proposed" | "pending" | "ended" | null;
+  effective_date: string | null;
+}
+
+export interface TimelineNodeOut {
+  label: string; // fixed strip: Proposed | Enacted | Effective
+  date: string | null;
+  note: string | null;
+  active: boolean; // current stage
+  future: boolean; // stage not yet reached
+}
+
+export interface MaterialScopeOut {
+  material: string;
+  scope_type: string;
+  severity_multiplier: number | null; // not rendered at launch
+}
+
+export interface GeographyScopeOut {
+  country_code: string;
+  scope_type: string;
+}
+
+export interface ComplianceWeightOut {
+  country_code: string;
+  weight: number;
+}
+
+export interface PublicRegulationDetail {
+  regulation_key: string;
+  title: string | null;
+  issuer: string | null;
+  geography: string | null;
+  theme: string | null;
+  status: string | null;
+  status_level: string | null;
+  summary: string | null;
+  timeline: TimelineNodeOut[];
+  materials_scope: MaterialScopeOut[];
+  geographies_scope: GeographyScopeOut[];
+  compliance_weights: ComplianceWeightOut[]; // not rendered at launch
+  source_url: string | null;
+  linked_posts: LinkedPostOut[];   // hidden at launch
+  linked_events: LinkedEventOut[]; // hidden at launch
+  linked_event_count: number;
+}
+
+interface Paginated<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+async function getJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** Browse: one fetch, client-side filtering — the published catalog is
+ *  ~25 companies / ~9 verified regulations at launch. Revisit server-side
+ *  q/stage/theme params when the catalogs outgrow one page. */
+export function listPublicCompanies(limit = 100) {
+  return getJson<Paginated<PublicCompanyListItem>>(
+    `${BASE}/companies?limit=${limit}`,
+  );
+}
+
+export function getPublicCompany(slug: string) {
+  return getJson<PublicCompanyProfile>(
+    `${BASE}/companies/${encodeURIComponent(slug)}`,
+  );
+}
+
+export function listPublicRegulations(limit = 100) {
+  return getJson<Paginated<PublicRegulationListItem>>(
+    `${BASE}/regulations?limit=${limit}`,
+  );
+}
+
+export function getPublicRegulation(regulationKey: string) {
+  return getJson<PublicRegulationDetail>(
+    `${BASE}/regulations/${encodeURIComponent(regulationKey)}`,
+  );
+}

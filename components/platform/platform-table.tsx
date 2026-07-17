@@ -3,15 +3,31 @@
 import {
   flexRender,
   getCoreRowModel,
+  getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type OnChangeFn,
   type RowData,
+  type SortingState,
 } from "@tanstack/react-table";
 import { Fragment, type CSSProperties, type ReactNode } from "react";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ErrorState } from "@/components/shared/error-state";
 import { cn } from "@/lib/utils";
+
+// Column meta extension — gives column defs a typed slot for header
+// alignment so right-aligned columns (numerics, dates) render the
+// sortable button on the right edge.  Other custom meta fields can
+// extend this declaration as features are added.
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    /** Horizontal alignment hint for sortable header buttons. */
+    align?: "left" | "right";
+  }
+}
 
 /** @deprecated Prefer Tailwind utilities on `PlatformTable`. Kept for any legacy callers. */
 export const platformTableHeadCellStyle: CSSProperties = {
@@ -68,6 +84,21 @@ export interface PlatformTableProps<TData extends RowData> {
   renderSubComponent?: (row: TData) => ReactNode;
   /** Called per-row to decide whether the sub-component is visible. */
   isRowExpanded?: (row: TData) => boolean;
+  /**
+   * Sort state for headers that opted in via ``columnDef.enableSorting``.
+   * Pass alongside ``onSortingChange`` to make those headers interactive.
+   * Per-column opt-in (rather than enabling sort everywhere) keeps the
+   * default visual unchanged for tables that don't need sorting.
+   *
+   * Pair with ``manualSorting=true`` when the row order is decided by the
+   * server (e.g. paginated APIs that take ``sort_by`` / ``sort_dir``); the
+   * parent translates the ``SortingState`` to query params.  When omitted,
+   * TanStack sorts the in-memory ``data`` array client-side.
+   */
+  sorting?: SortingState;
+  onSortingChange?: OnChangeFn<SortingState>;
+  /** When true, parent owns the sort logic (server-side).  Default false. */
+  manualSorting?: boolean;
 }
 
 /** Dashboard register-style data table — slate header, zebra rows, optional title block */
@@ -89,11 +120,31 @@ export function PlatformTable<TData extends RowData>({
   striped = true,
   renderSubComponent,
   isRowExpanded,
+  sorting,
+  onSortingChange,
+  manualSorting = false,
 }: PlatformTableProps<TData>) {
+  // Sortable headers activate only when the parent passes both the state
+  // and the change handler.  Per-column opt-in still required via
+  // ``columnDef.enableSorting``.
+  const sortingEnabled = sorting != null && onSortingChange != null;
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    ...(sortingEnabled
+      ? {
+          state: { sorting },
+          onSortingChange,
+          // Default: TanStack does the sort on the in-memory data.
+          // When manualSorting=true, the row order is the parent's
+          // responsibility (used by server-paginated tables — they
+          // translate SortingState to API params and re-fetch).
+          ...(manualSorting
+            ? { manualSorting: true }
+            : { getSortedRowModel: getSortedRowModel() }),
+        }
+      : {}),
   });
 
   if (error) {
@@ -129,13 +180,54 @@ export function PlatformTable<TData extends RowData>({
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id}>
-                {hg.headers.map((header) => (
-                  <th key={header.id} className={thClass}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
+                {hg.headers.map((header) => {
+                  // Per-column opt-in via ColumnDef.enableSorting — when
+                  // that flag is set AND the parent passed sorting props,
+                  // wrap the header content in a clickable button with
+                  // chevron indicators.  Otherwise render the header
+                  // content directly (preserves existing behaviour for
+                  // tables that don't use sorting).
+                  const canSort = sortingEnabled && header.column.getCanSort();
+                  const align = header.column.columnDef.meta?.align ?? "left";
+                  const headerContent = header.isPlaceholder
+                    ? null
+                    : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext(),
+                      );
+                  return (
+                    <th key={header.id} className={thClass}>
+                      {canSort ? (
+                        <button
+                          type="button"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className={cn(
+                            "inline-flex select-none items-center gap-1 transition-colors",
+                            header.column.getIsSorted()
+                              ? "text-foreground"
+                              : "hover:text-foreground",
+                            align === "right" && "w-full justify-end",
+                          )}
+                          aria-label={`Sort by ${header.column.id}`}
+                        >
+                          <span>{headerContent}</span>
+                          {header.column.getIsSorted() === "desc" ? (
+                            <ArrowDown className="h-3 w-3" strokeWidth={2} />
+                          ) : header.column.getIsSorted() === "asc" ? (
+                            <ArrowUp className="h-3 w-3" strokeWidth={2} />
+                          ) : (
+                            <ArrowUpDown
+                              className="h-3 w-3 opacity-40"
+                              strokeWidth={1.75}
+                            />
+                          )}
+                        </button>
+                      ) : (
+                        headerContent
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>

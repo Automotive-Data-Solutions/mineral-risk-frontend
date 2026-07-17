@@ -16,17 +16,20 @@ import { ErrorState } from "@/components/shared/error-state";
 import { VerifyToggleButton } from "@/components/shared/verify-toggle-button";
 import { PlatformTable } from "@/components/platform/platform-table";
 import { HsMappingsCard } from "@/components/materials/hs-mappings-card";
+import { RiskEventsTab } from "@/components/materials/risk-events-tab";
 import {
   useMaterial,
   useMaterialGlobalScore,
   useMaterialMarketScores,
   useMaterialMarketScoreDetail,
+  useMaterialMarketScoreEvidence,
   materialQueryKeys,
 } from "@/lib/hooks/use-materials";
 import { useToggleMaterialVerified } from "@/lib/hooks/use-verified";
 import { useEntityNotes } from "@/lib/hooks/use-entity-notes";
 import {
   buildMarketRiskScoreColumns,
+  sortCountryScoresByWeightedExposure,
 } from "@/lib/table/market-risk-score-columns";
 // HsCodesAndStagesTab import preserved (commented) so re-enabling the tab
 // after partner facility data lands is a one-line change.
@@ -35,6 +38,9 @@ import {
 //   type HsMappingNode,
 // } from "@/components/materials/hs-codes-stages-tab";
 import type {
+  EvidenceFacilityItem,
+  EvidenceRegulationItem,
+  EvidenceRiskEventItem,
   MaterialGeographyScoreRead,
   MaterialGlobalScoreRead,
 } from "@/lib/types";
@@ -204,7 +210,10 @@ export default function MaterialDetailPage({
         )}
         {tab === "scores" && <ScoresTab materialId={String(material.id)} scores={marketScores} />}
         {tab === "events" && (
-          <EventsPlaceholderTab materialName={material.canonical_name} />
+          <RiskEventsTab
+            materialId={id}
+            materialName={material.canonical_name}
+          />
         )}
       </div>
     </PageLayout>
@@ -457,42 +466,6 @@ function OverviewTab({ materialId, material, globalScore }: OverviewTabProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Risk events placeholder — replaces the deferred events feed
-// ---------------------------------------------------------------------------
-
-function EventsPlaceholderTab({ materialName }: { materialName: string }) {
-  return (
-    <PlatformCard>
-      <PlatformCardHeader
-        title={`Risk events for ${materialName}`}
-        subtitle="Per-material events feed with filters and free-text search is in flight."
-      />
-      <PlatformCardBody>
-        <div className="space-y-3 text-sm text-muted-foreground">
-          <p>
-            The platform tracks tariff changes, export restrictions,
-            sanctions, regulatory developments, mine status changes, and
-            company filings — every event flowing in is tagged to the
-            materials it affects so we can score them.
-          </p>
-          <p>
-            Until the per-material events panel ships, the global feed
-            (with all minerals + filters) is at{" "}
-            <Link
-              href="/data/risk-events"
-              className="text-primary underline-offset-2 hover:underline"
-            >
-              /data/risk-events
-            </Link>
-            . Filter by category and source there.
-          </p>
-        </div>
-      </PlatformCardBody>
-    </PlatformCard>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Notes section — collapsible in Overview (replaces the old top-level tab)
 // ---------------------------------------------------------------------------
 
@@ -655,44 +628,34 @@ interface ScoresTabProps {
   scores: MaterialGeographyScoreRead[];
 }
 
-// Country-scores display strategy (2026-05-12 revision — Option 4):
-// Replaced the OR-based hasMaterialExposure filter with a top-N display.
-// The filter was permissive (any one of share/events/facilities ≥ threshold
-// passed) and tended to retain ~20–25 countries even after the
-// event_count_geo_specific fix, because facility_count ≥ 1 caught every
-// country with any MRDS row.  Top-N is more honest: rank countries by what
-// matters most (production share, then overall risk), show the top slice,
-// and provide an explicit "Show all" toggle for the long tail.
+// Country-scores display strategy (2026-06 revision — reframe by weighted
+// exposure):
+// Switched the default sort from "producer share, then overall risk" to
+// "weighted exposure (share × overall risk) desc".  This surfaces the
+// countries that contribute the most to a buyer's risk picture instead
+// of leading with whichever country happens to have the largest production
+// share regardless of how risky that share is.
 //
-// Sort rules:
-//   1. Countries with production_share_pct > 0 sort first, by share desc.
-//      This puts the actual producers at the top regardless of whether
-//      they have flashy event counts.
-//   2. Countries with no tracked production share sort below, by
-//      overall_risk_score desc.  These are processing hubs, consumer
-//      countries, and policy-action geographies that affect the material
-//      without producing it.
-const COUNTRY_SCORES_DEFAULT_LIMIT = 15;
+// Also narrowed the visible pillar columns to (Geopolitical, Regulatory,
+// Operational) — Material Concentration and Financial Pressure are
+// computed at the material level, not per-country, so showing them per
+// row implied country-specific signal that doesn't exist.  Material-level
+// pillar values still appear in the Global score card above the table.
+//
+// Default top-N reduced 15 → 10 since the new sort surfaces the truly
+// load-bearing countries first; the tail rarely matters.
+const COUNTRY_SCORES_DEFAULT_LIMIT = 10;
 
-function sortCountryScoresForDisplay(
-  rows: MaterialGeographyScoreRead[],
-): MaterialGeographyScoreRead[] {
-  return [...rows].sort((a, b) => {
-    const aShare = a.production_share_pct ?? 0;
-    const bShare = b.production_share_pct ?? 0;
-    // Producers always above non-producers.
-    if (aShare > 0 && bShare === 0) return -1;
-    if (aShare === 0 && bShare > 0) return 1;
-    // Both producers — sort by share desc.
-    if (aShare > 0 && bShare > 0) {
-      if (bShare !== aShare) return bShare - aShare;
-      // Tie-break on overall risk so two same-share producers order sensibly.
-      return (b.overall_risk_score ?? -1) - (a.overall_risk_score ?? -1);
-    }
-    // Both non-producers — sort by overall risk desc.
-    return (b.overall_risk_score ?? -1) - (a.overall_risk_score ?? -1);
-  });
-}
+/**
+ * Pillars to show in the per-country table.  Material Concentration and
+ * Financial Pressure don't vary by country and are misleading per-row —
+ * they're surfaced in the Global score card at the top of the page.
+ */
+const COUNTRY_VIEW_PILLARS = [
+  "geopolitical_trade_score",
+  "regulatory_compliance_score",
+  "operational_score",
+] as const;
 
 function ScoresTab({ materialId, scores }: ScoresTabProps) {
   const [expandedGeo, setExpandedGeo] = useState<string | null>(null);
@@ -704,12 +667,14 @@ function ScoresTab({ materialId, scores }: ScoresTabProps) {
         showMaterialColumn: false,
         overallBandLabels: false,
         showExposureColumns: true,
+        showWeightedRisk: true,
+        pillarsToShow: [...COUNTRY_VIEW_PILLARS],
       }),
     [],
   );
 
   const sortedData = useMemo(
-    () => sortCountryScoresForDisplay(scores),
+    () => sortCountryScoresByWeightedExposure(scores),
     [scores],
   );
 
@@ -728,7 +693,7 @@ function ScoresTab({ materialId, scores }: ScoresTabProps) {
       <PlatformCard>
         <PlatformCardHeader
           title="Country-level risk scores"
-          subtitle="Sorted by share desc, then risk desc"
+          subtitle="Sorted by weighted exposure (share × overall risk) desc"
         />
         <PlatformCardBody>
           <p style={{ fontSize: 13, color: "var(--p-text-muted)", textAlign: "center", padding: "24px 0" }}>
@@ -741,8 +706,8 @@ function ScoresTab({ materialId, scores }: ScoresTabProps) {
 
   const cappedLimit = Math.min(COUNTRY_SCORES_DEFAULT_LIMIT, sortedData.length);
   const subtitle = showAllCountries
-    ? `Showing all ${sortedData.length} scored countries · click a row to see the score breakdown · producers first (by share), then by overall risk`
-    : `Showing top ${cappedLimit} of ${sortedData.length} · producers first (by share), then by overall risk · toggle below to show all`;
+    ? `Showing all ${sortedData.length} scored countries · sorted by weighted exposure (share × overall risk) · click a row to drill in`
+    : `Showing top ${cappedLimit} of ${sortedData.length} by weighted exposure (share × overall risk) · click a row to drill in · toggle below to show all`;
 
   return (
     <PlatformCard>
@@ -866,54 +831,357 @@ function formatSubValue(val: unknown): string {
   return String(val);
 }
 
-function ScoreRationalePanel({ materialId, geoCode }: ScoreRationalePanelProps) {
-  const { data, isLoading } = useMaterialMarketScoreDetail(materialId, geoCode);
+// Drop Mat. Concentration and Financial Pressure pillars from the
+// sub-input drill-down for the same reason their columns were dropped
+// from the table: they're computed at the material level and don't vary
+// by country, so showing the same numbers under every country row is
+// noise.  Material-level values still appear in the Global score card
+// at the top of the page.
+const COUNTRY_VARYING_PILLAR_KEYS = new Set([
+  "geopolitical",
+  "regulatory",
+  "operational",
+]);
 
-  if (isLoading) {
+function ScoreRationalePanel({ materialId, geoCode }: ScoreRationalePanelProps) {
+  // Two parallel queries: evidence (regulations/facilities/risk events
+  // at the strict material × country intersection) and rationale
+  // (per-pillar sub-input numbers).  Evidence is the primary content;
+  // sub-inputs render in a collapsible debug section below.
+  const { data: evidence, isLoading: evidenceLoading } =
+    useMaterialMarketScoreEvidence(materialId, geoCode);
+  const { data: detail, isLoading: rationaleLoading } =
+    useMaterialMarketScoreDetail(materialId, geoCode);
+  const [subInputsOpen, setSubInputsOpen] = useState(false);
+
+  if (evidenceLoading) {
     return (
       <div className="flex items-center gap-2 px-5 py-4 text-xs text-muted-foreground">
         <Skeleton className="h-3 w-3 rounded-full" />
-        Loading score breakdown…
+        Loading evidence…
       </div>
     );
   }
 
-  const rationale = data?.rationale_json;
-  const subInputs = rationale?.sub_inputs;
-
-  if (!rationale || !subInputs) {
+  if (!evidence) {
     return (
       <div className="px-5 py-4 text-xs text-muted-foreground">
-        No rationale data available for this score.
+        No evidence available for this score.
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 gap-0 divide-x divide-border sm:grid-cols-3 lg:grid-cols-5 border-t border-border/50">
-      {PILLAR_META.map((pillar) => {
-        const inputs = subInputs[pillar.key as keyof typeof subInputs] ?? {};
-        return (
-          <div key={pillar.key} className="px-4 py-3 space-y-2">
-            <div className={`text-[10px] font-bold uppercase tracking-wider ${pillar.colorClass}`}>
-              {pillar.label}
-            </div>
-            <dl className="space-y-1">
-              {pillar.inputs.map(({ key, label }) => {
-                const val = (inputs as Record<string, unknown>)[key];
-                return (
-                  <div key={key} className="flex justify-between gap-2 text-[11px]">
-                    <dt className="text-muted-foreground truncate">{label}</dt>
-                    <dd className="font-mono font-semibold text-foreground shrink-0">
-                      {formatSubValue(val)}
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
+    <div className="border-t border-border/50">
+      {/* ── Evidence sections (regulations / facilities / risk events) ── */}
+      <div className="space-y-3 px-4 py-3">
+        <EvidenceSection
+          title="Regulations"
+          colorClass="text-violet-600 dark:text-violet-400"
+          totalCount={evidence.regulation_total}
+          shownCount={evidence.regulations.length}
+          // Explicit empty-state copy (not "0 regulations") — distinguishes
+          // "we checked and there are none for this pair" from "we have no
+          // data here", which matters for partner-curated tables like
+          // regulation_material_scope.
+          emptyCopy="No regulations curated for this material × country yet."
+        >
+          {evidence.regulations.map((r) => (
+            <EvidenceRegulationRow key={r.id} reg={r} />
+          ))}
+        </EvidenceSection>
+
+        <EvidenceSection
+          title="Facilities"
+          colorClass="text-amber-600 dark:text-amber-400"
+          totalCount={evidence.facility_total}
+          shownCount={evidence.facilities.length}
+          emptyCopy="No facilities curated for this material × country yet."
+        >
+          {evidence.facilities.map((f) => (
+            <EvidenceFacilityRow key={f.id} facility={f} />
+          ))}
+        </EvidenceSection>
+
+        <EvidenceSection
+          title="Risk events"
+          colorClass="text-red-600 dark:text-red-400"
+          totalCount={evidence.risk_event_total}
+          shownCount={evidence.risk_events.length}
+          emptyCopy={`No risk events at the (material × country) intersection in the last ${evidence.risk_event_window_days} days.`}
+          windowDays={evidence.risk_event_window_days}
+        >
+          {evidence.risk_events.map((e) => (
+            <EvidenceRiskEventRow key={e.id} event={e} />
+          ))}
+        </EvidenceSection>
+      </div>
+
+      {/* ── Score breakdown (sub-input numbers) — collapsed by default ── */}
+      <div className="border-t border-border/50">
+        <button
+          type="button"
+          onClick={() => setSubInputsOpen((v) => !v)}
+          className="flex w-full items-center justify-between px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:bg-muted/40 transition-colors"
+          aria-expanded={subInputsOpen}
+        >
+          <span>{subInputsOpen ? "Hide" : "Show"} score breakdown</span>
+          <span className="font-normal normal-case tracking-normal text-[11px]">
+            {rationaleLoading
+              ? "…"
+              : detail?.rationale_json?.sub_inputs
+                ? "diagnostic sub-inputs"
+                : "no rationale data"}
+          </span>
+        </button>
+        {subInputsOpen && (
+          <ScoreSubInputsPanel
+            subInputs={detail?.rationale_json?.sub_inputs}
+            loading={rationaleLoading}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Evidence section + row components
+// ---------------------------------------------------------------------------
+
+interface EvidenceSectionProps {
+  title: string;
+  colorClass: string;
+  totalCount: number;
+  shownCount: number;
+  emptyCopy: string;
+  windowDays?: number;
+  children: React.ReactNode;
+}
+
+function EvidenceSection({
+  title,
+  colorClass,
+  totalCount,
+  shownCount,
+  emptyCopy,
+  children,
+}: EvidenceSectionProps) {
+  const truncated = totalCount > shownCount;
+  return (
+    <section className="space-y-1.5">
+      <header className="flex items-baseline justify-between gap-3">
+        <h4 className={`text-[10px] font-bold uppercase tracking-wider ${colorClass}`}>
+          {title}
+        </h4>
+        {totalCount > 0 && (
+          <span className="text-[10px] tabular-nums text-muted-foreground">
+            {truncated ? `${shownCount} of ${totalCount}` : `${totalCount}`}
+          </span>
+        )}
+      </header>
+      {totalCount === 0 ? (
+        <p className="text-[11px] italic text-muted-foreground/80">{emptyCopy}</p>
+      ) : (
+        <div className="space-y-1">{children}</div>
+      )}
+    </section>
+  );
+}
+
+function EvidenceRegulationRow({ reg }: { reg: EvidenceRegulationItem }) {
+  // Use the material_scope_type to colour the chip — banned/restricted are
+  // signal-heavy, covered/disclosure_required are baseline.
+  const scopeColor =
+    reg.material_scope_type === "banned"
+      ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800"
+      : reg.material_scope_type === "restricted"
+        ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800"
+        : "bg-muted text-muted-foreground border-border";
+  return (
+    <div className="flex items-start gap-3 text-[11px]">
+      <span
+        className={`shrink-0 inline-flex items-center rounded border px-1.5 py-0.5 text-[9.5px] font-mono font-semibold tabular-nums ${scopeColor}`}
+        title={`material scope: ${reg.material_scope_type} · geography scope: ${reg.geography_scope_type}`}
+      >
+        {reg.material_scope_type}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="font-mono text-[10px] text-muted-foreground">
+            {reg.regulation_key}
+          </span>
+          <span className="text-foreground">
+            {reg.title || "(no title)"}
+          </span>
+        </div>
+        {(reg.status || reg.effective_date) && (
+          <div className="text-[10px] text-muted-foreground">
+            {reg.status}
+            {reg.effective_date && reg.status ? " · " : ""}
+            {reg.effective_date && `effective ${reg.effective_date}`}
+            {reg.geography_compliance_weight != null && (
+              <>
+                {" · "}
+                geo weight {reg.geography_compliance_weight.toFixed(2)}
+              </>
+            )}
           </div>
-        );
-      })}
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EvidenceFacilityRow({
+  facility: f,
+}: {
+  facility: EvidenceFacilityItem;
+}) {
+  const statusColor =
+    f.status === "operating"
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-800"
+      : f.status === "planned" || f.status === "under_construction"
+        ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800"
+        : "bg-muted text-muted-foreground border-border";
+  return (
+    <div className="flex items-start gap-3 text-[11px]">
+      <span
+        className={`shrink-0 inline-flex items-center rounded border px-1.5 py-0.5 text-[9.5px] font-mono font-semibold ${statusColor}`}
+      >
+        {f.status}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-foreground">{f.name || "(unnamed facility)"}</span>
+          <span className="text-[10px] text-muted-foreground">
+            {f.facility_type}
+            {f.supply_chain_stage && ` · ${f.supply_chain_stage}`}
+            {!f.is_primary_product && " · co-product"}
+          </span>
+        </div>
+        {(f.region || f.city || f.annual_capacity_tpy != null) && (
+          <div className="text-[10px] text-muted-foreground">
+            {[f.city, f.region].filter(Boolean).join(", ")}
+            {f.annual_capacity_tpy != null && (
+              <>
+                {f.city || f.region ? " · " : ""}
+                {f.annual_capacity_tpy.toLocaleString()} t/yr
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EvidenceRiskEventRow({
+  event: e,
+}: {
+  event: EvidenceRiskEventItem;
+}) {
+  // Color severity chip on a 4-band scale to match the rest of the platform.
+  const sev = e.severity_score ?? 0;
+  const sevColor =
+    sev >= 0.75
+      ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800"
+      : sev >= 0.55
+        ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800"
+        : sev >= 0.35
+          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800"
+          : "bg-muted text-muted-foreground border-border";
+  return (
+    <div className="flex items-start gap-3 text-[11px]">
+      <span
+        className={`shrink-0 inline-flex items-center rounded border px-1.5 py-0.5 text-[9.5px] font-mono font-semibold tabular-nums ${sevColor}`}
+        title={`severity score (0.0–1.0)`}
+      >
+        {sev.toFixed(2)}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-foreground">{e.title}</span>
+        </div>
+        <div className="text-[10px] text-muted-foreground">
+          <span className="font-mono">{e.event_type}</span>
+          {e.event_subtype && (
+            <>
+              {" · "}
+              <span className="font-mono">{e.event_subtype}</span>
+            </>
+          )}
+          {e.event_date && ` · ${e.event_date.slice(0, 10)}`}
+          {e.source_system && ` · ${e.source_system}`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Score sub-inputs panel (collapsed-by-default diagnostic view)
+// ---------------------------------------------------------------------------
+
+interface ScoreSubInputsPanelProps {
+  // Loose dict — rationale_json shape is documented in MaterialGeographyScoreDetail.
+  subInputs:
+    | Record<string, Record<string, unknown> | undefined>
+    | null
+    | undefined;
+  loading: boolean;
+}
+
+function ScoreSubInputsPanel({ subInputs, loading }: ScoreSubInputsPanelProps) {
+  if (loading) {
+    return (
+      <div className="px-4 py-2 text-[11px] text-muted-foreground">
+        Loading sub-inputs…
+      </div>
+    );
+  }
+  if (!subInputs) {
+    return (
+      <div className="px-4 py-2 text-[11px] text-muted-foreground">
+        No rationale data for this score.
+      </div>
+    );
+  }
+  const visiblePillars = PILLAR_META.filter((p) =>
+    COUNTRY_VARYING_PILLAR_KEYS.has(p.key),
+  );
+  return (
+    <div className="px-4 py-2">
+      <dl className="divide-y divide-border/40">
+        {visiblePillars.map((pillar) => {
+          const inputs = subInputs[pillar.key] ?? {};
+          return (
+            <div
+              key={pillar.key}
+              className="flex items-start gap-4 py-1.5 text-[10.5px]"
+            >
+              <dt
+                className={`shrink-0 w-36 pt-0.5 text-[9.5px] font-bold uppercase tracking-wider ${pillar.colorClass}`}
+              >
+                {pillar.label}
+              </dt>
+              <dd className="flex flex-1 flex-wrap gap-x-4 gap-y-0.5">
+                {pillar.inputs.map(({ key, label }) => {
+                  const val = (inputs as Record<string, unknown>)[key];
+                  return (
+                    <div key={key} className="flex gap-1.5 min-w-0">
+                      <span className="text-muted-foreground">{label}</span>
+                      <span className="font-mono font-semibold text-foreground break-all">
+                        {formatSubValue(val)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
     </div>
   );
 }
