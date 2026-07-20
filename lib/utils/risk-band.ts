@@ -1,25 +1,33 @@
 import type { RiskBand } from "@/lib/types";
 
 /**
- * Risk band thresholds (2026-05-11 calibration).
+ * Risk band thresholds (2026-07-20 recalibration vs SCORING_VERSION 4.1 /
+ * rollup 1.2 — see risk_band_proposal_41.md for the derivation).
  *
  * MIRRORS app/services/scoring/bands.py — these two files are the SOLE
  * source of truth for risk tier coloring.  If you change one, change the
  * other in the same commit or the Materials page and the Overview page
  * will disagree about whether a score is HIGH or MOD.
  *
- *   0–29   LOW    green
- *   30–59  MOD    amber
- *   60–79  HIGH   orange
- *   80–100 CRIT   red
+ *   0–24   LOW    green   (measured, diversified)
+ *   25–44  MOD    amber   (real exposure, mitigated/diversified)
+ *   45–59  HIGH   orange  (severe chokepoint on at least one stage)
+ *   60–100 CRIT   red     (extreme concentration + weaponization exposure)
+ *
+ * Fixed absolute cuts (Verisk-style categories, not percentiles): a
+ * material's band never changes because another material moved.
  *
  * Returns null for null/NaN input so callers can render a dash.
+ * For materials whose CONCENTRATION pillar is unscored (backend
+ * `concentration_scored === false`), do not band at all — pass the flag
+ * to ScoreChip/ScoreBadge so they render "Insufficient data" instead of
+ * a false-green LOW (e.g. Germanium).
  */
 export function scoreToBand(score: number | null | undefined): RiskBand | null {
   if (score == null || Number.isNaN(score)) return null;
-  if (score < 30) return "LOW";
-  if (score < 60) return "MOD";
-  if (score < 80) return "HIGH";
+  if (score < 25) return "LOW";
+  if (score < 45) return "MOD";
+  if (score < 60) return "HIGH";
   return "CRIT";
 }
 

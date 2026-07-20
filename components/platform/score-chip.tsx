@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { scoreToBand } from "@/lib/utils/risk-band";
 
 export type RiskBand = "HIGH" | "MED" | "LOW" | "CRIT" | null;
 
@@ -8,19 +9,26 @@ interface ScoreChipProps {
   band?: RiskBand;
   /** When false, shows only the numeric score and tier dot (no “· Med” label). Default true. */
   showBandLabel?: boolean;
+  /** 2026-07-20 insufficient-data gate: when true (concentration pillar
+   *  unscored — backend `concentration_scored === false`) render a neutral
+   *  "Insufficient data" chip instead of banding the score. */
+  insufficientData?: boolean;
   className?: string;
 }
 
+// 2026-07-20: previously this component had its OWN 75/55/35 ladder,
+// silently diverging from the risk-band.ts source of truth.  Now derives
+// from the canonical scoreToBand and maps MOD -> this component's legacy
+// "MED" token (CSS classes unchanged).
 function deriveBand(score: number): RiskBand {
-  if (score >= 75) return "CRIT";
-  if (score >= 55) return "HIGH";
-  if (score >= 35) return "MED";
-  return "LOW";
+  const b = scoreToBand(score);
+  return b === "MOD" ? "MED" : b;
 }
 
 function bandClass(band: RiskBand): string {
   switch (band) {
     case "CRIT":
+      return "p-score-crit";
     case "HIGH":
       return "p-score-high";
     case "MED":
@@ -35,6 +43,7 @@ function bandClass(band: RiskBand): string {
 function dotClass(band: RiskBand): string {
   switch (band) {
     case "CRIT":
+      return "p-dot-crit";
     case "HIGH":
       return "p-dot-high";
     case "MED":
@@ -60,8 +69,16 @@ export function ScoreChip({
   score,
   band,
   showBandLabel = true,
+  insufficientData = false,
   className,
 }: ScoreChipProps) {
+  if (insufficientData) {
+    return (
+      <span className={cn("p-score p-score-none", className)}>
+        Insufficient data
+      </span>
+    );
+  }
   if (score == null) {
     return (
       <span className={cn("p-score p-score-none", className)}>—</span>

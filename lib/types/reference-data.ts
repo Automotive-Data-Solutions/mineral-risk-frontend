@@ -50,6 +50,9 @@ export interface MaterialListItem {
   primary_producing_countries: string[] | null;
   /** Latest global composite risk score (0–100). Null if never scored. */
   latest_overall_risk_score: number | null;
+  /** False when the concentration pillar has no share data — drives the
+   *  "Insufficient data" chip instead of a false-green LOW (2026-07-20). */
+  concentration_scored?: boolean;
   /** Total rows in `hs_code_material_mappings` for this material.  No
    *  longer rendered (HS mismatch UI retired 2026-05-11); kept on the
    *  type for backwards-compat. */

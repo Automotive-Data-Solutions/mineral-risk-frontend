@@ -89,6 +89,7 @@ export default function MaterialsListPage() {
             <ScoreChip
               score={row.original.latest_overall_risk_score}
               showBandLabel={true}
+              insufficientData={row.original.concentration_scored === false}
             />
           </div>
         ),
