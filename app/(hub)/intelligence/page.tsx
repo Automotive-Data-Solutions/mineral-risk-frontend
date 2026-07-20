@@ -61,6 +61,7 @@ function formatDate(iso: string | null): string {
 function toFeedPost(p: ApiPost): FeedPost {
   return {
     id: String(p.id),
+    slug: p.slug,
     type: TYPE_LABEL[p.content_type],
     materials: p.materials ?? [],
     geographies: p.geographies ?? [],

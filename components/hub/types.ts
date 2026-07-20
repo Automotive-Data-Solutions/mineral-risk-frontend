@@ -6,6 +6,7 @@ export type TabLabel = "All" | ContentType;
 
 export interface FeedPost {
   id: string;
+  slug: string; // URL identifier — feed rows link to /intelligence/{slug}
   type: ContentType;
   materials: string[];
   geographies: string[];

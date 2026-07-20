@@ -178,6 +178,8 @@
 .ih-cta:hover { background: var(--terracotta); color: white; }
 
 /* ─── Feed rows ─────────────────────────────────────────────── */
+.ih-feed-row-link { display: block; color: inherit; text-decoration: none; }
+.ih-feed-row-link:last-child .ih-feed-row { border-bottom: none; }
 .ih-feed-row { padding: 18px 0; border-bottom: 1px solid var(--rule); cursor: pointer; transition: none; }
 .ih-feed-row:first-child { border-top: 1px solid var(--rule); margin-top: 8px; }
 .ih-feed-row:last-child { border-bottom: none; }
@@ -390,4 +392,89 @@
   .ih-list-row { flex-direction: column; align-items: flex-start; gap: 12px; }
   .ih-list-aside { align-self: flex-start; }
   .ih-fac-row { grid-template-columns: 1fr; gap: 6px; }
+}
+
+/* ============================================================
+   ARTICLE PAGE (2026-07-19) — /intelligence/[slug].
+   Single-column Wine+Stone layout serving all four content
+   types; type chip color varies, layout is shared. Body prose
+   from HubArticleRenderer (parallel to admin ArticleRenderer,
+   which is themed for the dashboard).
+   ============================================================ */
+
+/* Chart palette override — ChartBlock reads --chart-1..N with CSS-var
+   fallbacks (default purple + copper from the dashboard). Redefine
+   inside .ih-root so charts embedded in article bodies match the
+   Wine+Stone palette without touching ChartBlock. */
+.ih-root {
+  --chart-1: var(--terracotta);
+  --chart-2: var(--wine-mid);
+  --chart-3: var(--terracotta-light);
+  --chart-4: var(--wine-light);
+  --chart-5: var(--ink-muted);
+}
+
+.ih-article { max-width: 720px; margin: 0 auto; padding-top: 8px; }
+
+/* Header block */
+.ih-article-head { padding-bottom: 20px; border-bottom: 1px solid var(--rule); margin-bottom: 24px; }
+.ih-article-eyebrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.ih-article-type { font-family: var(--font-body); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 9px; border-radius: var(--radius-xs); }
+.ih-article-type--analysis { background: var(--wine-mid); color: var(--cream); }
+.ih-article-type--signal   { background: var(--terracotta); color: var(--wine-darkest); }
+.ih-article-type--report   { background: var(--wine-darkest); color: var(--terracotta); border: 1px solid var(--terracotta); }
+.ih-article-type--news     { background: var(--stone-mid); color: var(--wine-dark); border: 1px solid var(--rule); }
+.ih-article-date, .ih-article-read { font-size: 12px; color: var(--ink-muted); font-weight: 500; }
+.ih-article-date::before, .ih-article-read::before { content: "·"; margin-right: 12px; color: var(--rule); }
+.ih-article-eyebrow > :first-child::before,
+.ih-article-eyebrow .ih-article-type + .ih-article-date::before { content: none; }
+
+.ih-article-title { font-family: var(--font-display); font-size: 40px; font-weight: 600; line-height: 1.12; letter-spacing: -0.018em; margin: 6px 0 14px; color: var(--ink); text-wrap: balance; }
+.ih-article-lede { font-family: var(--font-display); font-size: 19px; line-height: 1.55; color: var(--ink-muted); margin: 0 0 18px; font-weight: 400; text-wrap: pretty; max-width: 60ch; }
+
+.ih-article-meta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--ink-muted); margin-bottom: 14px; }
+.ih-article-byline { font-weight: 500; color: var(--ink); }
+.ih-article-pillar { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.03em; }
+
+.ih-article-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+/* Hero + PDF download */
+.ih-article-hero { display: block; width: 100%; height: auto; border-radius: var(--radius-md); border: 1px solid var(--rule); margin: 24px 0; }
+.ih-article-pdf {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-body); font-size: 13.5px; font-weight: 600;
+  color: var(--terracotta); border: 1.5px solid var(--terracotta);
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  margin: 4px 0 20px;
+  transition: background 150ms var(--ease), color 150ms var(--ease);
+}
+.ih-article-pdf:hover { background: var(--terracotta); color: #FFFDF8; }
+
+/* Body prose (mirrors HubArticleRenderer output classes) */
+.ih-article-body { font-family: var(--font-body); font-size: 15.5px; line-height: 1.7; color: var(--ink); }
+.ih-article-body > :first-child { margin-top: 0; }
+.ih-article-p { margin: 0 0 16px; text-wrap: pretty; }
+.ih-article-h1 { font-family: var(--font-display); font-size: 30px; font-weight: 600; line-height: 1.2; letter-spacing: -0.012em; margin: 40px 0 14px; color: var(--ink); }
+.ih-article-h2 { font-family: var(--font-display); font-size: 24px; font-weight: 600; line-height: 1.25; letter-spacing: -0.01em; margin: 34px 0 12px; color: var(--ink); }
+.ih-article-h3 { font-family: var(--font-display); font-size: 19px; font-weight: 600; line-height: 1.3; margin: 26px 0 10px; color: var(--ink); }
+.ih-article-h4 { font-family: var(--font-body); font-size: 15px; font-weight: 700; letter-spacing: 0.01em; text-transform: uppercase; margin: 22px 0 8px; color: var(--wine-dark); }
+.ih-article-ul, .ih-article-ol { margin: 0 0 16px; padding-left: 22px; }
+.ih-article-ul > li, .ih-article-ol > li { margin-bottom: 6px; }
+.ih-article-quote { font-family: var(--font-display); font-style: italic; font-size: 17px; line-height: 1.55; color: var(--wine-dark); border-left: 3px solid var(--terracotta); padding: 4px 0 4px 18px; margin: 22px 0; }
+.ih-article-hr { border: 0; border-top: 1px solid var(--rule); margin: 32px 0; }
+.ih-article-img { display: block; width: 100%; height: auto; margin: 22px 0; border-radius: var(--radius-md); border: 1px solid var(--rule); }
+.ih-article-link { color: var(--terracotta); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+.ih-article-link:hover { color: var(--terracotta-light); }
+
+/* Footer */
+.ih-article-foot { margin-top: 44px; padding-top: 20px; border-top: 1px solid var(--rule); }
+.ih-article-back { font-size: 13px; font-weight: 500; color: var(--ink-muted); }
+.ih-article-back:hover { color: var(--terracotta); }
+
+/* Responsive */
+@media (max-width: 720px) {
+  .ih-article-title { font-size: 30px; }
+  .ih-article-lede { font-size: 17px; }
+  .ih-article-h1 { font-size: 24px; }
+  .ih-article-h2 { font-size: 20px; }
 }

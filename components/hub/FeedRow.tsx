@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FeedPost } from "./types";
 import { pillarInfo } from "./pillars";
 
@@ -13,6 +14,7 @@ function badgeClass(type: FeedPost["type"]): string {
 
 export function FeedRow({ row }: FeedRowProps) {
   return (
+    <Link href={`/intelligence/${row.slug}`} className="ih-feed-row-link">
     <article className="ih-feed-row">
       <div className="ih-feed-tags">
         {row.pinned ? (
@@ -57,5 +59,6 @@ export function FeedRow({ row }: FeedRowProps) {
       <h3 className="ih-feed-title">{row.title}</h3>
       {row.preview && <p className="ih-feed-preview">{row.preview}</p>}
     </article>
+    </Link>
   );
 }
