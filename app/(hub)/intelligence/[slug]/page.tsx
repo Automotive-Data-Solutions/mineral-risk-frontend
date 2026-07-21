@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { Nav } from "@/components/hub/Nav";
 import { Breadcrumb } from "@/components/hub/entity/Breadcrumb";
 import { Footer } from "@/components/hub/Footer";
@@ -173,9 +174,9 @@ export default function ArticlePage() {
           )}
 
           <footer className="ih-article-foot">
-            <a href="/intelligence" className="ih-article-back">
+            <Link href="/intelligence" className="ih-article-back">
               ← Back to Intelligence
-            </a>
+            </Link>
           </footer>
         </article>
       </main>
