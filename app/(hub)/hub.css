@@ -20,10 +20,12 @@
  *   --rule           #E5D4C5                     borders
  *   --terracotta     #C8623A                     CTA, active underline, accent
  *   --terracotta-light #D98060                   hover terracotta
- *   --risk-high      #E24B4A
+ *   --risk-crit      #E11D48   (2026-07-21: 4-tier bands — mirrors platform)
+ *   --risk-high      #EA580C   (was #E24B4A red; red role moved to CRIT)
  *   --risk-med       #EF9F27
  *   --risk-low       #3B9E68
- *   --risk-high-soft rgba(226,75,74,.06)
+ *   --risk-crit-soft rgba(225,29,72,.06)
+ *   --risk-high-soft rgba(234,88,12,.06)
  *   --risk-med-soft  rgba(200,98,58,.06)
  *   --elev-1         0 1px 2px rgba(46,14,14,.06)
  *   --elev-2         0 8px 24px -8px rgba(28,7,7,.18)
@@ -49,11 +51,15 @@
   /* Accent */
   --terracotta:      #C8623A;
   --terracotta-light: #D98060;
-  /* Risk semantics — do not re-skin */
-  --risk-high:       #E24B4A;
+  /* Risk semantics — do not re-skin.
+     2026-07-21: 4-tier bands (LOW<25 / MOD / HIGH / CRIT>=60) mirror the
+     platform: CRIT takes the rose/red role, HIGH shifts to orange. */
+  --risk-crit:       #E11D48;
+  --risk-high:       #EA580C;
   --risk-med:        #EF9F27;
   --risk-low:        #3B9E68;
-  --risk-high-soft:  rgba(226, 75, 74, 0.06);
+  --risk-crit-soft:  rgba(225, 29, 72, 0.06);
+  --risk-high-soft:  rgba(234, 88, 12, 0.06);
   --risk-med-soft:   rgba(200, 98, 58, 0.06);
   --risk-low-soft:   rgba(59, 158, 104, 0.10);  /* entity status pills (2026-07-15) */
   /* Elevation */
@@ -167,10 +173,12 @@
 .ih-featured-lede { font-family: var(--font-display); font-style: italic; font-size: 16px; line-height: 1.55; color: var(--ink-muted); margin: 0 0 16px; max-width: 64ch; }
 .ih-callouts { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
 .ih-callout { flex: 1; border-radius: var(--radius-sm); padding: 10px 12px; min-width: 90px; border: 1px solid var(--rule); }
-.ih-callout-high { background: var(--risk-high-soft); border-color: rgba(226, 75, 74, 0.3); color: #8A1F1E; }
+.ih-callout-crit { background: var(--risk-crit-soft); border-color: rgba(225, 29, 72, 0.3); color: #9F1239; }
+.ih-callout-high { background: var(--risk-high-soft); border-color: rgba(234, 88, 12, 0.3); color: #9A3412; }
 .ih-callout-med  { background: var(--risk-med-soft);  border-color: rgba(200, 98, 58, 0.3);  color: #8A5A0F; }
 .ih-callout-neutral { background: var(--stone-mid); }
 .ih-callout-v { font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1; }
+.ih-callout-crit .ih-callout-v { color: var(--risk-crit); }
 .ih-callout-high .ih-callout-v { color: var(--risk-high); }
 .ih-callout-med  .ih-callout-v { color: var(--terracotta); }
 .ih-callout-l { font-size: 11px; font-weight: 500; margin-top: 4px; letter-spacing: 0.02em; }
@@ -214,16 +222,21 @@
 /* Material risk bars */
 .ih-mat-list { display: flex; flex-direction: column; gap: 8px; }
 .ih-mat-row { display: flex; align-items: center; gap: 8px; }
-.ih-mat-name { font-size: 12.5px; font-weight: 500; color: var(--ink); width: 70px; flex-shrink: 0; }
+.ih-mat-name { font-size: 12.5px; font-weight: 500; color: var(--ink); width: 92px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ih-mat-track { flex: 1; height: 4px; background: var(--stone-mid); border-radius: 2px; overflow: hidden; }
 .ih-mat-fill { height: 100%; border-radius: 2px; transition: width 0.3s ease; }
+.ih-mat-fill.ih-mat-crit { background: var(--risk-crit); }
 .ih-mat-fill.ih-mat-high { background: var(--risk-high); }
 .ih-mat-fill.ih-mat-med  { background: var(--risk-med);  }
 .ih-mat-fill.ih-mat-low  { background: var(--risk-low);  }
-.ih-mat-level { font-size: 11px; font-family: var(--font-mono); text-align: right; font-weight: 600; width: 26px; flex-shrink: 0; }
+.ih-mat-level { font-size: 11px; font-family: var(--font-mono); text-align: right; font-weight: 600; width: 30px; flex-shrink: 0; }
+.ih-mat-level-crit { color: var(--risk-crit); }
 .ih-mat-level-high { color: var(--risk-high); }
 .ih-mat-level-med  { color: var(--risk-med);  }
 .ih-mat-level-low  { color: var(--risk-low);  }
+.ih-mat-group { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); margin: 12px 0 6px; }
+.ih-mat-group:first-of-type { margin-top: 8px; }
+.ih-mat-asof { font-size: 11px; color: var(--ink-muted); margin-top: 10px; }
 
 /* Pillar buttons */
 .ih-pillars { display: flex; flex-direction: column; gap: 2px; }
@@ -301,17 +314,37 @@
 .ih-section-head { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--rule); }
 .ih-section-title { font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0; color: var(--ink); }
 .ih-section-aside { font-size: 11.5px; color: var(--ink-muted); font-weight: 500; }
+.ih-section-note { font-family: var(--font-display); font-style: italic; font-size: 13px; line-height: 1.5; color: var(--ink-muted); margin: -6px 0 16px; max-width: 62ch; }
 
 /* Material exposure list (plain informative rows) */
-.ih-expo-list { display: flex; flex-direction: column; gap: 4px; }
-.ih-expo-row-plain { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--rule); }
-.ih-expo-row-plain:last-child { border-bottom: 0; }
+/* Mockup-aligned (2026-07-21, EntityBlocks.jsx MaterialExposure):
+   grid row = main | 160px track | 44px mono level. Same visual language
+   as the sidebar material bars; crit added on top of the mockup's
+   3-tier fills. The interim score+pill variant was removed same day. */
+.ih-expo-list { display: flex; flex-direction: column; gap: 14px; }
+.ih-expo-row { display: grid; grid-template-columns: 1fr 160px 44px; gap: 16px; align-items: center; }
 .ih-expo-main { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 .ih-expo-name { font-size: 15px; font-weight: 500; color: var(--ink); }
+.ih-expo-track { height: 5px; background: var(--stone-mid); border-radius: 3px; overflow: hidden; }
+.ih-expo-fill { height: 100%; border-radius: 3px; }
+.ih-expo-fill.ih-mat-crit { background: var(--risk-crit); }
+.ih-expo-fill.ih-mat-high { background: var(--risk-high); }
+.ih-expo-fill.ih-mat-med  { background: var(--risk-med);  }
+.ih-expo-fill.ih-mat-low  { background: var(--risk-low);  }
+.ih-expo-level { font-size: 11px; font-family: var(--font-mono); text-align: right; font-weight: 600; }
+.ih-mat-level-none { color: var(--ink-muted); }
 
 /* Facilities list */
 .ih-fac-list { display: flex; flex-direction: column; }
-.ih-fac-row { display: grid; grid-template-columns: 1.4fr 1fr auto; gap: 16px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+/* Geographic footprint (v4 "market + map" — replaced the fac list) */
+.ih-geo-list { display: flex; flex-direction: column; }
+.ih-geo-row { padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.ih-geo-row:last-child { border-bottom: 0; }
+.ih-geo-head { display: flex; align-items: center; gap: 10px; }
+.ih-geo-summary { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-muted); }
+.ih-geo-level { font-size: 11px; font-family: var(--font-mono); font-weight: 600; text-align: right; }
+.ih-geo-mats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
+.ih-geo-mat-chip { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; }
 .ih-fac-row:last-child { border-bottom: 0; }
 .ih-fac-type { font-size: 14px; font-weight: 500; color: var(--ink); }
 .ih-fac-kind { font-weight: 400; color: var(--ink-muted); }

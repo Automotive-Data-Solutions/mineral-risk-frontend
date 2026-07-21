@@ -15,7 +15,7 @@ import { Breadcrumb } from "@/components/hub/entity/Breadcrumb";
 import { EntityHeader } from "@/components/hub/entity/EntityHeader";
 import { Section } from "@/components/hub/entity/Section";
 import { ExposureRow } from "@/components/hub/entity/ExposureRow";
-import { FacilityRow } from "@/components/hub/entity/FacilityRow";
+import { GeoRow } from "@/components/hub/entity/GeoRow";
 import { IntroBlocks } from "@/components/hub/entity/IntroBlocks";
 import { Footer } from "@/components/hub/Footer";
 import { getPublicCompany, type PublicCompanyProfile } from "@/lib/api/entities";
@@ -76,8 +76,9 @@ export default function CompanyProfilePage() {
 
         <div className="ih-entity-single-col">
           <Section
-            title="Material exposure"
-            aside={company.exposures.length ? `${company.exposures.length} tracked` : null}
+            title="Material exposure — global risk"
+            aside={company.exposures.length ? `${company.exposures.length} materials` : null}
+            note="One row per material this company depends on; each bar is the material's global supply-chain risk score (0–100), the same number as the Material risk sidebar. Where this company's own risk sits is in the Geographic footprint below."
           >
             {company.exposures.length ? (
               <div className="ih-expo-list">
@@ -91,23 +92,22 @@ export default function CompanyProfilePage() {
           </Section>
 
           <Section
-            title="Facilities & geography"
+            title="Geographic footprint — risk at location"
             aside={
-              company.facilities_total > company.facilities.length
-                ? `${company.facilities.length} of ${company.facilities_total} shown`
-                : company.facilities.length
-                  ? `${company.facilities.length} tracked`
-                  : null
+              company.geographies.length
+                ? `${company.geographies.length} ${company.geographies.length === 1 ? "country" : "countries"} · ${company.facilities_total} ${company.facilities_total === 1 ? "facility" : "facilities"}`
+                : null
             }
+            note="One row per country this company operates or sources in, riskiest first. Chips score each material at that location (material × geography) — a property of the place, so they can differ from the global scores above."
           >
-            {company.facilities.length ? (
-              <div className="ih-fac-list">
-                {company.facilities.map((f, i) => (
-                  <FacilityRow key={i} row={f} />
+            {company.geographies.length ? (
+              <div className="ih-geo-list">
+                {company.geographies.map((g) => (
+                  <GeoRow key={g.country} row={g} />
                 ))}
               </div>
             ) : (
-              <p className="ih-empty-note">No tracked facilities yet.</p>
+              <p className="ih-empty-note">No tracked footprint yet.</p>
             )}
           </Section>
         </div>

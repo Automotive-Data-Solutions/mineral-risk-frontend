@@ -1,6 +1,8 @@
 export type ContentType = "Analysis" | "Signal" | "Report" | "News";
 
-export type RiskLevel = "High" | "Med" | "Low";
+/** Band level tokens — mirror RiskBandOut.level from the public API
+ *  (crit added 2026-07-21 with the 4-tier band recalibration). */
+export type RiskLevel = "crit" | "high" | "med" | "low";
 
 export type TabLabel = "All" | ContentType;
 
@@ -37,11 +39,6 @@ export interface FeaturedPost {
   ctaHref?: string;
 }
 
-export interface MaterialRisk {
-  name: string;
-  level: RiskLevel;
-  pct: number;
-}
 
 export interface PillarStat {
   name: string;

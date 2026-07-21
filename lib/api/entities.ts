@@ -39,22 +39,35 @@ export interface CompanyFactOut {
   mono: boolean;
 }
 
+/** "Market + map" v4 (2026-07-21): ONE deduped row per material, stages
+ *  combined into stage_label ("Refining · Cell"). risk_score is the
+ *  material's GLOBAL rollup (sidebar-consistent, gated) — the where-
+ *  question lives entirely in GeoFootprintOut, hence no geography or
+ *  score_basis fields anymore. */
 export interface ExposureOut {
   material: string;
-  stage_label: string | null;
-  geography: string | null;
-  exposure_score: number | null; // not rendered at launch
-  risk_score: number | null;     // not rendered at launch
-  band: RiskBandOut | null;      // not rendered at launch
+  stage_label: string | null; // combined, e.g. "Refining · Cell"
+  risk_score: number | null;  // 0-100 global rollup; null = gated/unscored
+  band: RiskBandOut | null;
 }
 
-export interface FacilityOut {
-  name: string | null;
-  facility_type: string;
-  country: string;
-  place: string | null; // city, else region, else null (backend rule)
-  status: string;
-  status_level: "op" | "ramp" | "build" | "idle" | "closed";
+/** One material's L1 score at this country (chip). */
+export interface GeoFootprintMaterialOut {
+  material: string;
+  score: number; // 0-100, 1dp
+  level: "low" | "med" | "high" | "crit";
+}
+
+/** One country the company operates or sources in — "market + map" v4,
+ *  replacing the per-facility list. The ONLY section with per-geography
+ *  scores; exposure rows are global-only. */
+export interface GeoFootprintOut {
+  country: string; // ISO2
+  facility_count: number; // 0 = sourcing-only country
+  activities: string[]; // distinct facility types, sorted
+  sourcing_materials: string[]; // materials CME says are sourced here
+  location_risk: RiskBandOut | null; // max across chips (server sort key)
+  materials: GeoFootprintMaterialOut[]; // chips, score desc
 }
 
 export interface LinkedPostOut {
@@ -85,8 +98,8 @@ export interface PublicCompanyProfile {
   facts: CompanyFactOut[];
   intro: string | null; // companies.public_intro — omit lede when null
   exposures: ExposureOut[];
-  facilities: FacilityOut[];
-  facilities_total: number;
+  geographies: GeoFootprintOut[];
+  facilities_total: number; // total facilities across all countries
   linked_posts: LinkedPostOut[];   // hidden at launch
   linked_events: LinkedEventOut[]; // hidden at launch
 }
