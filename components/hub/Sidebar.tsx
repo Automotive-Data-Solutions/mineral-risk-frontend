@@ -27,6 +27,7 @@
 import { useEffect, useState } from 'react'
 import { PillarStat } from './types'
 import { PILLARS as PILLAR_SOURCE } from './pillars'
+import { SubscribeBox } from "./SubscribeBox";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
@@ -175,14 +176,7 @@ export function Sidebar() {
             </section>
 
             {/* Subscribe */}
-            <section className='ih-side-block ih-subscribe'>
-                <div className='ih-eyebrow ih-eyebrow-on-dark'>Subscribe</div>
-                <p className='ih-subscribe-copy'>
-                    Weekly intelligence digest — new analysis, signals, and reports delivered to your inbox.
-                </p>
-                <input type='email' placeholder='your@email.com' />
-                <button className='ih-btn-primary ih-btn-block'>Subscribe →</button>
-            </section>
+            <SubscribeBox className='ih-side-block' />
         </aside>
     )
 }

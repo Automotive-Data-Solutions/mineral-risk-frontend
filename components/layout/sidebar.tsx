@@ -20,6 +20,7 @@ import {
 import { MraTile } from "@/components/platform/mra-tile";
 import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/lib/auth/admin-role";
 
 // Collect icon refs so ESLint no-unused-vars doesn't flag object-literal usage
 const ICONS = {
@@ -46,6 +47,8 @@ interface NavItem {
 interface NavSection {
   label?: string;
   items: NavItem[];
+  /** Section renders only for admin users (see lib/auth/admin-role.ts). */
+  adminOnly?: boolean;
 }
 
 const NAV_SECTIONS: NavSection[] = [
@@ -78,14 +81,18 @@ const NAV_SECTIONS: NavSection[] = [
   //     { href: "/reports/new", label: "Generate Report", icon: ICONS.FilePlus },
   //   ],
   // },
-  // {
-  //   label: "Admin",
-  //   items: [
-  //     { href: "/admin/scoring",     label: "Run Scoring", icon: ICONS.Play },
-  //     { href: "/admin/ingestion",   label: "Ingestion",   icon: ICONS.Download },
-  //     { href: "/admin/seed-review", label: "Seed Review", icon: ICONS.ClipboardCheck },
-  //   ],
-  // },
+  {
+    label: "Admin",
+    adminOnly: true,
+    items: [
+      // Content = public Intelligence Hub posts (PLAN_admin_content_section.md).
+      { href: "/admin/insights", label: "Content", icon: ICONS.FilePlus },
+      // Future admin surfaces slot in here:
+      // { href: "/admin/scoring",     label: "Run Scoring", icon: ICONS.Play },
+      // { href: "/admin/ingestion",   label: "Ingestion",   icon: ICONS.Download },
+      // { href: "/admin/seed-review", label: "Seed Review", icon: ICONS.ClipboardCheck },
+    ],
+  },
 ];
 
 const EXACT_MATCH_ROUTES = new Set(["/dashboard"]);
@@ -96,6 +103,8 @@ function isItemActive(pathname: string, href: string) {
 }
 
 export function SidebarContent({ pathname }: { pathname: string }) {
+  const isAdmin = useIsAdmin();
+  const sections = NAV_SECTIONS.filter((s) => !s.adminOnly || isAdmin);
   return (
     <>
       <div className="p-sidebar-brand">
@@ -103,7 +112,7 @@ export function SidebarContent({ pathname }: { pathname: string }) {
       </div>
 
       <nav className="p-sidebar-nav">
-        {NAV_SECTIONS.map((section, idx) => (
+        {sections.map((section, idx) => (
           <div key={section.label ?? `section-${idx}`}>
             {section.label && (
               <div className="p-sidebar-section-label">{section.label}</div>

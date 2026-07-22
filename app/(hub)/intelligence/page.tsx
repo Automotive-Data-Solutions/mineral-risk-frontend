@@ -40,6 +40,7 @@ interface ApiPost {
   pinned: boolean;
   tags: string[] | null;
   pillar: string | null;
+  risk_band: "low" | "med" | "high" | "crit" | null;
 }
 
 const TYPE_LABEL: Record<ApiPost["content_type"], ContentType> = {
@@ -67,6 +68,7 @@ function toFeedPost(p: ApiPost): FeedPost {
     geographies: p.geographies ?? [],
     tags: p.tags ?? [],
     pillar: p.pillar ? (pillarInfo(p.pillar)?.label ?? p.pillar) : undefined,
+    riskBand: p.risk_band ?? undefined,
     date: formatDate(p.published_at),
     pinned: p.pinned,
     read: p.read_time_minutes ?? undefined,
@@ -137,28 +139,44 @@ export default function IntelligencePage() {
             {/* Main feed column */}
             <div className="ih-feed-col">
               {featured && (activeTab === "All" || activeTab === "Report") ? (
-                <FeaturedReport post={featured} />
+                <section className="ih-feed-section">
+                  <div className="ih-section-h">
+                    <span className="ih-eyebrow">Featured Report</span>
+                  </div>
+                  <FeaturedReport post={featured} />
+                </section>
               ) : null}
 
-              {visibleFeed.map((row) => (
-                <FeedRow key={row.id} row={row} />
-              ))}
+              <section className="ih-feed-section">
+                <div className="ih-section-h">
+                  <span className="ih-eyebrow">Recent Intelligence</span>
+                  {visibleFeed.length ? (
+                    <span className="ih-section-count">
+                      {visibleFeed.length} {visibleFeed.length === 1 ? "item" : "items"}
+                    </span>
+                  ) : null}
+                </div>
 
-              {posts === null && !error ? (
-                <p style={{ color: "#9e7b72", padding: "2rem 0", fontSize: "0.9rem" }}>
-                  Loading intelligence feed…
-                </p>
-              ) : null}
-              {error ? (
-                <p style={{ color: "#9e7b72", padding: "2rem 0", fontSize: "0.9rem" }}>
-                  The feed is temporarily unavailable — please check back shortly.
-                </p>
-              ) : null}
-              {posts !== null && !error && visibleFeed.length === 0 && !featured ? (
-                <p style={{ color: "#9e7b72", padding: "2rem 0", fontSize: "0.9rem" }}>
-                  No {activeTab === "All" ? "" : activeTab + " "}posts yet — check back soon.
-                </p>
-              ) : null}
+                <div className="ih-recent-list">
+                  {visibleFeed.map((row) => (
+                    <FeedRow key={row.id} row={row} />
+                  ))}
+
+                  {posts === null && !error ? (
+                    <p className="ih-feed-note">Loading intelligence feed…</p>
+                  ) : null}
+                  {error ? (
+                    <p className="ih-feed-note">
+                      The feed is temporarily unavailable — please check back shortly.
+                    </p>
+                  ) : null}
+                  {posts !== null && !error && visibleFeed.length === 0 && !featured ? (
+                    <p className="ih-feed-note">
+                      No {activeTab === "All" ? "" : activeTab + " "}posts yet — check back soon.
+                    </p>
+                  ) : null}
+                </div>
+              </section>
             </div>
 
             {/* Sidebar */}

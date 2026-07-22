@@ -104,6 +104,14 @@ export default function ArticlePage() {
               >
                 {typeLabel}
               </span>
+              {post.risk_band ? (
+                <span
+                  className={`ih-tag ih-risk-tag ih-mat-level-${post.risk_band}`}
+                  title="Editorial risk severity assigned by the author"
+                >
+                  {{ low: "Low risk", med: "Med risk", high: "High risk", crit: "Critical risk" }[post.risk_band]}
+                </span>
+              ) : null}
               {dateStr ? (
                 <span className="ih-article-date">{dateStr}</span>
               ) : null}
@@ -172,6 +180,27 @@ export default function ArticlePage() {
               This article hasn&rsquo;t been published with body content yet.
             </p>
           )}
+
+          {post.entity_links && post.entity_links.length ? (
+            <aside className="ih-article-entities">
+              <div className="ih-eyebrow">Referenced in this analysis</div>
+              <div className="ih-article-entity-list">
+                {post.entity_links.map((e) => (
+                  <Link
+                    key={`${e.kind}-${e.label}`}
+                    href={e.url}
+                    className="ih-entity-link"
+                  >
+                    <span className="ih-entity-link-kind">
+                      {e.kind === "company" ? "Company" : "Regulation"}
+                    </span>
+                    <span className="ih-entity-link-label">{e.label}</span>
+                    <span className="ih-entity-link-arrow">→</span>
+                  </Link>
+                ))}
+              </div>
+            </aside>
+          ) : null}
 
           <footer className="ih-article-foot">
             <Link href="/intelligence" className="ih-article-back">

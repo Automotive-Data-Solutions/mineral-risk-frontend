@@ -1,29 +1,21 @@
+"use client";
+
 /**
- * Geographic-footprint row — "market + map" v4 (2026-07-21). One row per
- * country the company operates or sources in: country tag + activity
- * summary, short max-level label right, then chips with each material's
- * L1 score AT this place. This is the only section with per-geography
- * scores. Rows arrive sorted riskiest country first (server sorts on
- * the max chip).
+ * Geographic-footprint row — one country. The whole row (country tag +
+ * summary + level + material chips) is clickable when the country has
+ * facilities, opening a drawer with those facilities in detail
+ * (2026-07-22). Sourcing-only rows (no facilities) aren't clickable.
  */
 
+import { useState } from "react";
 import type { GeoFootprintOut } from "@/lib/api/entities";
+import { FacilityDrawer } from "./FacilityDrawer";
 
 const LEVEL_LABEL: Record<string, string> = {
   crit: "Crit",
   high: "High",
   med: "Med",
   low: "Low",
-};
-
-/** Long canonical names → chip-width display names (same map family as
- *  the sidebar's). */
-const SHORT_NAME: Record<string, string> = {
-  "Natural Graphite": "Nat. Graphite",
-  "Synthetic Graphite": "Syn. Graphite",
-  "Rare Earth Elements": "Rare Earths",
-  "Silicon (Anode Grade)": "Silicon (Anode)",
-  "Platinum-Group Metals": "PGMs",
 };
 
 function summary(row: GeoFootprintOut): string {
@@ -40,32 +32,60 @@ function summary(row: GeoFootprintOut): string {
   return parts.join(" · ") || "—";
 }
 
-export function GeoRow({ row }: { row: GeoFootprintOut }) {
+export function GeoRow({ row, slug }: { row: GeoFootprintOut; slug: string }) {
   const level = row.location_risk?.level ?? null;
-  return (
-    <div className="ih-geo-row">
+  const clickable = row.facility_count > 0;
+  const [open, setOpen] = useState(false);
+
+  const inner = (
+    <>
       <div className="ih-geo-head">
         <span className="ih-tag ih-tag-geo">{row.country}</span>
         <span className="ih-geo-summary">{summary(row)}</span>
         <span
           className={`ih-geo-level ${level ? `ih-mat-level-${level}` : "ih-mat-level-none"}`}
-          title={level ? "Highest material risk at this location" : "No scored materials at this location"}
         >
           {level ? LEVEL_LABEL[level] : "—"}
         </span>
+        {clickable ? <span className="ih-geo-chevron" aria-hidden>›</span> : null}
       </div>
       {row.materials.length > 0 ? (
         <div className="ih-geo-mats">
           {row.materials.map((m) => (
             <span
               key={m.material}
-              className={`ih-geo-mat-chip ih-mat-level-${m.level}`}
-              title={`${m.material} at ${row.country} — material × geography risk`}
+              className={`ih-geo-mat-chip ih-geo-chip-${m.level}`}
+              title={`${m.material} risk at ${row.country} (material × geography)`}
             >
-              {SHORT_NAME[m.material] ?? m.material} {m.score.toFixed(1)}
+              {m.material} · {LEVEL_LABEL[m.level]}
             </span>
           ))}
         </div>
+      ) : null}
+    </>
+  );
+
+  return (
+    <div className="ih-geo-row">
+      {clickable ? (
+        <button
+          type="button"
+          className="ih-geo-row-inner ih-geo-row-btn"
+          onClick={() => setOpen(true)}
+          aria-label={`View facilities in ${row.country}`}
+        >
+          {inner}
+        </button>
+      ) : (
+        <div className="ih-geo-row-inner">{inner}</div>
+      )}
+      {clickable ? (
+        <FacilityDrawer
+          slug={slug}
+          country={row.country}
+          open={open}
+          onOpenChange={setOpen}
+        />
       ) : null}
     </div>
   );

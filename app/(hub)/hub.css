@@ -154,7 +154,15 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 28px;
 }
+/* Section eyebrow headers on the main feed (2026-07-22, mockup parity) */
+.ih-feed-section { display: flex; flex-direction: column; }
+.ih-section-h { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.ih-section-h .ih-eyebrow { margin-bottom: 0; }
+.ih-section-count { font-size: 11px; letter-spacing: 0.02em; color: var(--ink-muted); font-weight: 500; }
+.ih-recent-list { display: flex; flex-direction: column; gap: 14px; }
+.ih-feed-note { color: var(--ink-muted); padding: 2rem 0; font-size: 0.9rem; }
 
 /* ─── Type legend ───────────────────────────────────────────── */
 .ih-legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
@@ -187,14 +195,14 @@
 
 /* ─── Feed rows ─────────────────────────────────────────────── */
 .ih-feed-row-link { display: block; color: inherit; text-decoration: none; }
-.ih-feed-row-link:last-child .ih-feed-row { border-bottom: none; }
-.ih-feed-row { padding: 18px 0; border-bottom: 1px solid var(--rule); cursor: pointer; transition: none; }
-.ih-feed-row:first-child { border-top: 1px solid var(--rule); margin-top: 8px; }
-.ih-feed-row:last-child { border-bottom: none; }
+/* Card style (2026-07-22, mockup parity): border + cream fill, not the
+   flat divider list this used to be. */
+.ih-feed-row { padding: 14px 18px; background: #FFFDF8; border: 1px solid var(--rule); border-radius: var(--radius-md); cursor: pointer; transition: border-color 150ms var(--ease), box-shadow 150ms var(--ease); }
+.ih-feed-row:hover { border-color: var(--terracotta); box-shadow: var(--elev-1); }
 .ih-feed-row:hover .ih-feed-title { color: var(--terracotta); }
-.ih-feed-row:hover { background: transparent; }
 .ih-feed-tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
 .ih-feed-meta { margin-left: auto; font-size: 11px; color: var(--ink-muted); font-weight: 500; white-space: nowrap; }
+.ih-tag-more { color: var(--ink-muted); border: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
 .ih-feed-title { font-family: var(--font-display); font-size: 17px; font-weight: 600; line-height: 1.3; letter-spacing: -0.005em; margin: 0; text-wrap: balance; color: var(--ink); transition: color 150ms var(--ease); }
 .ih-feed-preview { margin: 6px 0 0; font-size: 13.5px; color: var(--ink-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
@@ -308,7 +316,24 @@
 .ih-entity-body { font-family: var(--font-body); font-size: 15px; line-height: 1.65; color: var(--ink); margin: 0 0 14px; text-wrap: pretty; }
 
 /* Single-column detail layout (informative-first: no sidebar) */
-.ih-entity-single-col { display: flex; flex-direction: column; gap: 36px; margin-top: 24px; max-width: 760px; }
+.ih-entity-single-col { display: flex; flex-direction: column; gap: 36px; margin-top: 24px; }
+
+/* Two-column entity layout (2026-07-22, mockup parity): content left,
+   "on this company" + subscribe aside right; Linked intelligence stays
+   full width below (it lives outside .ih-entity-grid). */
+.ih-entity-grid { display: grid; grid-template-columns: 1fr 300px; gap: 40px; margin-top: 24px; align-items: start; }
+.ih-entity-col { display: flex; flex-direction: column; gap: 36px; min-width: 0; }
+.ih-entity-aside-col { display: flex; flex-direction: column; gap: 20px; position: sticky; top: 76px; }
+.ih-aside-block { padding-top: 2px; }
+.ih-aside-note { font-size: 13px; line-height: 1.55; color: var(--ink-muted); margin: 0 0 10px; }
+.ih-aside-link { color: var(--terracotta); font-size: 13px; font-weight: 600; cursor: pointer; }
+.ih-aside-link:hover { color: var(--terracotta-light); }
+.ih-aside-subscribe { padding: 16px 18px; border-radius: var(--radius-md); }
+
+@media (max-width: 900px) {
+  .ih-entity-grid { grid-template-columns: 1fr; gap: 28px; }
+  .ih-entity-aside-col { position: static; }
+}
 
 /* Section */
 .ih-section-head { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--rule); }
@@ -340,11 +365,48 @@
 .ih-geo-list { display: flex; flex-direction: column; }
 .ih-geo-row { padding: 12px 0; border-bottom: 1px solid var(--rule); }
 .ih-geo-row:last-child { border-bottom: 0; }
-.ih-geo-head { display: flex; align-items: center; gap: 10px; }
+.ih-geo-head { display: flex; align-items: center; gap: 10px; width: 100%; }
+/* Whole-row click target (2026-07-22): the button fills the row and holds
+   both the head line and the chips, so anywhere on the card opens the drawer. */
+.ih-geo-row-inner { display: block; width: 100%; }
+.ih-geo-row-btn { background: none; border: 0; padding: 0; margin: 0; font: inherit; text-align: left; color: inherit; cursor: pointer; }
+.ih-geo-row-btn:hover .ih-geo-summary { color: var(--ink); }
+.ih-geo-row-btn:hover .ih-geo-chevron { color: var(--terracotta); transform: translateX(2px); }
+.ih-geo-chevron { color: var(--ink-muted); font-size: 18px; line-height: 1; margin-left: 2px; transition: color 150ms var(--ease), transform 150ms var(--ease); }
+
+/* Facility drawer (2026-07-22). NB: .ih-drawer-content is OUTSIDE .ih-root
+   (it's the portal panel), so hub CSS vars don't resolve on it — literal
+   stone. The inner .ih-root wrapper restores vars for everything below. */
+.ih-drawer-content { background: #FAF3EC; }
+.ih-drawer { padding: 28px 24px 64px; min-height: 100%; }
+.ih-drawer-head { padding-bottom: 16px; margin-bottom: 18px; border-bottom: 1px solid var(--rule); }
+.ih-drawer-title { font-family: var(--font-display); font-size: 24px; font-weight: 600; color: var(--ink); margin: 6px 0 0; }
+.ih-drawer-sub { font-size: 13px; color: var(--ink-muted); margin: 6px 0 0; }
+.ih-fd-note { color: var(--ink-muted); font-size: 13px; padding: 8px 0; }
+.ih-fd-list { display: flex; flex-direction: column; gap: 12px; }
+.ih-fd-card { background: #FFFDF8; border: 1px solid var(--rule); border-radius: var(--radius-md); padding: 14px 16px; }
+.ih-fd-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.ih-fd-name { font-size: 15px; font-weight: 600; color: var(--ink); }
+.ih-fd-status { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+.ih-fd-meta { font-size: 13px; color: var(--ink-muted); margin-top: 3px; text-transform: capitalize; }
+.ih-fd-place { text-transform: none; }
+.ih-fd-mats { margin-top: 10px; }
+.ih-fd-foot { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.ih-fd-map { font-size: 12px; font-weight: 600; color: var(--terracotta); text-decoration: none; }
+.ih-fd-map:hover { color: var(--terracotta-light); }
+.ih-fd-src { font-size: 11px; color: var(--ink-muted); }
 .ih-geo-summary { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-muted); }
 .ih-geo-level { font-size: 11px; font-family: var(--font-mono); font-weight: 600; text-align: right; }
-.ih-geo-mats { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
-.ih-geo-mat-chip { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; }
+.ih-geo-mats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+/* Material × geography as a band-colored pill (2026-07-22): name · band,
+   no number — this is a content site, so risk reads as a word not a score. */
+/* Match the square-leaning .ih-tag shape (2px radius) so band chips and
+   the material/geo/stage tags read as one family, not two. */
+.ih-geo-mat-chip { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; letter-spacing: 0.01em; padding: 2px 7px; border-radius: var(--radius-xs); border: 1px solid transparent; white-space: nowrap; }
+.ih-geo-chip-crit { background: var(--risk-crit-soft); color: #9F1239; border-color: rgba(225, 29, 72, 0.28); }
+.ih-geo-chip-high { background: var(--risk-high-soft); color: #9A3412; border-color: rgba(234, 88, 12, 0.28); }
+.ih-geo-chip-med  { background: var(--risk-med-soft);  color: #8A5A0F; border-color: rgba(200, 98, 58, 0.30); }
+.ih-geo-chip-low  { background: var(--risk-low-soft);  color: #1F6B43; border-color: rgba(59, 158, 104, 0.30); }
 .ih-fac-row:last-child { border-bottom: 0; }
 .ih-fac-type { font-size: 14px; font-weight: 500; color: var(--ink); }
 .ih-fac-kind { font-weight: 400; color: var(--ink-muted); }
@@ -500,6 +562,19 @@
 .ih-article-link:hover { color: var(--terracotta-light); }
 
 /* Footer */
+/* Linked-intelligence feed on entity pages (reuses the FeedRow card) */
+.ih-linked-feed { display: flex; flex-direction: column; gap: 12px; }
+
+/* Article→entity outbound links (2026-07-22) */
+.ih-article-entities { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--rule); }
+.ih-article-entity-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.ih-entity-link { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: var(--radius-md); background: #FFFDF8; text-decoration: none; transition: border-color 150ms var(--ease); }
+.ih-entity-link:hover { border-color: var(--terracotta); }
+.ih-entity-link:hover .ih-entity-link-arrow { color: var(--terracotta); transform: translateX(2px); }
+.ih-entity-link-kind { font-size: 10.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-muted); width: 82px; flex-shrink: 0; }
+.ih-entity-link-label { flex: 1; font-size: 14.5px; font-weight: 500; color: var(--ink); }
+.ih-entity-link-arrow { color: var(--ink-muted); transition: color 150ms var(--ease), transform 150ms var(--ease); }
+
 .ih-article-foot { margin-top: 44px; padding-top: 20px; border-top: 1px solid var(--rule); }
 .ih-article-back { font-size: 13px; font-weight: 500; color: var(--ink-muted); }
 .ih-article-back:hover { color: var(--terracotta); }

@@ -15,6 +15,7 @@ import { Nav } from "@/components/hub/Nav";
 import { Breadcrumb } from "@/components/hub/entity/Breadcrumb";
 import { EntityHeader } from "@/components/hub/entity/EntityHeader";
 import { Section } from "@/components/hub/entity/Section";
+import { LinkedPostsSection } from "@/components/hub/entity/LinkedPosts";
 import { ScopeChips } from "@/components/hub/entity/ScopeChips";
 import { TimelineStrip } from "@/components/hub/entity/TimelineStrip";
 import { IntroBlocks } from "@/components/hub/entity/IntroBlocks";
@@ -117,6 +118,8 @@ export default function RegulationDetailPage() {
             </Section>
           ) : null}
         </div>
+
+        <LinkedPostsSection posts={reg.linked_posts} />
       </main>
       <Footer />
     </div>

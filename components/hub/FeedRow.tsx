@@ -1,6 +1,21 @@
 import Link from "next/link";
 import { FeedPost } from "./types";
-import { pillarInfo } from "./pillars";
+
+const RISK_LABEL: Record<string, string> = {
+  low: "Low risk",
+  med: "Med risk",
+  high: "High risk",
+  crit: "Critical risk",
+};
+
+/** Quickview facet cap (2026-07-22, Nicole): the feed card shows only a
+ *  scannable subset — up to this many materials AND this many geographies,
+ *  plus a "+N" overflow. Topic tags, entity tags, and pillar are
+ *  DELIBERATELY not on the card: they aren't links here (no SEO value) and
+ *  they crowd the quickview. Full tagging lives on the article detail page,
+ *  which is where the crawlable internal links live too. */
+const MAX_MATERIALS = 2;
+const MAX_GEOS = 2;
 
 interface FeedRowProps {
   row: FeedPost;
@@ -13,6 +28,11 @@ function badgeClass(type: FeedPost["type"]): string {
 }
 
 export function FeedRow({ row }: FeedRowProps) {
+  const mats = row.materials.slice(0, MAX_MATERIALS);
+  const geos = row.geographies.slice(0, MAX_GEOS);
+  const overflow =
+    (row.materials.length - mats.length) + (row.geographies.length - geos.length);
+
   return (
     <Link href={`/intelligence/${row.slug}`} className="ih-feed-row-link">
     <article className="ih-feed-row">
@@ -24,31 +44,30 @@ export function FeedRow({ row }: FeedRowProps) {
           {row.type}
           {row.type === "Report" ? " · PDF" : ""}
         </span>
-        {row.materials.map((m) => (
+        {row.riskBand ? (
+          <span
+            className={`ih-tag ih-risk-tag ih-mat-level-${row.riskBand}`}
+            title="Editorial risk severity assigned by the author"
+          >
+            {RISK_LABEL[row.riskBand]}
+          </span>
+        ) : null}
+        {mats.map((m) => (
           <span key={m} className="ih-tag ih-tag-mat">
             {m}
           </span>
         ))}
-        {row.geographies.map((g) => (
+        {geos.map((g) => (
           <span key={g} className="ih-tag ih-tag-geo">
             {g}
           </span>
         ))}
-        {(row.tags ?? []).map((t) => (
-          <span key={t} className="ih-tag ih-tag-mat">
-            {t}
-          </span>
-        ))}
-        {row.pillar ? (
+        {overflow > 0 ? (
           <span
-            className="ih-tag"
-            style={{
-              color: pillarInfo(row.pillar)?.color,
-              borderColor: pillarInfo(row.pillar)?.color,
-              backgroundColor: `${pillarInfo(row.pillar)?.color ?? "#888"}14`,
-            }}
+            className="ih-tag ih-tag-more"
+            title="More materials & geographies — open the article for the full set"
           >
-            {row.pillar}
+            +{overflow}
           </span>
         ) : null}
         <span className="ih-feed-meta">

@@ -14,13 +14,18 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApiClient } from "@/lib/hooks/use-api-client";
 import {
   getPostById,
+  getPdfUploadUrl,
   updatePost,
   publishPost,
   unpublishPost,
+  archivePost,
   pinPost,
   unpinPost,
 } from "@/lib/api/insights";
 import ArticleRenderer from "@/components/insights/ArticleRenderer";
+import { TagPicker } from "@/components/admin/tag-picker";
+import { FacetPicker } from "@/components/admin/facet-picker";
+import { suggestMaterials, suggestGeographies } from "@/lib/api/insights";
 import type { ChartSpec } from "@/components/insights/ChartBlock";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -187,39 +192,89 @@ export default function AdminInsightEditorPage() {
   const [summary, setSummary] = React.useState<string | null>(null);
   const [title, setTitle] = React.useState<string | null>(null);
   // Tag fields are edited as comma-separated text; parsed on save.
-  const [materials, setMaterials] = React.useState<string | null>(null);
-  const [geographies, setGeographies] = React.useState<string | null>(null);
-  const [tags, setTags] = React.useState<string | null>(null);
+  // Array state (2026-07-22): materials + geographies moved from
+  // comma-text to FacetPicker (real-data autocomplete, exact values).
+  const [materials, setMaterials] = React.useState<string[] | null>(null);
+  const [geographies, setGeographies] = React.useState<string[] | null>(null);
+  // Array state (2026-07-22): tags moved from comma-text to the TagPicker
+  // (entity autocomplete — see components/admin/tag-picker.tsx).
+  const [tags, setTags] = React.useState<string[] | null>(null);
+  // Defensive normalization: after the string→array refactor, hot reload
+  // can leave the OLD comma-joined string in preserved React state (it
+  // did, 2026-07-22 — "(tags ?? []).join is not a function"). Coerce
+  // whatever is in state to an array instead of trusting the TS type.
+  const tagList: string[] = React.useMemo(() => {
+    if (Array.isArray(tags)) return tags;
+    if (typeof tags === "string") {
+      return (tags as string).split(",").map((t) => t.trim()).filter(Boolean);
+    }
+    return [];
+  }, [tags]);
+  // Same hot-reload-safe coercion as tagList (string→array survival).
+  const materialList: string[] = React.useMemo(() => {
+    if (Array.isArray(materials)) return materials;
+    if (typeof materials === "string")
+      return (materials as string).split(",").map((t) => t.trim()).filter(Boolean);
+    return [];
+  }, [materials]);
+  const geoList: string[] = React.useMemo(() => {
+    if (Array.isArray(geographies)) return geographies;
+    if (typeof geographies === "string")
+      return (geographies as string).split(",").map((t) => t.trim()).filter(Boolean);
+    return [];
+  }, [geographies]);
   const [pillar, setPillar] = React.useState<string | null>(null);
+  // Publishing details (admin content v1, 2026-07-21)
+  const [contentType, setContentType] = React.useState<string | null>(null);
+  const [riskBand, setRiskBand] = React.useState<string | null>(null);
+  const [author, setAuthor] = React.useState<string | null>(null);
+  const [readTime, setReadTime] = React.useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
+  const [slugValue, setSlugValue] = React.useState<string | null>(null);
+  // Article (written) date, "YYYY-MM-DD"; "" = unset (publish stamps now).
+  const [articleDate, setArticleDate] = React.useState<string | null>(null);
+  // Slug locks once the post has ever been published (published OR
+  // archived-after-publish); "Change slug" + warning unlocks for this edit.
+  const [slugUnlocked, setSlugUnlocked] = React.useState(false);
   React.useEffect(() => {
     if (post.data && body === null) {
       setBody(post.data.body ?? "");
       setSummary(post.data.summary ?? "");
       setTitle(post.data.title ?? "");
-      setMaterials((post.data.materials ?? []).join(", "));
-      setGeographies((post.data.geographies ?? []).join(", "));
-      setTags((post.data.tags ?? []).join(", "));
+      setMaterials(post.data.materials ?? []);
+      setGeographies(post.data.geographies ?? []);
+      setTags(post.data.tags ?? []);
       setPillar(post.data.pillar ?? "");
+      setContentType(post.data.content_type);
+      setRiskBand(post.data.risk_band ?? "");
+      setAuthor(post.data.author ?? "");
+      setReadTime(
+        post.data.read_time_minutes != null ? String(post.data.read_time_minutes) : "",
+      );
+      setPdfUrl(post.data.pdf_url ?? "");
+      setSlugValue(post.data.slug);
+      setArticleDate(post.data.published_at ? post.data.published_at.slice(0, 10) : "");
     }
   }, [post.data, body]);
-
-  const parseList = (v: string | null, upper = false): string[] | null => {
-    const items = (v ?? "")
-      .split(",")
-      .map((s) => (upper ? s.trim().toUpperCase() : s.trim()))
-      .filter(Boolean);
-    return items.length ? items : null;
-  };
 
   const dirty =
     post.data != null &&
     (body !== (post.data.body ?? "") ||
       summary !== (post.data.summary ?? "") ||
       title !== (post.data.title ?? "") ||
-      materials !== (post.data.materials ?? []).join(", ") ||
-      geographies !== (post.data.geographies ?? []).join(", ") ||
-      tags !== (post.data.tags ?? []).join(", ") ||
-      pillar !== (post.data.pillar ?? ""));
+      materialList.join("\u0000") !== (post.data.materials ?? []).join("\u0000") ||
+      geoList.join("\u0000") !== (post.data.geographies ?? []).join("\u0000") ||
+      tagList.join("\u0000") !== (post.data.tags ?? []).join("\u0000") ||
+      pillar !== (post.data.pillar ?? "") ||
+      (contentType !== null && contentType !== post.data.content_type) ||
+      riskBand !== (post.data.risk_band ?? "") ||
+      author !== (post.data.author ?? "") ||
+      readTime !==
+        (post.data.read_time_minutes != null ? String(post.data.read_time_minutes) : "") ||
+      pdfUrl !== (post.data.pdf_url ?? "") ||
+      articleDate !==
+        (post.data.published_at ? post.data.published_at.slice(0, 10) : "") ||
+      (slugValue !== null && slugValue !== post.data.slug));
 
   const [actionError, setActionError] = React.useState<string | null>(null);
 
@@ -229,10 +284,22 @@ export default function AdminInsightEditorPage() {
         body: body ?? "",
         summary: summary ?? "",
         title: title || undefined,
-        materials: parseList(materials),
-        geographies: parseList(geographies, true),
-        tags: parseList(tags),
+        materials: materialList.length ? materialList : null,
+        geographies: geoList.length ? geoList : null,
+        tags: tagList.length ? tagList : null,
         pillar: pillar || null,
+        content_type: (contentType ||
+          undefined) as "analysis" | "signal" | "report" | "news" | undefined,
+        risk_band: (riskBand || null) as "low" | "med" | "high" | "crit" | null,
+        author: author || null,
+        read_time_minutes: readTime?.trim() ? Number(readTime) : null,
+        pdf_url: pdfUrl?.trim() ? pdfUrl.trim() : null,
+        // Noon UTC keeps the calendar date stable across viewer timezones.
+        published_at: articleDate?.trim() ? `${articleDate}T12:00:00Z` : null,
+        // Only send slug when actually changed — avoids spurious 409 paths.
+        ...(slugValue !== null && post.data && slugValue !== post.data.slug
+          ? { slug: slugValue }
+          : {}),
       }),
     onSuccess: () => {
       setActionError(null);
@@ -261,6 +328,37 @@ export default function AdminInsightEditorPage() {
     mutationFn: () =>
       post.data?.pinned ? unpinPost(client, id) : pinPost(client, id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["insights"] }),
+  });
+  const [pdfUploading, setPdfUploading] = React.useState(false);
+  async function handlePdfUpload(file: File) {
+    setPdfUploading(true);
+    setActionError(null);
+    try {
+      const t = await getPdfUploadUrl(client, id, file.name);
+      const res = await fetch(t.upload_url, {
+        method: "PUT",
+        headers: { "Content-Type": "application/pdf" },
+        body: file,
+      });
+      if (!res.ok) throw new Error(`R2 rejected the upload (HTTP ${res.status})`);
+      // Fills the field only — Save persists it, same as any other edit.
+      setPdfUrl(t.public_url);
+    } catch (e) {
+      setActionError(
+        `PDF upload failed: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    } finally {
+      setPdfUploading(false);
+    }
+  }
+  const archive = useMutation({
+    mutationFn: () => archivePost(client, id),
+    onSuccess: () => {
+      setActionError(null);
+      qc.invalidateQueries({ queryKey: ["insights"] });
+    },
+    onError: (e) =>
+      setActionError(`Archive failed: ${e instanceof Error ? e.message : e}`),
   });
 
   if (post.isLoading || body === null)
@@ -320,9 +418,29 @@ export default function AdminInsightEditorPage() {
                 ? "Publishing…"
                 : dirty
                   ? "Save & publish"
-                  : "Publish"}
+                  : post.data.status === "archived"
+                    ? "Republish"
+                    : "Publish"}
             </Button>
           )}
+          {post.data.status !== "archived" ? (
+            <Button
+              variant="outline"
+              onClick={() => {
+                // Native confirm is deliberate: archiving a published post
+                // removes it from the public feed immediately.
+                const msg =
+                  post.data?.status === "published"
+                    ? "Archive this post? It will be removed from the public feed immediately."
+                    : "Archive this draft?";
+                if (window.confirm(msg)) archive.mutate();
+              }}
+              disabled={archive.isPending}
+              title="Removes from the public feed; the post stays here and can be republished"
+            >
+              {archive.isPending ? "Archiving…" : "Archive"}
+            </Button>
+          ) : null}
         </div>
       </div>
       {unconfigured > 0 ? (
@@ -353,24 +471,24 @@ export default function AdminInsightEditorPage() {
             />
             <h2 className="mb-2 mt-4 text-sm font-semibold">Tags & taxonomy</h2>
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <label className="col-span-2 text-xs text-muted-foreground">
-                Materials (comma-separated, canonical names)
-                <input
-                  value={materials ?? ""}
-                  onChange={(e) => setMaterials(e.target.value)}
-                  placeholder="Graphite, Lithium"
-                  className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm text-foreground"
+              <div className="col-span-2 text-xs text-muted-foreground">
+                Materials (pick from the register — links to material pages & feed filter)
+                <FacetPicker
+                  value={materialList}
+                  onChange={setMaterials}
+                  fetcher={suggestMaterials}
+                  placeholder="Type a material — e.g. Cobalt, Li"
                 />
-              </label>
-              <label className="text-xs text-muted-foreground">
-                Geographies (ISO2)
-                <input
-                  value={geographies ?? ""}
-                  onChange={(e) => setGeographies(e.target.value)}
-                  placeholder="CN, CD"
-                  className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm text-foreground"
+              </div>
+              <div className="col-span-2 text-xs text-muted-foreground">
+                Geographies (pick a country — stored as ISO2)
+                <FacetPicker
+                  value={geoList}
+                  onChange={setGeographies}
+                  fetcher={suggestGeographies}
+                  placeholder="Type a country — e.g. China, CD"
                 />
-              </label>
+              </div>
               <label className="text-xs text-muted-foreground">
                 Pillar
                 <select
@@ -386,14 +504,140 @@ export default function AdminInsightEditorPage() {
                   <option value="financial_pressure">Financial Pressure</option>
                 </select>
               </label>
-              <label className="col-span-2 text-xs text-muted-foreground">
-                Topic tags (comma-separated, e.g. IRA, FEOC, Section 232)
+              <div className="col-span-2 text-xs text-muted-foreground">
+                Tags — entity tags (solid, with icon) link this post to the
+                public company/regulation page; dashed ones are plain topics
+                <TagPicker value={tagList} onChange={setTags} />
+              </div>
+            </div>
+            <h2 className="mb-2 mt-4 text-sm font-semibold">Publishing details</h2>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <label className="text-xs text-muted-foreground">
+                Type
+                <select
+                  value={contentType ?? ""}
+                  onChange={(e) => setContentType(e.target.value)}
+                  className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm text-foreground"
+                >
+                  <option value="analysis">Analysis</option>
+                  <option value="signal">Signal</option>
+                  <option value="report">Report</option>
+                  <option value="news">News</option>
+                </select>
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Risk tag (editorial severity, not an engine score)
+                <select
+                  value={riskBand ?? ""}
+                  onChange={(e) => setRiskBand(e.target.value)}
+                  className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm text-foreground"
+                >
+                  <option value="">— untagged —</option>
+                  <option value="low">Low</option>
+                  <option value="med">Med</option>
+                  <option value="high">High</option>
+                  <option value="crit">Critical</option>
+                </select>
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Author
                 <input
-                  value={tags ?? ""}
-                  onChange={(e) => setTags(e.target.value)}
-                  placeholder="IRA, FEOC"
+                  value={author ?? ""}
+                  onChange={(e) => setAuthor(e.target.value)}
+                  placeholder="byline"
                   className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm text-foreground"
                 />
+              </label>
+              <label className="text-xs text-muted-foreground">
+                Read time (min, blank = auto)
+                <input
+                  type="number"
+                  min={1}
+                  value={readTime ?? ""}
+                  onChange={(e) => setReadTime(e.target.value)}
+                  className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm text-foreground"
+                />
+              </label>
+              <label className="col-span-2 text-xs text-muted-foreground">
+                Article date (when it was written — blank = stamped at publish)
+                <input
+                  type="date"
+                  value={articleDate ?? ""}
+                  onChange={(e) => setArticleDate(e.target.value)}
+                  className="mt-1 w-full rounded-md border bg-background px-2 py-1.5 text-sm text-foreground"
+                />
+              </label>
+              {contentType === "report" ? (
+                <div className="col-span-2 text-xs text-muted-foreground">
+                  Report PDF
+                  <div className="mt-1 flex items-center gap-2">
+                    <input
+                      value={pdfUrl ?? ""}
+                      onChange={(e) => setPdfUrl(e.target.value)}
+                      placeholder="https://…/report.pdf — or upload →"
+                      className="w-full rounded-md border bg-background px-2 py-1.5 text-sm text-foreground"
+                    />
+                    <input
+                      id="pdf-file-input"
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handlePdfUpload(f);
+                        e.target.value = "";
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={pdfUploading}
+                      onClick={() =>
+                        document.getElementById("pdf-file-input")?.click()
+                      }
+                    >
+                      {pdfUploading ? "Uploading…" : "Upload PDF"}
+                    </Button>
+                  </div>
+                  <span className="mt-1 block">
+                    Upload fills the URL from R2 — remember to Save. Manual
+                    paste still works.
+                  </span>
+                </div>
+              ) : null}
+              <label className="col-span-2 text-xs text-muted-foreground">
+                Slug (public URL){post.data.status !== "draft" && !slugUnlocked ? " — locked after publish" : ""}
+                <div className="mt-1 flex gap-2">
+                  <input
+                    value={slugValue ?? ""}
+                    onChange={(e) =>
+                      setSlugValue(
+                        e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9-]+/g, "-")
+                          .replace(/-{2,}/g, "-"),
+                      )
+                    }
+                    disabled={post.data.status !== "draft" && !slugUnlocked}
+                    className="w-full rounded-md border bg-background px-2 py-1.5 font-mono text-sm text-foreground disabled:opacity-60"
+                  />
+                  {post.data.status !== "draft" && !slugUnlocked ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "Change the slug of a published post? The current public URL will stop working — there are no redirects. Anyone who bookmarked or shared the old link will get a 404.",
+                          )
+                        )
+                          setSlugUnlocked(true);
+                      }}
+                    >
+                      Change slug
+                    </Button>
+                  ) : null}
+                </div>
               </label>
             </div>
             <h2 className="mb-2 mt-4 text-sm font-semibold">Markdown source</h2>

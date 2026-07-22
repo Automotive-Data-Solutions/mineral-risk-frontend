@@ -18,6 +18,8 @@ const BASE = `${API_BASE}/api/v1/intelligence`;
 export type ContentType = "analysis" | "signal" | "report" | "news";
 
 export interface PublicInsightPost {
+  /** Editorial risk severity tag (author judgment, not an engine score). */
+  risk_band?: "low" | "med" | "high" | "crit" | null;
   id: number;
   slug: string;
   title: string;
@@ -32,6 +34,13 @@ export interface PublicInsightPost {
   pinned: boolean;
   hero_image_url: string | null;
   tags: string[] | null;
+  /** Resolved outbound links to public entity pages (article→entity),
+   *  computed from tags server-side; only publicly-visible entities. */
+  entity_links?: {
+    kind: "company" | "regulation";
+    label: string;
+    url: string;
+  }[];
   body: string | null;
   pdf_url: string | null;
   status: "draft" | "published" | "archived";

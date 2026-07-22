@@ -100,7 +100,7 @@ export interface PublicCompanyProfile {
   exposures: ExposureOut[];
   geographies: GeoFootprintOut[];
   facilities_total: number; // total facilities across all countries
-  linked_posts: LinkedPostOut[];   // hidden at launch
+  linked_posts: LinkedPostOut[];   // rendered since 2026-07-22 (LinkedPostsSection)
   linked_events: LinkedEventOut[]; // hidden at launch
 }
 
@@ -153,7 +153,7 @@ export interface PublicRegulationDetail {
   geographies_scope: GeographyScopeOut[];
   compliance_weights: ComplianceWeightOut[]; // not rendered at launch
   source_url: string | null;
-  linked_posts: LinkedPostOut[];   // hidden at launch
+  linked_posts: LinkedPostOut[];   // rendered since 2026-07-22 (LinkedPostsSection)
   linked_events: LinkedEventOut[]; // hidden at launch
   linked_event_count: number;
 }
@@ -179,6 +179,36 @@ async function getJson<T>(url: string): Promise<T> {
 export function listPublicCompanies(limit = 100) {
   return getJson<Paginated<PublicCompanyListItem>>(
     `${BASE}/companies?limit=${limit}`,
+  );
+}
+
+export interface FacilityMaterialTag {
+  material: string;
+  level: "low" | "med" | "high" | "crit";
+}
+
+export interface FacilityDetailOut {
+  name: string | null;
+  facility_type: string;
+  status: string;
+  status_level: "op" | "ramp" | "build" | "idle" | "closed";
+  place: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  data_source: string | null;
+  materials: FacilityMaterialTag[];
+}
+
+export interface CompanyCountryFacilitiesOut {
+  country: string;
+  country_name: string;
+  facilities: FacilityDetailOut[];
+}
+
+/** Footprint drawer: facilities for a company in one country. */
+export function getCompanyCountryFacilities(slug: string, country: string) {
+  return getJson<CompanyCountryFacilitiesOut>(
+    `${BASE}/companies/${encodeURIComponent(slug)}/facilities?country=${encodeURIComponent(country)}`,
   );
 }
 

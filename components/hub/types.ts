@@ -10,6 +10,8 @@ export interface FeedPost {
   id: string;
   slug: string; // URL identifier — feed rows link to /intelligence/{slug}
   type: ContentType;
+  /** Editorial risk severity tag set by the author (NOT an engine score). */
+  riskBand?: "low" | "med" | "high" | "crit";
   materials: string[];
   geographies: string[];
   tags?: string[];
