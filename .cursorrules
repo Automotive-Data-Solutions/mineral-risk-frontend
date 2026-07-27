@@ -124,6 +124,18 @@ materials: id, canonical_name, category, criticality_score (0-1),
            is_ira_critical_mineral (bool), is_eu_crma_critical (bool),
            data_availability
 
+hs_code_material_mappings: (already exists in DB — read-only from frontend)
+           id (serial PK),
+           hs_code_prefix (varchar, leading digits of an HS code, e.g. "2504"),
+           material_id (int FK → materials.id),
+           description (varchar 512, customs-schedule description),
+           confidence (double precision, 0..1),
+           created_at (timestamptz)
+           // Maps HS trade-code prefixes to canonical materials. A prefix
+           // claims every HS code that starts with it (so 4-digit prefixes
+           // are broader than 6-digit). One material may have many prefixes;
+           // a given prefix should map to exactly one material.
+
 facilities: id, company_id, facility_type, country, city, status,
             capacity_notes, latitude, longitude
 ```
@@ -207,6 +219,55 @@ GET    /api/v1/companies/{id}/notes
        Returns all analyst_notes for this company ordered by created_at desc
 ```
 
+### Notes / Flag-Issue Pattern (generalized in Phase 2)
+
+Phase 1 only supports flagging companies. Phase 2 generalizes the same
+pattern to every reference-data entity so analysts can flag bad seed data
+on materials, HS-code mappings, regulations, risk events, facilities, and
+chemistries.
+
+**Per-entity routes (mirrors the company pattern — keep REST consistent):**
+```
+POST   /api/v1/materials/{id}/notes
+GET    /api/v1/materials/{id}/notes
+POST   /api/v1/materials/{material_id}/hs-code-mappings/{mapping_id}/notes
+GET    /api/v1/materials/{material_id}/hs-code-mappings/{mapping_id}/notes
+POST   /api/v1/regulations/{id}/notes
+GET    /api/v1/regulations/{id}/notes
+POST   /api/v1/risk-events/{id}/notes
+GET    /api/v1/risk-events/{id}/notes
+POST   /api/v1/facilities/{id}/notes
+GET    /api/v1/facilities/{id}/notes
+POST   /api/v1/chemistries/{id}/notes
+GET    /api/v1/chemistries/{id}/notes
+```
+
+**Shared body shape (Pydantic):**
+```python
+class AnalystNoteBase(BaseModel):
+    note_type: Literal["data_error", "missing_data", "outdated", "other"]
+    note_text: str = Field(min_length=3, max_length=4000)
+
+class AnalystNoteCreate(AnalystNoteBase):
+    # Each per-entity route hardcodes entity_type from the URL prefix and
+    # entity_id from the path param — clients must NOT send them. The
+    # server writes them into analyst_notes.entity_type / entity_id.
+    pass
+
+class AnalystNoteRead(AnalystNoteBase):
+    id: int
+    entity_type: Literal[
+        "company", "material", "hs_code_material_mapping",
+        "regulation", "risk_event", "facility", "battery_chemistry",
+    ]
+    entity_id: str  # always serialized as string (UUIDs and ints both)
+    created_at: datetime
+```
+
+The frontend exposes a single `EntityFlagIssueDialog` that accepts an
+`entityType` + `entityId` + the URL template for the matching POST/GET
+routes — see `components/shared/entity-flag-issue-dialog.tsx`.
+
 ### Scores
 ```
 GET    /api/v1/scores
@@ -261,27 +322,66 @@ GET    /api/v1/reports/{id}/download
        Short TTL (15 min). Do not store URL in DB.
 ```
 
-### Reference Data (read-only)
+### Reference Data (read-only, except notes)
 ```
 GET    /api/v1/materials
-       Query params: page, limit, search, category, is_ira_critical
+       Query params: page, limit, search, category, is_ira_critical,
+                     is_eu_crma_critical, has_mismatched_mappings (bool)
+       Returns paginated MaterialListItem with: id, canonical_name, category,
+       criticality_score, is_ira_critical_mineral, is_eu_crma_critical,
+       data_availability, hs_code_mapping_count (int),
+       mapping_mismatch_count (int)
 
 GET    /api/v1/materials/{id}
-       Returns material with criticality_signals and chemistry_uses
+       Returns MaterialDetail with criticality_signals and chemistry_uses,
+       plus a top-level ``hs_code_mappings: HsCodeMaterialMappingRead[]``
+       array (all rows from `hs_code_material_mappings` for this material,
+       ordered by hs_code_prefix length asc) and a
+       ``mapping_health: { total: int, mismatched: int, low_confidence: int,
+       missing_description: int }`` summary block.
+
+       Each row in ``hs_code_mappings`` carries a server-derived
+       ``mismatch_reasons: HsMappingMismatchReason[]`` field (NOT stored
+       in the table — computed in the route).
+
+       "Mismatched" detection criteria (server-side):
+         - confidence < 0.6, OR
+         - description is NULL/empty, OR
+         - the first 2 digits of hs_code_prefix do NOT match the material's
+           canonical category's expected HS chapter (e.g. lithium → 28),
+         - OR more than one material claims the same hs_code_prefix
+           (cross-mapping check; flagged on every offending row as
+           ``duplicate_hs_prefix``).
+
+GET    /api/v1/materials/{id}/hs-code-mappings
+       Query params: prefix_starts_with, min_confidence
+       Returns HsCodeMaterialMappingRead[] for one material (used by the
+       Mappings tab on the detail page; same data as
+       MaterialDetail.hs_code_mappings but filterable in isolation).
+
+GET    /api/v1/hs-code-mappings/mismatches
+       Query params: page, limit, severity (low|medium|high)
+       Returns a global list of suspected bad rows from
+       `hs_code_material_mappings`, joined with material canonical_name.
+       Powers the "Mismatches" view that the /data/materials list links to.
 
 GET    /api/v1/regulations
-       Query params: page, limit, status, policy_theme
+       Query params: page, limit, search, status, policy_theme,
+                     issuing_body, effective_after
 
 GET    /api/v1/regulations/{id}
        Returns regulation with material_scope and geography_scope joined
 
 GET    /api/v1/risk-events
-       Query params: page, limit, event_type, severity_min, date_from, date_to
+       Query params: page, limit, event_type, severity_min, date_from, date_to,
+                     search
 
 GET    /api/v1/facilities
-       Query params: page, limit, company_id, country, facility_type, status
+       Query params: page, limit, company_id, country, facility_type, status,
+                     search
 
 GET    /api/v1/chemistries
+       Query params: page, limit, search
        Returns battery_chemistries with latest chemistry_risk_scores joined
 ```
 
@@ -463,11 +563,39 @@ Below evidence: signals_used counts as small stat chips
 (e.g. "12 facilities · 3 regulations · 7 geo events").
 
 ### Flag Issue Dialog
-A dialog triggered by a "Flag Issue" button in each section of the company detail.
+A dialog triggered by a "Flag Issue" button in each section of the company detail
+**and** by the row-level kebab menu on every reference-data table.
+
 Form: note_type (select: "data_error" | "missing_data" | "outdated" | "other"),
-note_text (textarea). Submits to POST /api/v1/companies/{id}/notes.
-Shows success toast on submit. Notes visible in a collapsible "Flagged Issues" section
-at the top of the company detail page if any open notes exist.
+note_text (textarea). Submits to the entity-appropriate POST notes route
+(see "Notes / Flag-Issue Pattern" above).
+
+Shows success toast on submit. Notes visible in a collapsible "Flagged Issues"
+section at the top of any entity detail page if any open notes exist.
+
+**Generic component (Phase 2):** `components/shared/entity-flag-issue-dialog.tsx`
+exports `EntityFlagIssueDialog` accepting:
+```ts
+type FlaggableEntityType =
+  | "company" | "material" | "hs_code_material_mapping"
+  | "regulation" | "risk_event" | "facility" | "battery_chemistry";
+
+interface EntityFlagIssueDialogProps {
+  entityType: FlaggableEntityType;
+  entityId: string;            // UUIDs and ints both serialized to string
+  entityLabel?: string;        // e.g. "Lithium" — shown in dialog header
+  sectionLabel?: string;       // optional — prepended to note_text
+  trigger?: ReactNode;         // optional custom trigger
+}
+```
+The legacy `components/company/flag-issue-dialog.tsx` becomes a thin wrapper
+that calls `EntityFlagIssueDialog` with `entityType="company"`.
+
+### Row Actions Menu
+A reusable `components/shared/row-actions-menu.tsx` rendering a `DropdownMenu`
+triggered by a `⋯` icon button. Used in the trailing column of every
+reference-data table. Always includes a "Flag issue" item that opens the
+`EntityFlagIssueDialog`; pages can pass additional menu items as children.
 
 ---
 
@@ -657,11 +785,66 @@ Goal: Partner can browse and flag company data.
 
 Do not build scoring or report pages yet.
 
-### Phase 2 — Reference Data
-Add the /data/* pages for Materials, Regulations, Risk Events, Facilities, Chemistries.
-These are all read-only DataTable pages. Same pattern as companies list, no detail pages
-required initially.
-FastAPI: build corresponding GET /api/v1/materials, /regulations, etc.
+### Phase 2 — Reference Data + Flag-Issue Generalization
+
+Goal: Analysts can browse every reference-data table the scoring engine relies on,
+spot bad seed data, and flag it in-place. Materials get extra love because
+HS-code mappings drive trade-flow scoring and are the easiest to corrupt.
+
+**Backend (FastAPI, in `battery-data-intelligence-engine`):**
+1. `GET /api/v1/materials`, `/api/v1/materials/{id}` (the detail response
+   includes the joined `hs_code_mappings` + `mapping_health` block).
+2. `GET /api/v1/materials/{id}/hs-code-mappings`,
+   `GET /api/v1/hs-code-mappings/mismatches` — both read from the
+   existing `hs_code_material_mappings` table; no schema changes there.
+3. `GET /api/v1/regulations`, `/api/v1/risk-events`, `/api/v1/facilities`, `/api/v1/chemistries`
+4. Per-entity `POST/GET /api/v1/{entity}/{id}/notes` (and the nested
+   `/materials/{material_id}/hs-code-mappings/{mapping_id}/notes`) — see
+   "Notes / Flag-Issue Pattern" above. Reuse the existing
+   `analyst_notes` table; widen the `entity_type` enum to include the
+   new values (`material`, `hs_code_material_mapping`, `regulation`,
+   `risk_event`, `facility`, `battery_chemistry`).
+5. Pydantic models: `MaterialListItem`, `MaterialDetail`, `HsCodeMaterialMappingRead`,
+   `MappingHealth`, `BatteryChemistryRead`, paginated wrappers.
+6. Regenerate `openapi.json` so the frontend can run `npm run types:generate:file`.
+
+**Frontend (in `battery-data-intelligence-frontend`):**
+1. Generic flag-issue infrastructure:
+   - `lib/api/notes.ts` — typed helpers per entity (per-entity URL templates).
+   - `lib/hooks/use-entity-notes.ts` — `useEntityNotes(entity, id)` and
+     `useCreateEntityNote(entity, id)` factories that share the same query keys
+     pattern as `useCompanyNotes`.
+   - `components/shared/entity-flag-issue-dialog.tsx` — generalization of the
+     existing `components/company/flag-issue-dialog.tsx`. Accepts
+     `{ entityType, entityId, entityLabel?, sectionLabel? }`. The original
+     `FlagIssueDialog` becomes a thin wrapper for backward compat.
+   - `components/shared/row-actions-menu.tsx` — kebab (`⋯`) DropdownMenu used
+     by every reference-data table row. First-class action: "Flag issue".
+2. Sidebar nav: extend `components/layout/sidebar.tsx` to render Phase 1 +
+   Phase 2 sections grouped under "Supply Chain" and "Intelligence" headings.
+3. `/data/materials/page.tsx` — list with filters (search, category,
+   is_ira_critical, is_eu_crma_critical, "Show only mismatched mappings"),
+   row kebab → Flag Issue, banner that links to the global
+   `/data/materials/mismatches` view when `mapping_mismatch_count > 0`.
+4. `/data/materials/[id]/page.tsx` — detail page with two tabs:
+   - **Overview**: criticality, criticality signals, chemistry uses,
+     mapping_health summary stat cards, Flag Issue.
+   - **HS Mappings**: full `HsCodeMaterialMappingRead[]` table with mismatch
+     badges per row, kebab → Flag Issue scoped to the *mapping* (not the
+     material). This is the comparison view that lets analysts confirm
+     each row of `hs_code_material_mappings` lines up with the material.
+5. `/data/materials/mismatches/page.tsx` — global mismatches view powered by
+   `GET /api/v1/hs-code-mappings/mismatches`. Each row links back to the
+   parent material's HS Mappings tab.
+6. `/data/regulations/page.tsx`, `/data/risk-events/page.tsx`,
+   `/data/facilities/page.tsx`, `/data/chemistries/page.tsx` —
+   read-only DataTable pages with filter bars and a row kebab → Flag Issue.
+7. Detail pages for regulations / risk-events / facilities / chemistries are
+   **not** required this phase (deferred to Phase 2.5). Flagging from the
+   row kebab is sufficient.
+
+Do NOT install any new dependencies for Phase 2. Stick to the existing
+shadcn primitives + lucide-react icons.
 
 ### Phase 3 — Scoring
 Goal: Trigger scoring, view results.

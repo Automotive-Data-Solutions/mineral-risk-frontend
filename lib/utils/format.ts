@@ -16,10 +16,25 @@ export function formatPercent(
   return `${value.toFixed(digits)}%`;
 }
 
-/** Confidence scores in our data range 0..1. Display as a 0..100% value. */
-export function formatConfidence(value: number | null | undefined): string {
-  if (value == null || Number.isNaN(value)) return "—";
-  const pct = value <= 1 ? value * 100 : value;
+/**
+ * Coerce API values (number or numeric string) to a 0..100 display percent.
+ * Accepts either a 0..1 score or an already-scaled 0..100 value.
+ */
+export function normalizeConfidencePercent(
+  value: number | string | null | undefined,
+): number | null {
+  if (value == null || value === "") return null;
+  const n = typeof value === "number" ? value : Number(value);
+  if (Number.isNaN(n)) return null;
+  return n <= 1 ? n * 100 : n;
+}
+
+/** Confidence scores in our data range 0..1 (or 0..100). Display as 0..100%. */
+export function formatConfidence(
+  value: number | string | null | undefined,
+): string {
+  const pct = normalizeConfidencePercent(value);
+  if (pct == null) return "—";
   return `${pct.toFixed(0)}%`;
 }
 
@@ -58,6 +73,24 @@ export function humanize(value: string | null | undefined): string {
     .join(" ");
 }
 
+// ---------------------------------------------------------------------------
+// Analyst note type display helpers — shared across detail pages + dashboard
+// ---------------------------------------------------------------------------
+
+export const NOTE_TYPE_BADGE: Record<string, string> = {
+  data_error:   "p-badge-rose",
+  missing_data: "p-badge-amber",
+  outdated:     "p-badge-violet",
+  other:        "p-badge-soft",
+};
+
+export const NOTE_TYPE_LABEL: Record<string, string> = {
+  data_error:   "Data error",
+  missing_data: "Missing data",
+  outdated:     "Outdated",
+  other:        "Note",
+};
+
 /** Converts ISO-3166 alpha-2 country codes to a flag emoji. */
 export function countryToFlag(code: string | null | undefined): string {
   if (!code || code.length !== 2) return "";
@@ -66,4 +99,15 @@ export function countryToFlag(code: string | null | undefined): string {
   if (!a || !b) return "";
   const cp = (c: string) => 127397 + c.toUpperCase().charCodeAt(0);
   return String.fromCodePoint(cp(a), cp(b));
+}
+
+/** Converts ISO-3166 alpha-2 country code to a display name (e.g. "US" -> "United States"). */
+export function countryCodeToName(code: string | null | undefined): string {
+  if (!code || code.length !== 2) return "Unknown country";
+  try {
+    const displayNames = new Intl.DisplayNames(["en"], { type: "region" });
+    return displayNames.of(code.toUpperCase()) ?? code.toUpperCase();
+  } catch {
+    return code.toUpperCase();
+  }
 }

@@ -27,9 +27,17 @@ export function ScoreBadge({
   showScore = true,
   className,
 }: ScoreBadgeProps) {
-  const resolvedBand = (band ?? scoreToBand(score ?? null)) as RiskBand | null;
+  // band !== undefined honors an EXPLICIT null (insufficient-data gate:
+  // concentration pillar unscored -> no band, never false-green LOW).
+  const resolvedBand = (
+    band !== undefined ? band : scoreToBand(score ?? null)
+  ) as RiskBand | null;
   const classes = riskBandClasses(resolvedBand);
-  const label = resolvedBand ? RISK_BAND_LABEL[resolvedBand] : "Unscored";
+  const label = resolvedBand
+    ? RISK_BAND_LABEL[resolvedBand]
+    : band === null
+      ? "Insufficient data"
+      : "Unscored";
   return (
     <span
       className={cn(

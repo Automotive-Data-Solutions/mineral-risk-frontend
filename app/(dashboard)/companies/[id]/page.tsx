@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft, ChevronDown, ChevronRight, Flag } from "lucide-react";
 import { useState, use } from "react";
+import { PageLayout } from "@/components/platform/page-layout";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -21,7 +22,8 @@ import { FacilitiesSection } from "@/components/company/sections/facilities-sect
 import { VehicleModelsSection } from "@/components/company/sections/vehicle-models-section";
 import { NotesSection } from "@/components/company/sections/notes-section";
 import { FlagIssueDialog } from "@/components/company/flag-issue-dialog";
-import { useCompany, useCompanyNotes } from "@/lib/hooks/use-companies";
+import { useCompany, useCompanyAllNotes } from "@/lib/hooks/use-companies";
+import { useBreadcrumbLabel } from "@/components/platform/breadcrumb-context";
 
 const TABS = [
   { value: "exposures", label: "Exposures" },
@@ -35,16 +37,6 @@ const TABS = [
 
 type TabValue = (typeof TABS)[number]["value"];
 
-const SECTION_LABELS: Record<TabValue, string> = {
-  exposures: "Exposures",
-  relationships: "Relationships",
-  regulations: "Regulations",
-  events: "Events",
-  facilities: "Facilities",
-  vehicles: "Vehicle Models",
-  notes: "Notes",
-};
-
 export default function CompanyDetailPage({
   params,
 }: {
@@ -54,26 +46,29 @@ export default function CompanyDetailPage({
   const { data: company, isLoading, error, refetch } = useCompany(id);
   const [tab, setTab] = useState<TabValue>("exposures");
 
+  // Register the company name so the breadcrumb shows the name instead of the ID
+  useBreadcrumbLabel(id, company?.canonical_name);
+
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-7xl flex-col gap-4">
+      <PageLayout>
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </PageLayout>
     );
   }
 
   if (error || !company) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <PageLayout>
         <ErrorState error={error ?? new Error("Company not found")} onRetry={() => refetch()} />
-      </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+    <PageLayout>
       <div>
         <Button asChild variant="ghost" size="sm">
           <Link href="/companies">
@@ -88,7 +83,13 @@ export default function CompanyDetailPage({
         action={
           <FlagIssueDialog
             companyId={id}
-            sectionLabel={SECTION_LABELS[tab]}
+            sectionLabel="Company"
+            trigger={
+              <Button variant="outline" size="sm">
+                <Flag className="h-3.5 w-3.5" />
+                Flag company
+              </Button>
+            }
           />
         }
       />
@@ -103,19 +104,6 @@ export default function CompanyDetailPage({
             </TabsTrigger>
           ))}
         </TabsList>
-
-        <div className="mt-4 flex items-center justify-end">
-          <FlagIssueDialog
-            companyId={id}
-            sectionLabel={SECTION_LABELS[tab]}
-            trigger={
-              <Button variant="outline" size="sm">
-                <Flag className="h-3.5 w-3.5" />
-                Flag this {SECTION_LABELS[tab].toLowerCase()}
-              </Button>
-            }
-          />
-        </div>
 
         <TabsContent value="exposures" className="mt-3">
           <ExposuresSection companyId={id} />
@@ -139,12 +127,12 @@ export default function CompanyDetailPage({
           <NotesSection companyId={id} />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageLayout>
   );
 }
 
 function FlaggedIssuesPanel({ companyId }: { companyId: string }) {
-  const { data = [] } = useCompanyNotes(companyId);
+  const { data = [] } = useCompanyAllNotes(companyId);
   const [open, setOpen] = useState(true);
   if (data.length === 0) return null;
 

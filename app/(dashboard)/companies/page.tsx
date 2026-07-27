@@ -3,12 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "@/components/data-table/data-table";
+import { PlatformTable } from "@/components/platform/platform-table";
 import { DataTablePagination } from "@/components/data-table/pagination";
 import { StageBadge } from "@/components/shared/stage-badge";
 import { CountryFlag } from "@/components/shared/country-flag";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { ScoreBadge } from "@/components/scoring/score-badge";
+import { PageLayout } from "@/components/platform/page-layout";
+import { PageHeader } from "@/components/platform/page-header";
 import { useCompanies } from "@/lib/hooks/use-companies";
 import type { CompanyListItem, RiskBand } from "@/lib/types";
 import {
@@ -112,13 +114,11 @@ export default function CompaniesListPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Companies</h1>
-        <p className="text-sm text-muted-foreground">
-          Browse and search the canonical company directory.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Companies"
+        subtitle="Browse and search the canonical company directory."
+      />
 
       <CompaniesFilterBar
         value={filters}
@@ -126,7 +126,7 @@ export default function CompaniesListPage() {
         total={data?.total}
       />
 
-      <DataTable
+      <PlatformTable
         data={rows}
         columns={columns}
         isLoading={isLoading || (isFetching && rows.length === 0)}
@@ -147,6 +147,6 @@ export default function CompaniesListPage() {
           setPage(1);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }

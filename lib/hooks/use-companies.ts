@@ -3,6 +3,7 @@
 import {
   useMutation,
   useQuery,
+  useQueries,
   useQueryClient,
   type UseMutationOptions,
   type UseQueryOptions,
@@ -21,6 +22,7 @@ import {
   getCompanyVehicleModels,
   type CompanyListParams,
 } from "@/lib/api/companies";
+import { getEntityNotes } from "@/lib/api/notes";
 import type {
   AnalystNoteCreate,
   AnalystNoteRead,
@@ -152,6 +154,64 @@ export function useCompanyNotes(id: string) {
     queryFn: () => getCompanyNotes(client, id),
     enabled: Boolean(id),
   });
+}
+
+/**
+ * Unified notes feed for a company detail page.
+ *
+ * Includes:
+ * - company-level notes (`/companies/{id}/notes`)
+ * - all nested exposure notes (`/companies/{id}/exposures/{exposure_id}/notes`)
+ */
+export function useCompanyAllNotes(id: string) {
+  const client = useApiClient();
+  const companyNotesQuery = useCompanyNotes(id);
+  const exposuresQuery = useCompanyExposures(id);
+
+  const exposureNoteQueries = useQueries({
+    queries: (exposuresQuery.data ?? []).map((exposure) => ({
+      queryKey: [
+        "entity-notes",
+        "company_material_exposure",
+        String(exposure.id),
+        id,
+      ] as const,
+      queryFn: () =>
+        getEntityNotes(
+          client,
+          "company_material_exposure",
+          String(exposure.id),
+          id,
+        ),
+      enabled: Boolean(id) && exposuresQuery.isSuccess,
+    })),
+  });
+
+  const exposureNotes = exposureNoteQueries.flatMap((query) => query.data ?? []);
+  const data = [...(companyNotesQuery.data ?? []), ...exposureNotes].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+
+  const isLoading =
+    companyNotesQuery.isLoading ||
+    exposuresQuery.isLoading ||
+    exposureNoteQueries.some((query) => query.isLoading);
+
+  const error =
+    companyNotesQuery.error ??
+    exposuresQuery.error ??
+    exposureNoteQueries.find((query) => query.error)?.error;
+
+  const refetch = async () => {
+    await Promise.all([
+      companyNotesQuery.refetch(),
+      exposuresQuery.refetch(),
+      ...exposureNoteQueries.map((query) => query.refetch()),
+    ]);
+  };
+
+  return { data, isLoading, error, refetch };
 }
 
 export function useCreateCompanyNote(

@@ -7,6 +7,10 @@ const config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    // lib/ holds className-string maps (e.g. lib/utils/regulations.ts
+    // chip-class ramps). Without this entry Tailwind's JIT scanner never
+    // sees those classes and silently purges them at build time.
+    "./lib/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {

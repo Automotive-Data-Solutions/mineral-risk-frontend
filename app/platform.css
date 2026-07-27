@@ -1,0 +1,874 @@
+/* ============================================================
+   MRa Data Platform — platform.css
+   Scoped under .mra-platform to isolate from Tailwind/shadcn and
+   the public Intelligence Hub styles. Import ONLY in
+   app/(dashboard)/layout.tsx.
+   ============================================================ */
+
+/* Google Fonts — Inter + JetBrains Mono */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ============================================================
+   Token definitions
+   ============================================================ */
+.mra-platform {
+  /* --- Cool slate palette --- */
+  --p-slate-950: #0B1220;
+  --p-slate-900: #1E293B;
+  --p-slate-800: #334155;
+  --p-slate-700: #334155;
+  --p-slate-600: #475569;
+  --p-slate-500: #64748B;
+  --p-slate-400: #94A3B8;
+  --p-slate-300: #CBD5E1;
+  --p-slate-200: #E2E8F0;
+  --p-slate-150: #EDF1F6;
+  --p-slate-100: #F1F5F9;
+  --p-slate-50:  #F8FAFC;
+
+  /* --- Surfaces --- */
+  --p-bg:           #F8FAFC;
+  --p-bg-subtle:    #F1F5F9;
+  --p-bg-muted:     #E2E8F0;
+  --p-card:         #FFFFFF;
+  --p-sidebar:      var(--p-slate-900);
+  --p-sidebar-elev: var(--p-slate-800);
+  --p-border:       #E2E8F0;
+  --p-border-strong:#CBD5E1;
+  --p-rule:         #EDF1F6;
+
+  /* --- Text --- */
+  --p-text:              #0F172A;
+  --p-text-muted:        #64748B;
+  --p-text-faint:        #94A3B8;
+  --p-text-on-dark:      #E2E8F0;
+  --p-text-on-dark-muted:#94A3B8;
+
+  /* --- Accent (terracotta) --- */
+  --p-accent:       #C8623A;
+  --p-accent-light: #D98060;
+  --p-accent-deep:  #B0552F;
+  --p-accent-soft:  #FBEDE5;
+  --p-accent-tint:  #F8DDD0;
+
+  /* --- Risk semantics (2026-05-11 4-tier calibration) ---
+     Bands defined in lib/utils/risk-band.ts + app/services/scoring/bands.py.
+     Color thresholds:
+       LOW   (0–29)  green
+       MOD   (30–59) amber
+       HIGH  (60–79) orange   <-- was red under the prior 3-tier system
+       CRIT  (80+)   red      <-- new band; takes over the old red colors  */
+  --p-risk-low:        #059669;   /* emerald-600 */
+  --p-risk-low-soft:   #D1FAE5;
+  --p-risk-med:        #D97706;   /* amber-600 — alias preserved for legacy callers */
+  --p-risk-med-soft:   #FEF3C7;
+  --p-risk-mod:        #D97706;   /* canonical MOD name; mirrors --p-risk-med */
+  --p-risk-mod-soft:   #FEF3C7;
+  --p-risk-high:       #EA580C;   /* orange-600 — new HIGH band under 4-tier system */
+  --p-risk-high-soft:  #FFEDD5;
+  --p-risk-crit:       #E11D48;   /* rose-600 — new CRIT band (was prior --p-risk-high) */
+  --p-risk-crit-soft:  #FFE4E6;
+
+  /* --- Pillar colors --- */
+  --p-pillar-material:    #7A4A8E;
+  --p-pillar-geo:         #1F6B8A;
+  --p-pillar-regulatory:  #C8623A;
+  --p-pillar-operational: #6B5B3A;
+  --p-pillar-financial:   #3B6E55;
+
+  /* --- Typography --- */
+  --p-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --p-font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  /* --- Radii --- */
+  --p-radius-xs: 3px;
+  --p-radius-sm: 4px;
+  --p-radius-md: 6px;
+  --p-radius-lg: 8px;
+
+  /* --- Elevation --- */
+  --p-elev-1: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --p-elev-2: 0 4px 12px -4px rgba(15, 23, 42, 0.10);
+  --p-elev-3: 0 10px 30px -10px rgba(15, 23, 42, 0.18);
+
+  /* --- Layout --- */
+  --p-nav-h: 56px;
+  --p-sidebar-w: 240px;
+
+  /* Override shadcn primary/ring to terracotta within platform shell */
+  --primary: 17 56% 51%;
+  --ring: 17 56% 51%;
+}
+
+/* ============================================================
+   Platform shell layout
+   ============================================================ */
+.mra-platform {
+  display: grid;
+  grid-template-columns: var(--p-sidebar-w) 1fr;
+  min-height: 100vh;
+  background: var(--p-bg);
+  font-family: var(--p-font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--p-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mra-platform .p-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--p-bg);
+}
+
+/* ============================================================
+   Sidebar
+   ============================================================ */
+.mra-platform .p-sidebar {
+  background: var(--p-sidebar);
+  color: var(--p-text-on-dark);
+  border-right: 1px solid var(--p-slate-800);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+}
+
+/* Brand tile + wordmark */
+.mra-platform .p-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--p-slate-800);
+  height: var(--p-nav-h);
+  flex-shrink: 0;
+}
+
+.mra-platform .p-tile {
+  width: 32px;
+  height: 36px;
+  border-radius: 4px;
+  border: 1.5px solid var(--p-accent);
+  background: var(--p-sidebar-elev);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mra-platform .p-tile .p-tile-num {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-family: var(--p-font-mono);
+  font-size: 7px;
+  color: var(--p-accent);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.mra-platform .p-tile .p-tile-glyph {
+  font-family: var(--p-font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--p-text-on-dark);
+  letter-spacing: -0.02em;
+}
+
+.mra-platform .p-brand-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-text-on-dark);
+  line-height: 1.2;
+}
+
+.mra-platform .p-brand-name .p-brand-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--p-text-on-dark-muted);
+  margin-top: 1px;
+}
+
+/* Nav */
+.mra-platform .p-sidebar-nav {
+  padding: 10px 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mra-platform .p-sidebar-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--p-slate-500);
+  padding: 6px 12px 4px;
+}
+
+.mra-platform .p-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: var(--p-radius-md);
+  font-size: 13px;
+  color: var(--p-slate-300);
+  font-weight: 500;
+  transition: background 120ms ease, color 120ms ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+
+.mra-platform .p-sidebar-link:hover {
+  background: var(--p-sidebar-elev);
+  color: #fff;
+}
+
+.mra-platform .p-sidebar-link.active {
+  background: rgba(200, 98, 58, 0.14);
+  color: var(--p-accent-light);
+  border-color: rgba(200, 98, 58, 0.35);
+}
+
+.mra-platform .p-sidebar-link svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.mra-platform .p-sidebar-link.active svg {
+  opacity: 1;
+  color: var(--p-accent);
+}
+
+/* Footer */
+.mra-platform .p-sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--p-slate-800);
+  flex-shrink: 0;
+}
+
+.mra-platform .p-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--p-radius-md);
+}
+
+/* ============================================================
+   Topbar
+   ============================================================ */
+.mra-platform .p-topbar {
+  height: var(--p-nav-h);
+  border-bottom: 1px solid var(--p-border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  background: var(--p-card);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: var(--p-elev-1);
+}
+
+.mra-platform .p-crumbs {
+  font-size: 13px;
+  color: var(--p-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mra-platform .p-crumbs .p-crumb-skeleton {
+  display: inline-block;
+  width: 72px;
+  height: 10px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--p-bg-muted) 25%,
+    var(--p-border-strong) 50%,
+    var(--p-bg-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: p-shimmer 1.4s ease infinite;
+  vertical-align: middle;
+}
+
+@keyframes p-shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+.mra-platform .p-crumbs .p-crumb-sep {
+  color: var(--p-text-faint);
+}
+
+.mra-platform .p-crumbs .p-crumb-here {
+  color: var(--p-text);
+  font-weight: 500;
+}
+
+.mra-platform .p-topbar-search {
+  flex: 1;
+  max-width: 360px;
+  margin-left: auto;
+  position: relative;
+}
+
+.mra-platform .p-topbar-search input {
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-sm);
+  padding: 0 10px 0 30px;
+  font-size: 13px;
+  font-family: var(--p-font-sans);
+  background: var(--p-bg-subtle);
+  color: var(--p-text);
+  outline: none;
+  transition: border 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.mra-platform .p-topbar-search input:focus {
+  border-color: var(--p-accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(200, 98, 58, 0.10);
+}
+
+.mra-platform .p-topbar-search .p-search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--p-text-faint);
+  pointer-events: none;
+}
+
+.mra-platform .p-topbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mra-platform .p-kbd {
+  font-family: var(--p-font-mono);
+  font-size: 10px;
+  background: var(--p-card);
+  border: 1px solid var(--p-border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 1px 4px;
+  color: var(--p-text-muted);
+}
+
+/* ============================================================
+   Page wrapper
+   ============================================================ */
+.mra-platform .p-page {
+  padding: 24px;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Page header (title + subtitle above the content grid) */
+.mra-platform .p-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mra-platform .p-page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  color: var(--p-text);
+}
+.mra-platform .p-page-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--p-text-muted);
+}
+
+/* ============================================================
+   Cards
+   ============================================================ */
+.mra-platform .p-card {
+  background: var(--p-card);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-md);
+  box-shadow: var(--p-elev-1);
+  overflow: hidden;
+}
+
+.mra-platform .p-card-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--p-rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mra-platform .p-card-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--p-text);
+}
+
+.mra-platform .p-card-head .p-card-sub {
+  font-size: 12px;
+  color: var(--p-text-muted);
+  margin-top: 2px;
+}
+
+.mra-platform .p-card-body {
+  padding: 16px;
+}
+
+/* ============================================================
+   KPI cards
+   ============================================================ */
+.mra-platform .p-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.mra-platform .p-kpi {
+  padding: 14px 16px;
+  background: var(--p-card);
+  border: 1px solid var(--p-border);
+  border-radius: var(--p-radius-md);
+  box-shadow: var(--p-elev-1);
+}
+
+.mra-platform .p-kpi .p-kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.mra-platform .p-kpi .p-kpi-value {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--p-text);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mra-platform .p-kpi .p-kpi-sub {
+  font-size: 11px;
+  color: var(--p-text-muted);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mra-platform .p-kpi .p-delta-up   { color: var(--p-risk-low);  font-weight: 500; }
+.mra-platform .p-kpi .p-delta-down { color: var(--p-risk-high); font-weight: 500; }
+
+/* ============================================================
+   Score chip
+   ============================================================ */
+.mra-platform .p-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: var(--p-radius-sm);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+/* Score-chip backgrounds.  Mirrors the four risk-band tiers.  ``-mod`` is
+   a canonical alias for ``-med`` so callers can write either name. */
+.mra-platform .p-score-crit { background: var(--p-risk-crit-soft); color: #9F1239; border-color: rgba(225, 29, 72, 0.18); }
+.mra-platform .p-score-high { background: var(--p-risk-high-soft); color: #9A3412; border-color: rgba(234, 88, 12, 0.18); }
+.mra-platform .p-score-mod  { background: var(--p-risk-mod-soft);  color: #92400E; border-color: rgba(217, 119, 6, 0.18); }
+.mra-platform .p-score-med  { background: var(--p-risk-med-soft);  color: #92400E; border-color: rgba(217, 119, 6, 0.18); }
+.mra-platform .p-score-low  { background: var(--p-risk-low-soft);  color: #065F46; border-color: rgba(5, 150, 105, 0.18); }
+.mra-platform .p-score-none { background: var(--p-bg-muted);       color: var(--p-text-muted); }
+
+.mra-platform .p-score-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.mra-platform .p-dot-crit   { background: var(--p-risk-crit); }
+.mra-platform .p-dot-high   { background: var(--p-risk-high); }
+.mra-platform .p-dot-mod    { background: var(--p-risk-mod); }
+.mra-platform .p-dot-med    { background: var(--p-risk-med); }
+.mra-platform .p-dot-low    { background: var(--p-risk-low); }
+.mra-platform .p-dot-none   { background: var(--p-slate-400); }
+.mra-platform .p-dot-accent { background: var(--p-accent); }
+
+/* ============================================================
+   Badges / chips
+   ============================================================ */
+.mra-platform .p-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.mra-platform .p-badge-soft    { background: var(--p-bg-muted);    color: var(--p-text); }
+.mra-platform .p-badge-outline { background: #fff; border: 1px solid var(--p-border); color: var(--p-text-muted); }
+.mra-platform .p-badge-accent  { background: var(--p-accent-soft); color: var(--p-accent-deep); }
+.mra-platform .p-badge-blue    { background: #DBEAFE; color: #1E40AF; }
+.mra-platform .p-badge-violet  { background: #EDE9FE; color: #5B21B6; }
+.mra-platform .p-badge-emerald { background: #D1FAE5; color: #065F46; }
+.mra-platform .p-badge-amber   { background: #FEF3C7; color: #92400E; }
+.mra-platform .p-badge-rose    { background: #FFE4E6; color: #9F1239; }
+.mra-platform .p-badge-slate   { background: var(--p-slate-100); color: var(--p-slate-700); }
+
+/* ============================================================
+   Pillar score grid (material detail)
+   ============================================================ */
+.mra-platform .p-score-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+.mra-platform .p-score-cell {
+  border: 1px solid var(--p-border);
+  background: var(--p-card);
+  border-radius: var(--p-radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mra-platform .p-score-cell.overall {
+  background: var(--p-slate-50);
+  border-color: var(--p-border-strong);
+}
+
+.mra-platform .p-score-cell .p-score-cell-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--p-text-muted);
+  font-weight: 600;
+}
+
+.mra-platform .p-score-cell .p-score-cell-value {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-text);
+}
+
+.mra-platform .p-pillar-strip {
+  height: 3px;
+  border-radius: 2px;
+  margin-top: 2px;
+}
+
+.mra-platform .p-pillar-material    { background: var(--p-pillar-material); }
+.mra-platform .p-pillar-geo         { background: var(--p-pillar-geo); }
+.mra-platform .p-pillar-regulatory  { background: var(--p-pillar-regulatory); }
+.mra-platform .p-pillar-operational { background: var(--p-pillar-operational); }
+.mra-platform .p-pillar-financial   { background: var(--p-pillar-financial); }
+.mra-platform .p-pillar-accent      { background: var(--p-accent); }
+
+/* ============================================================
+   Banner / alert
+   ============================================================ */
+.mra-platform .p-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--p-radius-md);
+  font-size: 13px;
+  border: 1px solid;
+}
+
+.mra-platform .p-banner-amber {
+  background: var(--p-risk-med-soft);
+  border-color: rgba(217, 119, 6, 0.25);
+  color: #78350F;
+}
+
+/* ============================================================
+   Tabs
+   ============================================================ */
+.mra-platform .p-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--p-border);
+}
+
+.mra-platform .p-tab {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--p-text-muted);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 120ms ease, border-color 120ms ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mra-platform .p-tab:hover { color: var(--p-text); }
+
+.mra-platform .p-tab.active {
+  color: var(--p-accent);
+  border-bottom-color: var(--p-accent);
+}
+
+.mra-platform .p-tab .p-tab-count {
+  font-family: var(--p-font-mono);
+  font-size: 10px;
+  background: var(--p-bg-muted);
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--p-text-muted);
+}
+
+.mra-platform .p-tab.active .p-tab-count {
+  background: var(--p-accent-soft);
+  color: var(--p-accent-deep);
+}
+
+/* ============================================================
+   Bar list (progress bars in overview cards)
+   ============================================================ */
+.mra-platform .p-bar-list  { display: flex; flex-direction: column; gap: 10px; }
+.mra-platform .p-bar-row   { display: flex; flex-direction: column; gap: 4px; }
+.mra-platform .p-bar-row-top { display: flex; justify-content: space-between; font-size: 12px; }
+.mra-platform .p-bar-row-top .p-bar-lbl { color: var(--p-text-muted); }
+.mra-platform .p-bar-row-top .p-bar-val { font-weight: 500; font-variant-numeric: tabular-nums; }
+.mra-platform .p-bar-track { height: 6px; background: var(--p-bg-muted); border-radius: 3px; overflow: hidden; }
+.mra-platform .p-bar-fill  { height: 100%; background: var(--p-slate-700); border-radius: 3px; }
+
+/* ============================================================
+   Utility helpers
+   ============================================================ */
+.mra-platform .p-mono  { font-family: var(--p-font-mono); font-feature-settings: "tnum" 1; }
+.mra-platform .p-muted { color: var(--p-text-muted); }
+.mra-platform .p-faint { color: var(--p-text-faint); }
+.mra-platform .p-tiny  { font-size: 11px; }
+.mra-platform .p-small { font-size: 12px; }
+
+/* ============================================================
+   Responsive breakpoints
+   ============================================================ */
+
+/* Tablet and below (< 1024px): sidebar is hidden, collapse grid to single column */
+/* ============================================================
+   Mobile nav drawer + backdrop
+   Rendered outside .mra-platform so scoped to body-level
+   ============================================================ */
+
+/* Hamburger button — hidden on large screens, shown on mobile */
+.mra-platform .p-topbar-hamburger {
+  display: none;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--p-text-muted);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.mra-platform .p-topbar-hamburger:hover {
+  background: var(--p-bg-muted);
+  color: var(--p-text);
+}
+
+/* Backdrop overlay */
+.p-mobile-nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.p-mobile-nav-backdrop.open {
+  display: block;
+  opacity: 1;
+}
+
+/* Slide-in drawer */
+.p-mobile-nav-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: var(--p-sidebar);
+  transform: translateX(-100%);
+  transition: transform 220ms ease;
+  overflow-y: auto;
+  /* Carry over the same font stack */
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+.p-mobile-nav-drawer.open {
+  transform: translateX(0);
+}
+
+/* Close button inside drawer */
+.p-mobile-nav-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--p-text-on-dark-muted);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+  z-index: 1;
+}
+.p-mobile-nav-close:hover {
+  background: var(--p-sidebar-elev);
+  color: var(--p-text-on-dark);
+}
+
+@media (max-width: 1023px) {
+  .mra-platform {
+    grid-template-columns: 1fr;
+  }
+
+  /* p-sidebar sets display:flex which overrides Tailwind's `hidden` class —
+     explicitly hide it here so the CSS specificity battle is won in one place. */
+  .mra-platform .p-sidebar {
+    display: none;
+  }
+
+  /* Show hamburger on mobile */
+  .mra-platform .p-topbar-hamburger {
+    display: flex;
+  }
+}
+
+/* Medium screens (< 768px) */
+@media (max-width: 767px) {
+  .mra-platform .p-page {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  /* KPI grid: 2 columns on tablet */
+  .mra-platform .p-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Score grid: 3 columns on tablet (overall + 2, then 3 pillars) */
+  .mra-platform .p-score-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Topbar: reduce search width */
+  .mra-platform .p-topbar-search {
+    max-width: 200px;
+  }
+
+  /* Tabs: allow horizontal scroll so they never wrap or overflow clipped */
+  .mra-platform .p-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .mra-platform .p-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .mra-platform .p-tab {
+    flex-shrink: 0;
+  }
+}
+
+/* Mobile (< 640px) */
+@media (max-width: 639px) {
+  .mra-platform .p-page {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  /* KPI grid: stay at 2 columns — single column is too sparse for small numbers */
+  .mra-platform .p-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mra-platform .p-kpi .p-kpi-value {
+    font-size: 22px;
+  }
+
+  /* Score grid: 2 columns on mobile */
+  .mra-platform .p-score-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Cards: reduce internal padding */
+  .mra-platform .p-card-head {
+    padding: 12px 14px 10px;
+  }
+  .mra-platform .p-card-body {
+    padding: 12px 14px;
+  }
+
+  /* Tab labels: slightly smaller on mobile */
+  .mra-platform .p-tab {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}

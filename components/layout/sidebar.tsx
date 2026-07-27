@@ -2,8 +2,41 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, LayoutDashboard, type LucideIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  Building2,
+  ClipboardCheck,
+  Download,
+  FileText,
+  FilePlus,
+  FlaskConical,
+  LayoutDashboard,
+  Layers,
+  Play,
+  Scale,
+  type LucideIcon,
+} from "lucide-react";
+import { MraTile } from "@/components/platform/mra-tile";
+import { UserButton } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/lib/auth/admin-role";
+
+// Collect icon refs so ESLint no-unused-vars doesn't flag object-literal usage
+const ICONS = {
+  AlertTriangle,
+  BarChart3,
+  Building2,
+  ClipboardCheck,
+  Download,
+  FileText,
+  FilePlus,
+  FlaskConical,
+  LayoutDashboard,
+  Layers,
+  Play,
+  Scale,
+} as const;
 
 interface NavItem {
   href: string;
@@ -11,51 +44,111 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-// Phase 1 only - scoring, reports, reference data, admin come later.
-const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/companies", label: "Companies", icon: Building2 },
+interface NavSection {
+  label?: string;
+  items: NavItem[];
+  /** Section renders only for admin users (see lib/auth/admin-role.ts). */
+  adminOnly?: boolean;
+}
+
+const NAV_SECTIONS: NavSection[] = [
+  {
+    items: [
+      { href: "/dashboard", label: "Overview", icon: ICONS.LayoutDashboard },
+    ],
+  },
+  {
+    label: "Supply Chain",
+    items: [
+      { href: "/companies",        label: "Companies",   icon: ICONS.Building2 },
+      { href: "/data/materials",   label: "Materials",   icon: ICONS.Layers },
+      { href: "/data/chemistries", label: "Chemistries", icon: ICONS.FlaskConical },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { href: "/data/regulations", label: "Regulations", icon: ICONS.Scale },
+      // Other intelligence pages remain commented until they ship:
+      // { href: "/data/market-scores", label: "Market Scores", icon: ICONS.BarChart3 },
+      // { href: "/data/risk-events",   label: "Risk Events",   icon: ICONS.AlertTriangle },
+    ],
+  },
+  // {
+  //   label: "Reports",
+  //   items: [
+  //     { href: "/reports",     label: "All Reports",     icon: ICONS.FileText },
+  //     { href: "/reports/new", label: "Generate Report", icon: ICONS.FilePlus },
+  //   ],
+  // },
+  {
+    label: "Admin",
+    adminOnly: true,
+    items: [
+      // Content = public Intelligence Hub posts (PLAN_admin_content_section.md).
+      { href: "/admin/insights", label: "Content", icon: ICONS.FilePlus },
+      // Future admin surfaces slot in here:
+      // { href: "/admin/scoring",     label: "Run Scoring", icon: ICONS.Play },
+      // { href: "/admin/ingestion",   label: "Ingestion",   icon: ICONS.Download },
+      // { href: "/admin/seed-review", label: "Seed Review", icon: ICONS.ClipboardCheck },
+    ],
+  },
 ];
+
+const EXACT_MATCH_ROUTES = new Set(["/dashboard"]);
+
+function isItemActive(pathname: string, href: string) {
+  if (EXACT_MATCH_ROUTES.has(href)) return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function SidebarContent({ pathname }: { pathname: string }) {
+  const isAdmin = useIsAdmin();
+  const sections = NAV_SECTIONS.filter((s) => !s.adminOnly || isAdmin);
+  return (
+    <>
+      <div className="p-sidebar-brand">
+        <MraTile />
+      </div>
+
+      <nav className="p-sidebar-nav">
+        {sections.map((section, idx) => (
+          <div key={section.label ?? `section-${idx}`}>
+            {section.label && (
+              <div className="p-sidebar-section-label">{section.label}</div>
+            )}
+            {section.items.map((item) => {
+              const active = isItemActive(pathname, item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn("p-sidebar-link", active && "active")}
+                >
+                  <Icon size={16} aria-hidden />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      <div className="p-sidebar-footer">
+        <div className="p-sidebar-user">
+          <UserButton />
+        </div>
+      </div>
+    </>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="hidden w-60 shrink-0 border-r bg-background lg:block">
-      <div className="flex h-14 items-center gap-2 border-b px-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Building2 className="h-4 w-4" aria-hidden />
-        </div>
-        <div className="flex flex-col leading-tight">
-          <span className="text-sm font-semibold">Battery Risk</span>
-          <span className="text-[10px] text-muted-foreground">
-            Intelligence Engine
-          </span>
-        </div>
-      </div>
-      <nav className="flex flex-col gap-0.5 p-2">
-        {NAV_ITEMS.map((item) => {
-          const active =
-            item.href === "/dashboard"
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-                active
-                  ? "bg-muted font-medium text-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4" aria-hidden />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+    <aside className="p-sidebar">
+      <SidebarContent pathname={pathname} />
     </aside>
   );
 }

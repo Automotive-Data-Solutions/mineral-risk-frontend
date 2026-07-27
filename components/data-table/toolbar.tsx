@@ -11,7 +11,7 @@ interface DataTableToolbarProps {
 
 /**
  * Thin wrapper that gives filter toolbars consistent spacing/layout above a
- * DataTable. The first child group is the filter controls; ``actions`` sits on
+ * Layout wrapper for toolbar rows above ``PlatformTable``. The first child group is the filter controls; ``actions`` sits on
  * the right (e.g. "Add" or "Flag" buttons).
  */
 export function DataTableToolbar({
