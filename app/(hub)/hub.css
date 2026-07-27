@@ -301,7 +301,8 @@
 /* Entity masthead */
 .ih-entity-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
 .ih-entity-head-main { min-width: 0; }
-.ih-entity-title { font-family: var(--font-display); font-size: 40px; font-weight: 600; line-height: 1.1; letter-spacing: -0.015em; margin: 8px 0 0; color: var(--ink); text-wrap: balance; max-width: 20ch; }
+/* 2026-07-26: 20ch cap forced long regulation titles into 5-line wraps; widen and let balance do the work. */
+.ih-entity-title { font-family: var(--font-display); font-size: 40px; font-weight: 600; line-height: 1.1; letter-spacing: -0.015em; margin: 8px 0 0; color: var(--ink); text-wrap: balance; max-width: 34ch; }
 .ih-entity-sub { font-family: var(--font-display); font-style: italic; font-size: 16px; color: var(--ink-muted); margin-top: 8px; }
 .ih-entity-facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 18px; }
 .ih-fact { display: flex; flex-direction: column; gap: 2px; }
@@ -314,6 +315,14 @@
 .ih-entity-lede { font-family: var(--font-display); font-size: 19px; line-height: 1.55; color: var(--ink); font-weight: 400; margin: 0 0 16px; text-wrap: pretty; }
 .ih-entity-intro p:last-child { margin-bottom: 0; }
 .ih-entity-body { font-family: var(--font-body); font-size: 15px; line-height: 1.65; color: var(--ink); margin: 0 0 14px; text-wrap: pretty; }
+
+/* Regulation further-reading source list (workbook editorial, 2026-07-26) */
+.ih-further-reading { list-style: none; margin: 0; padding: 0; }
+.ih-further-reading-item { font-family: var(--font-body); font-size: 14px; line-height: 1.6; padding: 7px 0; border-bottom: 1px solid var(--rule); }
+.ih-further-reading-item:last-child { border-bottom: none; }
+.ih-further-reading-link { color: var(--terracotta); text-decoration: none; border-bottom: 1px solid color-mix(in srgb, var(--terracotta) 35%, transparent); }
+.ih-further-reading-link:hover { border-bottom-color: var(--terracotta); }
+.ih-further-reading-pub { color: var(--ink-muted); font-size: 13px; }
 
 /* Single-column detail layout (informative-first: no sidebar) */
 .ih-entity-single-col { display: flex; flex-direction: column; gap: 36px; margin-top: 24px; }

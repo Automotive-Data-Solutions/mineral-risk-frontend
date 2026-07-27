@@ -21,6 +21,16 @@ import { TimelineStrip } from "@/components/hub/entity/TimelineStrip";
 import { IntroBlocks } from "@/components/hub/entity/IntroBlocks";
 import { Footer } from "@/components/hub/Footer";
 import { getPublicRegulation, type PublicRegulationDetail } from "@/lib/api/entities";
+import { SubscribeBox } from "@/components/hub/SubscribeBox";
+
+// Workbook editorial sections, rendered in this order (2026-07-26).
+const EDITORIAL_SECTIONS: [key: string, title: string][] = [
+  ["what_it_requires", "What it requires"],
+  ["who_must_comply", "Who must comply"],
+  ["materials_and_origins", "Materials & origins"],
+  ["key_dates", "Key dates"],
+  ["why_it_matters", "Why it matters"],
+];
 
 export default function RegulationDetailPage() {
   const params = useParams<{ regulation_key: string }>();
@@ -55,8 +65,9 @@ export default function RegulationDetailPage() {
     );
   }
 
+  // 2026-07-26 (Nicole): internal regulation_key removed from the public
+  // fact row — it's a slug, not information a reader needs.
   const facts = [
-    { label: "Key", value: reg.regulation_key, mono: true },
     ...(reg.geography ? [{ label: "Geography", value: reg.geography, mono: false }] : []),
     ...(reg.theme ? [{ label: "Theme", value: reg.theme, mono: false }] : []),
     ...(reg.status ? [{ label: "Status", value: reg.status, mono: false }] : []),
@@ -81,12 +92,23 @@ export default function RegulationDetailPage() {
           facts={facts}
         />
 
-        <IntroBlocks text={reg.summary} />
+        <IntroBlocks text={reg.editorial?.standfirst ?? reg.summary} />
 
-        <div className="ih-entity-single-col">
+        <div className="ih-entity-grid">
+          <div className="ih-entity-col">
           <Section title="Status & key dates">
             <TimelineStrip nodes={reg.timeline} />
           </Section>
+
+          {EDITORIAL_SECTIONS.map(([key, title]) => {
+            const text = reg.editorial?.sections?.[key];
+            if (!text) return null;
+            return (
+              <Section key={key} title={title}>
+                <p className="ih-entity-body">{text}</p>
+              </Section>
+            );
+          })}
 
           {reg.materials_scope.length || reg.geographies_scope.length ? (
             <Section title="Scope">
@@ -105,7 +127,29 @@ export default function RegulationDetailPage() {
             </Section>
           ) : null}
 
-          {reg.source_url ? (
+          {reg.editorial?.further_reading?.length ? (
+            <Section title="Further reading">
+              <ul className="ih-further-reading">
+                {reg.editorial.further_reading.map((fr, i) => (
+                  <li key={i} className="ih-further-reading-item">
+                    <a
+                      className="ih-further-reading-link"
+                      href={fr.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {fr.title}
+                    </a>
+                    {fr.publisher ? (
+                      <span className="ih-further-reading-pub">
+                        {" "}— {fr.publisher}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          ) : reg.source_url ? (
             <Section title="Source">
               <a
                 className="ih-cta ih-cta-inline"
@@ -117,6 +161,19 @@ export default function RegulationDetailPage() {
               </a>
             </Section>
           ) : null}
+          </div>
+
+          <aside className="ih-entity-aside-col">
+            <div className="ih-aside-block">
+              <div className="ih-eyebrow">On this regulation</div>
+              <p className="ih-aside-note">
+                Status, scope, and analysis are curated from primary sources —
+                see Further reading for the underlying texts.
+              </p>
+            </div>
+
+            <SubscribeBox className="ih-aside-subscribe" />
+          </aside>
         </div>
 
         <LinkedPostsSection posts={reg.linked_posts} />

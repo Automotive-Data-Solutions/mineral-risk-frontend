@@ -75,30 +75,86 @@ export async function POST(req: NextRequest) {
   }
 
   // 2) Welcome email (best-effort — the subscription already succeeded).
+  // Wine+Stone welcome template (2026-07-26). Email-client-safe: table
+  // layout, fully inlined styles, Georgia stack, no webfonts or images.
+  // SITE_URL: set NEXT_PUBLIC_SITE_URL in env; falls back to the hub path.
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://mineralriskanalytics.com";
   const what = company
-    ? `updates whenever new intelligence tags <strong>${escapeHtml(company)}</strong>`
-    : "the monthly intelligence digest — new analysis, signals, and reports";
+    ? `updates whenever new intelligence tags <strong style="color:#4A1419">${escapeHtml(company)}</strong>`
+    : "one monthly digest — the analysis, signals, and reports that mattered across battery mineral supply chains";
   const subject = company
     ? `You’re tracking ${company} — Mineral Risk Analytics`
-    : "You’re subscribed — Mineral Risk Analytics";
-  const html = `
-    <div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;color:#2E0E0E">
-      <div style="height:4px;background:linear-gradient(to right,#2E0E0E,#5C1A1A,#F0D4C4,#C8623A);border-radius:2px"></div>
-      <h1 style="font-size:20px;margin:24px 0 8px">Mineral Risk Analytics</h1>
-      <p style="font-size:15px;line-height:1.6;color:#4A1419">
-        You’re on the list. You’ll receive ${what}.
-      </p>
-      <p style="font-size:13px;line-height:1.6;color:#6B544D;margin-top:20px">
-        If this wasn’t you, ignore this email and you won’t be contacted again.
-      </p>
-    </div>`;
+    : "Welcome to Mineral Risk Analytics";
+  const preheader = company
+    ? `We’ll email you when new intelligence tags ${company}.`
+    : "One email a month on battery mineral supply-chain risk. No noise.";
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<body style="margin:0;padding:0;background-color:#FAF3EC">
+  <div style="display:none;max-height:0;overflow:hidden">${escapeHtml(preheader)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#FAF3EC">
+    <tr><td align="center" style="padding:32px 16px">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%">
+        <tr><td style="padding:0 8px 14px">
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:12px;letter-spacing:0.16em;color:#9E7B72;text-transform:uppercase">Mineral Risk Analytics</div>
+        </td></tr>
+        <tr><td style="height:3px;background-color:#4A1419;font-size:0;line-height:0">&nbsp;</td></tr>
+        <tr><td style="background-color:#FFFFFF;border:1px solid #E5D4C5;border-top:none;padding:36px 40px">
+          <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.25;font-weight:600;color:#4A1419;margin:0 0 16px">You’re on the list.</h1>
+          <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#4A1419;margin:0 0 16px">
+            Thanks for subscribing. You’ll receive ${what}.
+          </p>
+          <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:1.65;color:#4A1419;margin:0 0 28px">
+            We track the materials that move the battery economy — cobalt, lithium, graphite, nickel, rare earths and beyond — scoring where supply concentrates, what governments are doing about it, and what it means for anyone sourcing them.
+          </p>
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="background-color:#C8623A;border-radius:4px">
+              <a href="${site}/intelligence" style="display:inline-block;font-family:Georgia,'Times New Roman',serif;font-size:15px;color:#FFFFFF;text-decoration:none;padding:12px 22px">Explore the Intelligence Hub &rarr;</a>
+            </td>
+          </tr></table>
+        </td></tr>
+        <tr><td style="padding:20px 8px 0">
+          <p style="font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:1.6;color:#9E7B72;margin:0">
+            You’re receiving this because this address was subscribed at ${site.replace(/^https?:\/\//, "")}. If this wasn’t you, ignore this email and you won’t be contacted again.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
+  // Prefer the Resend-hosted template when configured (Templates feature,
+  // 2026): set RESEND_WELCOME_TEMPLATE_ID to the published template's id or
+  // alias. The template declares one variable, WHAT_LINE (string, with a
+  // digest-copy fallback). If the template send fails for any reason we
+  // fall back to the inline HTML above — the subscriber never notices.
+  const templateId = process.env.RESEND_WELCOME_TEMPLATE_ID;
+  const whatLine = company
+    ? `updates whenever new intelligence tags ${escapeHtml(company)}`
+    : "one monthly digest — the analysis, signals, and reports that mattered across battery mineral supply chains";
   try {
-    await fetch(`${RESEND}/emails`, {
-      method: "POST",
-      headers: auth,
-      body: JSON.stringify({ from, to: email, subject, html }),
-    });
+    let sent = false;
+    if (templateId) {
+      const tRes = await fetch(`${RESEND}/emails`, {
+        method: "POST",
+        headers: auth,
+        body: JSON.stringify({
+          from,
+          to: email,
+          subject,
+          template: { id: templateId, variables: { WHAT_LINE: whatLine } },
+        }),
+      });
+      sent = tRes.ok;
+    }
+    if (!sent) {
+      await fetch(`${RESEND}/emails`, {
+        method: "POST",
+        headers: auth,
+        body: JSON.stringify({ from, to: email, subject, html }),
+      });
+    }
   } catch {
     /* subscription is saved; welcome email is secondary */
   }

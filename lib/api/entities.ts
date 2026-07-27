@@ -139,6 +139,20 @@ export interface ComplianceWeightOut {
   weight: number;
 }
 
+export interface FurtherReadingOut {
+  title: string;
+  publisher: string;
+  url: string;
+}
+
+// Workbook-curated editorial block (Editorial / FurtherReading sheets,
+// 2026-07-23). Section keys render in EDITORIAL_SECTION_ORDER.
+export interface EditorialOut {
+  standfirst: string | null;
+  sections: Record<string, string>;
+  further_reading: FurtherReadingOut[];
+}
+
 export interface PublicRegulationDetail {
   regulation_key: string;
   title: string | null;
@@ -148,6 +162,7 @@ export interface PublicRegulationDetail {
   status: string | null;
   status_level: string | null;
   summary: string | null;
+  editorial: EditorialOut | null;
   timeline: TimelineNodeOut[];
   materials_scope: MaterialScopeOut[];
   geographies_scope: GeographyScopeOut[];

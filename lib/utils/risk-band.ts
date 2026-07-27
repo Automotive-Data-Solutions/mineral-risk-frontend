@@ -10,9 +10,13 @@ import type { RiskBand } from "@/lib/types";
  * will disagree about whether a score is HIGH or MOD.
  *
  *   0–24   LOW    green   (measured, diversified)
- *   25–44  MOD    amber   (real exposure, mitigated/diversified)
- *   45–59  HIGH   orange  (severe chokepoint on at least one stage)
- *   60–100 CRIT   red     (extreme concentration + weaponization exposure)
+ *   30–49  MOD    amber   (real exposure, mitigated/diversified)
+ *   50–64  HIGH   orange  (severe chokepoint on at least one stage)
+ *   65–100 CRIT   red     (extreme concentration + weaponization exposure)
+ *
+ * 2026-07-26: recalibrated 25/45/60 → 30/50/65 for the 4.3 methodology
+ * level shift (avg→max geopolitical + obligation soft-cap). Keep in
+ * lockstep with app/services/scoring/bands.py on the engine.
  *
  * Fixed absolute cuts (Verisk-style categories, not percentiles): a
  * material's band never changes because another material moved.
@@ -25,9 +29,9 @@ import type { RiskBand } from "@/lib/types";
  */
 export function scoreToBand(score: number | null | undefined): RiskBand | null {
   if (score == null || Number.isNaN(score)) return null;
-  if (score < 25) return "LOW";
-  if (score < 45) return "MOD";
-  if (score < 60) return "HIGH";
+  if (score < 30) return "LOW";
+  if (score < 50) return "MOD";
+  if (score < 65) return "HIGH";
   return "CRIT";
 }
 
