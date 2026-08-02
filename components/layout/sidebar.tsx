@@ -68,10 +68,10 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: "Intelligence",
     items: [
+      { href: "/data/risk-events", label: "Risk Events", icon: ICONS.AlertTriangle },
       { href: "/data/regulations", label: "Regulations", icon: ICONS.Scale },
       // Other intelligence pages remain commented until they ship:
       // { href: "/data/market-scores", label: "Market Scores", icon: ICONS.BarChart3 },
-      // { href: "/data/risk-events",   label: "Risk Events",   icon: ICONS.AlertTriangle },
     ],
   },
   // {
