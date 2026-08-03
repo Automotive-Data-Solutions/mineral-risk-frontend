@@ -26,7 +26,7 @@ export const PILLARS: Record<string, PillarMeta> = {
     cssVar: "--p-pillar-material",
   },
   geopolitical_trade: {
-    label: "Geopolitical / trade",
+    label: "Geopolitical trade",
     short: "Geo",
     cssVar: "--p-pillar-geo",
   },
@@ -47,12 +47,26 @@ export const PILLARS: Record<string, PillarMeta> = {
   },
 };
 
+/** Display order for read-only lists (filters, "pillars affected"). */
 export const PILLAR_ORDER = [
   "material_concentration",
   "geopolitical_trade",
   "regulatory_compliance",
   "operational",
   "financial_pressure",
+] as const;
+
+/** Order used when ASSIGNING the single scoring pillar. This is the engine's
+ *  own precedence, not the display order — the pillar the engine would pick
+ *  by default has to be visible first, or the triager reads the selector as an
+ *  arbitrary list and loses the "this is what the machine would have done"
+ *  signal. Mirrors PRIMARY_CATEGORY_PRECEDENCE in the design system. */
+export const PRIMARY_CATEGORY_PRECEDENCE = [
+  "operational",
+  "geopolitical_trade",
+  "regulatory_compliance",
+  "financial_pressure",
+  "material_concentration",
 ] as const;
 
 export function pillarMeta(slug: string): PillarMeta {

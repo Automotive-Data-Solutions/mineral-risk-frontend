@@ -16,6 +16,18 @@ export type TriageStatus =
 
 export type LinkStatus = "suggested" | "confirmed" | "rejected";
 
+/** Entity kind a link points at.  Only ``material`` is triageable today —
+ *  migration 066 added a ``status`` column to ``risk_event_materials`` alone,
+ *  so company / facility / regulation links have nowhere to record a triage
+ *  decision.  The backend already emits the discriminator so the drawer can
+ *  group links by kind without guessing. */
+export type LinkKind =
+  | "material"
+  | "company"
+  | "facility"
+  | "regulation"
+  | "geography";
+
 export interface TriageLink {
   id: number;
   material_id: number;
@@ -24,6 +36,18 @@ export interface TriageLink {
   match_reason: string | null;
   relevance_score: number | null;
   is_direct: boolean;
+  kind: LinkKind;
+}
+
+/** A data-quality note filed against an event.  Stored in
+ *  ``metadata_json["flags"]``; ``id`` is synthesised backend-side because the
+ *  notes have no row identity of their own. */
+export interface TriageFlag {
+  id: string;
+  note_type: string;
+  note_text: string;
+  author: string | null;
+  created_at: string | null;
 }
 
 export interface TriageEvent {
@@ -49,6 +73,21 @@ export interface TriageEvent {
   quality_defects: string[];
   flags_count: number;
   links: TriageLink[];
+  /** All pillars the engine attributed, not just the primary. */
+  risk_categories: string[];
+  /** Primary geography first, then secondaries, de-duplicated in order. */
+  geography_codes: string[];
+  /** Code → display name, resolved against the backend's `countries` table
+   *  and covering only the codes it recognises. Prefer this over
+   *  `Intl.DisplayNames`: these codes are whatever `countries.iso2` holds,
+   *  which admits bloc identifiers and other non-ISO rows that Intl echoes
+   *  back unchanged. A missing key means "not in the reference table" — show
+   *  the bare code. */
+  geography_names: Record<string, string>;
+  /** Served by the backend rather than inferred client-side: the page used to
+   *  carry its own copy of the positive-subtype set, which had drifted. */
+  is_positive: boolean;
+  flags: TriageFlag[];
 }
 
 export interface TriageEventList {
@@ -64,6 +103,27 @@ export interface TriageSummary {
   display_only: number;
   rejected: number;
   total: number;
+}
+
+export interface MaterialCoverageItem {
+  material_id: number;
+  name: string;
+  is_launch_list: boolean;
+  /** Direct, confirmed links on live events inside the window. */
+  confirmed: number;
+  /** Direct, still-suggested links — in the queue, contributing nothing yet. */
+  pending: number;
+}
+
+export interface MaterialCoverage {
+  window_days: number;
+  /** The thin-events bar. Served by the backend (it is the dashboard's
+   *  coverage-gaps threshold) so the tracker can never disagree with the
+   *  dashboard about what "thin" means. */
+  target: number;
+  /** Every material, including all-zero rows — "no signal at all" is a state
+   *  the tracker renders, not an omission. */
+  items: MaterialCoverageItem[];
 }
 
 export interface OperationalSubtype {
@@ -89,14 +149,27 @@ export interface TriageListParams {
   event_type?: string;
   severity_min?: number;
   material?: string;
+  /** Exactly one defect code. */
   defect?: string;
+  /** Any defect at all — orthogonal to ``defect``, both may be sent. */
+  has_defects?: boolean;
+  /** Only events carrying at least one data-quality note. */
+  flagged?: boolean;
   sort?: "event_date" | "severity_score" | "triage_status";
+  sort_dir?: "asc" | "desc";
 }
 
 const BASE = "/api/v1/triage";
 
 export async function getTriageSummary(client: ApiClient): Promise<TriageSummary> {
   const { data } = await client.get<TriageSummary>(`${BASE}/summary`);
+  return data;
+}
+
+export async function getMaterialCoverage(
+  client: ApiClient,
+): Promise<MaterialCoverage> {
+  const { data } = await client.get<MaterialCoverage>(`${BASE}/coverage`);
   return data;
 }
 

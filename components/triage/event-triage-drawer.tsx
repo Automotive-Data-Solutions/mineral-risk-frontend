@@ -15,13 +15,20 @@
  * `disallowScoring` from the event subtype and passes it down).
  */
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import {
   CheckCircle2,
   Copy,
   ExternalLink,
   Flag,
   Lock,
+  Plus,
   Unlink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,19 +41,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SideSheet, SideSheetContent } from "@/components/ui/side-sheet";
+import { CountrySharePill } from "@/components/shared/country-share-pill";
 import { EventStatusBadge } from "@/components/triage/event-status-badge";
 import { TriageStatusControl } from "@/components/triage/triage-status-control";
 import { SuggestedLinkRow } from "@/components/triage/suggested-link-row";
 import { QualityDefectChips } from "@/components/triage/quality-defect-chips";
+import { MaterialPicker } from "@/components/triage/material-picker";
+import { ConfidenceChip, SeverityChip } from "@/components/triage/score-chips";
 import {
-  PILLAR_ORDER,
+  PRIMARY_CATEGORY_PRECEDENCE,
   PillarChip,
   pillarMeta,
 } from "@/components/triage/category-cell";
 import {
+  addMaterialLink,
   flagEvent,
   getDuplicateHints,
   type DuplicateHints,
+  type LinkKind,
   type LinkStatus,
   type TriageEvent,
   type TriageStatus,
@@ -71,81 +83,9 @@ const microLabel: CSSProperties = {
   color: "var(--p-text-faint)",
 };
 
-function SeverityChip({ score }: { score: number | null }) {
-  if (score == null) {
-    return (
-      <span
-        style={{ fontSize: "var(--p-text-xs, 12px)", color: "var(--p-text-faint)" }}
-      >
-        —
-      </span>
-    );
-  }
-  const band =
-    score >= 0.7
-      ? {
-          background: "var(--p-risk-high-soft)",
-          color: "#9A3412",
-          border: "rgba(234, 88, 12, 0.3)",
-        }
-      : score >= 0.5
-        ? {
-            background: "var(--p-risk-mod-soft)",
-            color: "#92400E",
-            border: "rgba(217, 119, 6, 0.3)",
-          }
-        : {
-            background: "var(--p-risk-low-soft)",
-            color: "#065F46",
-            border: "rgba(5, 150, 105, 0.3)",
-          };
-  return (
-    <span
-      title={"Severity " + Math.round(score * 100) + " / 100 — machine-assigned"}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        height: "var(--p-badge-h, 20px)",
-        padding: "0 7px",
-        borderRadius: 3,
-        fontSize: "var(--p-text-2xs, 11px)",
-        fontWeight: 600,
-        fontVariantNumeric: "tabular-nums",
-        lineHeight: 1,
-        background: band.background,
-        color: band.color,
-        border: "1px solid " + band.border,
-      }}
-    >
-      {Math.round(score * 100)}
-    </span>
-  );
-}
-
-function ConfidenceBadge({ value }: { value: number | null }) {
-  if (value == null) return null;
-  return (
-    <span
-      title="Machine confidence in the extraction"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        height: "var(--p-badge-h, 20px)",
-        padding: "0 7px",
-        borderRadius: 3,
-        border: "1px solid var(--p-border)",
-        background: "var(--p-card)",
-        fontFamily: "var(--p-font-mono)",
-        fontSize: "var(--p-text-2xs, 11px)",
-        fontVariantNumeric: "tabular-nums",
-        color: "var(--p-text-muted)",
-        lineHeight: 1,
-      }}
-    >
-      {Math.round(value * 100)}%
-    </span>
-  );
-}
+/* SeverityChip / ConfidenceChip now come from components/triage/score-chips.
+   Local copies lived here with a 3-band ramp at 0.7 / 0.5 that matched neither
+   the design system nor the page's own copy of the same widget. */
 
 function Banner({ children }: { children: ReactNode }) {
   return (
@@ -234,14 +174,26 @@ function ProvenanceRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-/** Assigns the ONE pillar an event scores in (`primary_category`). */
+/** Assigns the ONE pillar an event scores in (`primary_category`).
+ *
+ *  Options are ordered by the engine's own precedence, not by the display
+ *  order used elsewhere, so the pillar the machine would have chosen by
+ *  default sits first.
+ *
+ *  The trailing "Display only" option is the null case. There is no such thing
+ *  as an event that scores in no pillar: dropping the pillar IS the
+ *  display-only decision, so that option moves triage_status rather than
+ *  clearing primary_category — the backend has no way to record the latter.
+ */
 function PillarSelect({
   value,
   onChange,
+  onNone,
   disabled,
 }: {
   value: string | null;
   onChange: (next: string) => void;
+  onNone: () => void;
   disabled?: boolean;
 }) {
   return (
@@ -250,7 +202,7 @@ function PillarSelect({
       aria-label="Primary scoring pillar"
       style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
     >
-      {PILLAR_ORDER.map((p) => {
+      {PRIMARY_CATEGORY_PRECEDENCE.map((p) => {
         const d = pillarMeta(p);
         const on = value === p;
         const color = d.cssVar ? "var(" + d.cssVar + ")" : "var(--p-text-muted)";
@@ -301,9 +253,76 @@ function PillarSelect({
           </button>
         );
       })}
+      <button
+        type="button"
+        role="radio"
+        aria-checked={value == null}
+        disabled={disabled}
+        onClick={onNone}
+        title="Display only — stays in the feed, but no pillar scores from it"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          height: 26,
+          padding: "0 9px",
+          borderRadius: "var(--p-radius-md)",
+          borderWidth: 1,
+          borderStyle: value == null ? "solid" : "dashed",
+          borderColor: value == null ? "var(--p-text-muted)" : "var(--p-border)",
+          background: value == null ? "var(--p-bg-muted)" : "var(--p-card)",
+          color: value == null ? "var(--p-text)" : "var(--p-text-faint)",
+          fontFamily: "var(--p-font-sans)",
+          fontSize: "var(--p-text-2xs, 11px)",
+          fontWeight: value == null ? 600 : 500,
+          whiteSpace: "nowrap",
+          cursor: disabled ? "default" : "pointer",
+          opacity: disabled ? 0.5 : 1,
+          transition:
+            "background var(--p-dur, 120ms) var(--p-ease, ease), border-color var(--p-dur, 120ms) var(--p-ease, ease), color var(--p-dur, 120ms) var(--p-ease, ease)",
+        }}
+      >
+        None
+      </button>
     </div>
   );
 }
+
+/** Links grouped by the entity kind they point at, as in the wireframe.
+ *  Renders nothing when the group is empty — an "Companies (0)" heading on
+ *  every event would be noise. */
+function LinkGroup({
+  title,
+  links,
+  pending,
+  onSetStatus,
+}: {
+  title: string;
+  links: TriageEvent["links"];
+  pending?: boolean;
+  onSetStatus: (linkId: number, next: LinkStatus) => void;
+}) {
+  if (!links.length) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span style={microLabel}>{title}</span>
+      {links.map((l) => (
+        <SuggestedLinkRow
+          key={l.id}
+          link={l}
+          pending={pending}
+          onSetStatus={onSetStatus}
+        />
+      ))}
+    </div>
+  );
+}
+
+const LINK_GROUPS: Array<{ kind: LinkKind; title: string }> = [
+  { kind: "material", title: "Materials" },
+  { kind: "company", title: "Companies" },
+  { kind: "facility", title: "Facilities" },
+  { kind: "regulation", title: "Regulations" },
+];
 
 function hintTitle(hint: Record<string, unknown>): string {
   for (const key of ["title", "canonical_title", "event_title"]) {
@@ -318,7 +337,9 @@ export interface EventTriageDrawerProps {
   open: boolean;
   event: TriageEvent | null;
   pending?: boolean;
-  /** Computed by the page from event_subtype (positive-direction events). */
+  /** Read off the event's `is_positive`, which the API serves. Positive-
+   *  direction events are excluded from risk arithmetic, so approving one
+   *  would look like a promotion and contribute nothing. */
   disallowScoring: boolean;
   onClose: () => void;
   onStatus: (id: number, next: TriageStatus) => void;
@@ -351,13 +372,31 @@ export function EventTriageDrawer({
   const [flagSubmitting, setFlagSubmitting] = useState(false);
   const [flagError, setFlagError] = useState<string | null>(null);
 
+  const [adding, setAdding] = useState(false);
+  const [attaching, setAttaching] = useState(false);
+  const [attachError, setAttachError] = useState<string | null>(null);
+
   const eventId = event?.id ?? null;
+
+  /* Every material already on the event, regardless of link status — a
+     rejected link still occupies the (event, material) pair, so re-attaching
+     it would either 409 or silently no-op. Reversing the rejection is the
+     correct move there, and the link row is still on screen to do it with. */
+  const linkedMaterialIds = useMemo(
+    () =>
+      (event?.links ?? [])
+        .filter((l) => l.kind === "material")
+        .map((l) => l.material_id),
+    [event?.links],
+  );
 
   useEffect(() => {
     setHints(null);
     setFlagOpen(false);
     setFlagText("");
     setFlagError(null);
+    setAdding(false);
+    setAttachError(null);
     if (!open || eventId == null) return;
     let cancelled = false;
     setHintsLoading(true);
@@ -390,6 +429,17 @@ export function EventTriageDrawer({
     event.triage_status === "pending_triage" &&
     suggestedLinks.length === event.links.length;
   const positive = disallowScoring;
+  /* "Accept all" promotes the event to scoring exactly as the machine proposed
+     it, so it is only offered where that transition is legal. `_apply_status`
+     refuses two cases outright with a 400: a positive-direction event, which is
+     excluded from risk arithmetic and so would be marked promoted while
+     contributing nothing, and an operational news candidate, which needs a
+     subtype and severity that only the promote dialog collects. Gating on
+     `untouched` alone put the button on both. */
+  const acceptable =
+    untouched &&
+    !positive &&
+    event.event_type !== "operational_news_candidate";
 
   const submitFlag = async () => {
     if (!flagText.trim()) return;
@@ -404,6 +454,27 @@ export function EventTriageDrawer({
       setFlagError(err instanceof Error ? err.message : "Could not file the flag");
     } finally {
       setFlagSubmitting(false);
+    }
+  };
+
+  const attachMaterial = async (materialId: number) => {
+    setAttaching(true);
+    setAttachError(null);
+    try {
+      await addMaterialLink(api, event.id, materialId);
+      setAdding(false);
+      // A hand-attached link is created already confirmed (status 'confirmed',
+      // match_reason 'triage_attach') — an analyst picking a material *is* the
+      // confirmation, so it lands in the confirmed group, not the suggested
+      // one. Refetching is what puts it on screen, so reuse the same refresh
+      // hook the flag dialog uses.
+      onFlagged?.();
+    } catch (err: unknown) {
+      setAttachError(
+        err instanceof Error ? err.message : "Could not attach that material",
+      );
+    } finally {
+      setAttaching(false);
     }
   };
 
@@ -479,7 +550,7 @@ export function EventTriageDrawer({
               </span>
               <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                 <SeverityChip score={event.severity_score} />
-                <ConfidenceBadge value={event.confidence_score} />
+                <ConfidenceChip score={event.confidence_score} />
               </span>
             </div>
           </div>
@@ -517,9 +588,14 @@ export function EventTriageDrawer({
           {untouched && (
             <div style={{ padding: "0 24px 16px" }}>
               <Banner>
-                Everything below is a machine suggestion. Accept it wholesale,
-                or correct the pillar and links first — nothing here scores
-                until you do.
+                {/* The wholesale half of this sentence only holds where the
+                    Accept-all button is actually offered; on a positive event
+                    or a news candidate it would point at a control that is not
+                    there. */}
+                Everything below is a machine suggestion.{" "}
+                {acceptable
+                  ? "Accept it wholesale, or correct the pillar and links first — nothing here scores until you do."
+                  : "Correct the pillar and links, then make the call below — nothing here scores until you do."}
               </Banner>
             </div>
           )}
@@ -550,7 +626,7 @@ export function EventTriageDrawer({
               }}
             >
               <h3 style={sectionLabel}>Triage decision</h3>
-              {untouched && (
+              {acceptable && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -594,6 +670,7 @@ export function EventTriageDrawer({
                   value={event.primary_category}
                   disabled={pending}
                   onChange={(next) => onCategory(event.id, next)}
+                  onNone={() => onStatus(event.id, "display_only")}
                 />
                 <p
                   style={{
@@ -694,32 +771,118 @@ export function EventTriageDrawer({
             {event.links.length === 0 ? (
               <p
                 style={{
-                  margin: 0,
+                  margin: "0 0 8px",
                   fontSize: "var(--p-text-xs, 12px)",
                   fontStyle: "italic",
                   color: "var(--p-text-muted)",
                 }}
               >
-                No links suggested. Triage this event to display-only — an
-                event can be worth showing without mapping to a specific
-                material.
+                No links suggested. Attach a material below, or triage this
+                event to display-only — an event can be worth showing without
+                mapping to a specific material.
               </p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {event.links.map((l) => (
-                  <SuggestedLinkRow
-                    key={l.id}
-                    link={l}
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {LINK_GROUPS.map((g) => (
+                  <LinkGroup
+                    key={g.kind}
+                    title={g.title}
+                    links={event.links.filter((l) => l.kind === g.kind)}
                     pending={pending}
                     onSetStatus={onLinkStatus}
                   />
                 ))}
               </div>
             )}
-            {/* Add-material-link input deferred in triage v1: addMaterialLink()
-                requires a material_id, and the drawer has no materials lookup
-                to resolve a typed name against. Reintroduce alongside a
-                materials picker. */}
+
+            {/* The add control sits OUTSIDE the empty-state branch on purpose.
+                It used to be absent entirely, which meant an event with no
+                suggested link offered no way to create one — exactly the case
+                where attaching one by hand matters most. */}
+            {adding ? (
+              <div
+                style={{
+                  marginTop: 10,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <MaterialPicker
+                  client={api}
+                  excludeIds={linkedMaterialIds}
+                  disabled={attaching || pending}
+                  onPick={(m) => void attachMaterial(m.id)}
+                />
+                {attachError && (
+                  <span style={{ fontSize: 10.5, color: "var(--p-risk-crit)" }}>
+                    {attachError}
+                  </span>
+                )}
+                <div style={{ display: "flex", gap: 6 }}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={attaching}
+                    onClick={() => {
+                      setAdding(false);
+                      setAttachError(null);
+                    }}
+                  >
+                    {attaching ? "Attaching…" : "Cancel"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                style={{ marginTop: 8 }}
+                disabled={pending}
+                onClick={() => setAdding(true)}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add material link
+              </Button>
+            )}
+
+            {event.geography_codes.length > 0 && (
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={microLabel}>Geography</span>
+                {/* This was a bespoke mono chip that showed the bare code and
+                    nothing else — hovering it said "Primary geography" but
+                    never what the country actually was, so an operator had to
+                    already know the ISO table to read the row. CountrySharePill
+                    is the pill every other geography surface in the app uses
+                    (materials, material detail, dashboard KPI, market scores):
+                    flag, code, and the full name on hover. The primary /
+                    secondary distinction that the old chip carried in its
+                    border weight moves into the tooltip, where it is stated
+                    rather than implied. */}
+                <span style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                  {event.geography_codes.map((c, i) => (
+                    <CountrySharePill
+                      key={c}
+                      code={c}
+                      name={event.geography_names?.[c]}
+                      note={
+                        i === 0
+                          ? "Primary geography"
+                          : "Also affected — recorded as a secondary geography"
+                      }
+                    />
+                  ))}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* ── Locked in v1 ── */}
@@ -756,8 +919,23 @@ export function EventTriageDrawer({
             />
             <LockedField
               label="Confidence"
-              value={<ConfidenceBadge value={event.confidence_score} />}
+              value={<ConfidenceChip score={event.confidence_score} />}
               why="Locked in triage v1 — deferred deliberately. Confidence is machine-assigned."
+            />
+            <LockedField
+              label="Pillars affected"
+              value={
+                event.risk_categories.length ? (
+                  <span style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {event.risk_categories.map((p) => (
+                      <PillarChip key={p} pillar={p} />
+                    ))}
+                  </span>
+                ) : (
+                  <span style={{ color: "var(--p-text-faint)" }}>—</span>
+                )
+              }
+              why="The set of pillars an event touches is derived at ingest; only the single scoring pillar is a triage decision."
             />
             <LockedField
               label="Relevance weights"
@@ -817,9 +995,38 @@ export function EventTriageDrawer({
                 )
               }
             />
+            {/* The provenance block records what the machine assigned, so it
+                shows the code the resolver actually wrote — but a bare code
+                alone is unreadable to anyone who does not already know the ISO
+                table, which is the same complaint the chips above answered.
+                Name first, code after in mono, and the code alone when the
+                reference table has no row for it (rendering a name we do not
+                have would be worse than showing the raw value). */}
             <ProvenanceRow
               label="Geography"
-              value={event.geography_primary || "—"}
+              value={
+                event.geography_primary ? (
+                  <span
+                    style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}
+                  >
+                    {event.geography_names?.[event.geography_primary] && (
+                      <span>{event.geography_names[event.geography_primary]}</span>
+                    )}
+                    <span
+                      style={{
+                        fontFamily: "var(--p-font-mono)",
+                        color: event.geography_names?.[event.geography_primary]
+                          ? "var(--p-text-muted)"
+                          : "var(--p-text)",
+                      }}
+                    >
+                      {event.geography_primary}
+                    </span>
+                  </span>
+                ) : (
+                  "—"
+                )
+              }
             />
             <ProvenanceRow
               label="Event date"
@@ -914,34 +1121,124 @@ export function EventTriageDrawer({
             )}
           </div>
 
-          {/* ── Footer ── */}
-          <div
-            style={{
-              marginTop: "auto",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 8,
-              borderTop: "1px solid var(--p-border)",
-              padding: "12px 24px",
-            }}
-          >
-            <Button variant="ghost" size="sm" onClick={() => setFlagOpen(true)}>
-              <Flag className="h-3.5 w-3.5" />
-              Flag issue
-            </Button>
-            {event.flags_count > 0 && (
-              <span
+          {/* ── Data-quality notes ──
+             Notes used to be write-only: the drawer could file one and the
+             footer showed a count, but nothing ever rendered the text back.
+             The backend now serves them on the event (TriageFlagRead), so the
+             "Flag issue" control lives here, next to what it produces, rather
+             than in the footer. */}
+          <div style={{ padding: "0 24px 20px" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "baseline",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 8,
+              }}
+            >
+              <h3 style={sectionLabel}>Data-quality notes</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFlagOpen(true)}
+              >
+                <Flag className="h-3.5 w-3.5" />
+                Flag issue
+              </Button>
+            </div>
+            {event.flags.length === 0 ? (
+              <p
                 style={{
+                  margin: 0,
                   fontSize: "var(--p-text-xs, 12px)",
-                  color: "var(--p-risk-crit)",
+                  fontStyle: "italic",
+                  color: "var(--p-text-muted)",
                 }}
               >
-                {event.flags_count} open data-quality note
-                {event.flags_count === 1 ? "" : "s"}
-              </span>
+                No notes on this event.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {event.flags.map((n) => (
+                  <div
+                    key={n.id}
+                    style={{
+                      borderRadius: "var(--p-radius-md, 6px)",
+                      border: "1px solid rgba(225, 29, 72, 0.2)",
+                      background: "var(--p-risk-crit-soft)",
+                      padding: "10px 12px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "baseline",
+                        gap: 8,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 9.5,
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          color: "#9F1239",
+                        }}
+                      >
+                        {humanize(n.note_type)}
+                      </span>
+                      <span
+                        style={{
+                          marginLeft: "auto",
+                          fontSize: 10,
+                          color: "#9F1239",
+                          opacity: 0.75,
+                        }}
+                      >
+                        {/* Both fields are nullable in the API — a note filed by
+                           an automated check has no author, and older rows
+                           predate the timestamp. Drop the separator rather than
+                           printing "null · null". */}
+                        {[n.author, n.created_at ? formatDate(n.created_at) : null]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </div>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "var(--p-text-xs, 12px)",
+                        lineHeight: 1.5,
+                        color: "#881337",
+                      }}
+                    >
+                      {n.note_text}
+                    </p>
+                  </div>
+                ))}
+              </div>
             )}
-            {event.triage_status === "scoring" && (
+          </div>
+
+          {/* ── Footer ──
+             Only rendered when there is something to say. With "Flag issue"
+             moved up into the notes section the footer would otherwise be a
+             bare rule across the bottom of the sheet on every non-approved
+             event. */}
+          {event.triage_status === "scoring" && (
+            <div
+              style={{
+                marginTop: "auto",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: 8,
+                borderTop: "1px solid var(--p-border)",
+                padding: "12px 24px",
+              }}
+            >
               <span
                 title="Approving an event marks it verified in the same write — operational scoring reads this flag"
                 style={{
@@ -956,8 +1253,8 @@ export function EventTriageDrawer({
                 <CheckCircle2 size={13} strokeWidth={2.25} /> Verified on
                 approval
               </span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </SideSheetContent>
 

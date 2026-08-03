@@ -32,7 +32,11 @@ export function QualityDefectChips({ defects }: { defects: string[] }) {
       {defects.map((d) => (
         <span
           key={d}
-          title={humanizeDefect(d)}
+          /* The hint goes in `title` (the hover surface) and the visible label
+             is what the screen reader gets. These were the other way round:
+             hovering repeated the label already on screen, and the one piece
+             of explanatory text was reachable only by assistive tech. */
+          title={DEFECT_HINTS[d] ?? humanizeDefect(d)}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -49,7 +53,6 @@ export function QualityDefectChips({ defects }: { defects: string[] }) {
             lineHeight: 1,
             cursor: "help",
           }}
-          aria-label={DEFECT_HINTS[d] ?? humanizeDefect(d)}
         >
           <AlertTriangle size={9} strokeWidth={2.25} />
           {humanizeDefect(d)}

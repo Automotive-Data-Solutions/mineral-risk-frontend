@@ -18,8 +18,9 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import type { ColumnDef, SortingState } from "@tanstack/react-table";
-import { CheckCircle2, Inbox, Search, X } from "lucide-react";
+import { Flag, Inbox, Search, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,8 @@ import { EventTriageDrawer } from "@/components/triage/event-triage-drawer";
 import { LinksCell } from "@/components/triage/links-cell";
 import { PromoteOperationalDialog } from "@/components/triage/promote-operational-dialog";
 import { QualityDefectChips } from "@/components/triage/quality-defect-chips";
+import { SeverityChip } from "@/components/triage/score-chips";
+import { MaterialCoverageCard } from "@/components/triage/material-coverage-card";
 import { QueueSummaryCard } from "@/components/triage/queue-summary-card";
 import { TriageStatusControl } from "@/components/triage/triage-status-control";
 import {
@@ -53,27 +56,28 @@ import {
   type TriageListParams,
   type TriageStatus,
 } from "@/lib/api/triage";
-import { useTriageApi, useTriageEvents, useTriageSummary } from "@/lib/hooks/use-triage";
+import { getMaterials } from "@/lib/api/materials";
+import {
+  useMaterialCoverage,
+  useTriageApi,
+  useTriageEvents,
+  useTriageSummary,
+} from "@/lib/hooks/use-triage";
 import { formatDate, humanize } from "@/lib/utils/format";
 
 const DEFAULT_LIMIT = 25;
 
-/* constants.POSITIVE_EVENT_SUBTYPES (backend) — refused for promotion: they
-   are excluded from risk arithmetic at read time, so an approved positive
-   would look promoted and contribute nothing. */
-const POSITIVE_SUBTYPES = [
-  "POSITIVE_POLICY",
-  "restart",
-  "expansion",
-  "guidance_raise",
-];
-
-function isPositiveDirection(e: TriageEvent): boolean {
-  return e.event_subtype != null && POSITIVE_SUBTYPES.includes(e.event_subtype);
-}
+/* Positive-direction detection used to live here as a local copy of the
+   backend's POSITIVE_EVENT_SUBTYPES, and it had drifted: three of its four
+   entries were not in the backend set and the real POSITIVE_DEVELOPMENT was
+   missing, so the "cannot approve" guard fired on the wrong rows. The API now
+   serves `is_positive` on every event — read it, do not re-derive it. */
 
 const STATUS_OPTIONS: Array<{ value: TriageStatus | ""; label: string }> = [
-  { value: "", label: "All" },
+  /* Not "All": the list endpoint excludes dismissed rows unless the dismissed
+     filter is chosen explicitly, because soft dismiss means hidden. Labelling
+     it "All" claimed a completeness the query does not deliver. */
+  { value: "", label: "All active" },
   { value: "pending_triage", label: "Pending triage" },
   { value: "scoring", label: "Scoring" },
   { value: "display_only", label: "Display only" },
@@ -102,6 +106,31 @@ const DEFECT_OPTIONS = [
 
 const SORTABLE = new Set(["event_date", "severity_score", "triage_status"]);
 
+/* Row height was being set by whichever event happened to have the longest
+   summary — ingest slices those at 500 characters, so a single row could run
+   eight or nine lines and push everything else off screen. Clamping is the
+   right lever rather than dropping the summary (which is what the wireframe
+   does): the summary is the only thing on the row that says what actually
+   happened, and two lines of it is enough to decide whether to open the
+   drawer. Full text is one click away, and sits in the `title` attribute for
+   a hover.
+
+   `-webkit-line-clamp` is the only way to ellipsise at a line count rather
+   than a character count; it is prefixed but implemented in every current
+   engine, and the failure mode where it is not — text simply not truncating —
+   is what the page does today anyway. `minWidth: 0` is required because these
+   spans sit in flex containers, where the default `min-width: auto` refuses
+   to shrink below the content's intrinsic width and defeats the overflow. */
+function clampLines(lines: number): CSSProperties {
+  return {
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: lines,
+    overflow: "hidden",
+    minWidth: 0,
+  };
+}
+
 interface Filters {
   search: string;
   status: TriageStatus | "";
@@ -111,6 +140,11 @@ interface Filters {
   eventType: string;
   severityMin: string;
   defect: string;
+  material: string;
+  /** Any defect at all. Orthogonal to `defect`, which names exactly one. */
+  hasDefects: boolean;
+  /** Carries at least one open data-quality note. */
+  flagged: boolean;
 }
 
 const INITIAL_FILTERS: Filters = {
@@ -122,57 +156,15 @@ const INITIAL_FILTERS: Filters = {
   eventType: "",
   severityMin: "",
   defect: "",
+  material: "",
+  hasDefects: false,
+  flagged: false,
 };
 
-function SeverityScoreChip({ score }: { score: number | null }) {
-  if (score == null) {
-    return (
-      <span
-        style={{ fontSize: "var(--p-text-xs, 12px)", color: "var(--p-text-faint)" }}
-      >
-        —
-      </span>
-    );
-  }
-  const band =
-    score >= 0.7
-      ? {
-          background: "var(--p-risk-high-soft)",
-          color: "#9A3412",
-          border: "rgba(234, 88, 12, 0.3)",
-        }
-      : score >= 0.5
-        ? {
-            background: "var(--p-risk-mod-soft)",
-            color: "#92400E",
-            border: "rgba(217, 119, 6, 0.3)",
-          }
-        : {
-            background: "var(--p-risk-low-soft)",
-            color: "#065F46",
-            border: "rgba(5, 150, 105, 0.3)",
-          };
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        height: "var(--p-badge-h, 20px)",
-        padding: "0 7px",
-        borderRadius: 3,
-        fontSize: "var(--p-text-2xs, 11px)",
-        fontWeight: 600,
-        fontVariantNumeric: "tabular-nums",
-        lineHeight: 1,
-        background: band.background,
-        color: band.color,
-        border: "1px solid " + band.border,
-      }}
-    >
-      {Math.round(score * 100)}
-    </span>
-  );
-}
+/* SeverityScoreChip used to live here with a 3-band ramp at 0.7 / 0.5 that
+   matched neither the design system nor the drawer's own copy of the same
+   widget — the same score rendered a different colour depending on which
+   surface you were looking at. Both now import components/triage/score-chips. */
 
 function StatusPillGroup({
   value,
@@ -302,6 +294,15 @@ export default function RiskEventsTriagePage() {
   const sortParam = sortId && SORTABLE.has(sortId)
     ? (sortId as NonNullable<TriageListParams["sort"]>)
     : undefined;
+  /* The header's ascending/descending state was being computed and then
+     dropped: sorting is manual, so the server decides order, and it defaults
+     to desc. Clicking a header to flip direction changed the arrow and nothing
+     else. Only send a direction when a sort column is actually in play. */
+  const sortDirParam = sortParam
+    ? sorting[0]?.desc === false
+      ? ("asc" as const)
+      : ("desc" as const)
+    : undefined;
 
   const apiParams = useMemo<TriageListParams>(
     () => ({
@@ -314,10 +315,16 @@ export default function RiskEventsTriagePage() {
       source: filters.source || undefined,
       event_type: filters.eventType || undefined,
       severity_min: filters.severityMin ? Number(filters.severityMin) : undefined,
+      material: filters.material || undefined,
       defect: filters.defect || undefined,
+      // Sent only when true: the backend treats these as plain booleans, and a
+      // `false` still forces the slower Python-side filter path.
+      has_defects: filters.hasDefects || undefined,
+      flagged: filters.flagged || undefined,
       sort: sortParam,
+      sort_dir: sortDirParam,
     }),
-    [page, limit, filters, sortParam],
+    [page, limit, filters, sortParam, sortDirParam],
   );
 
   const {
@@ -328,6 +335,7 @@ export default function RiskEventsTriagePage() {
     refetch: refetchList,
   } = useTriageEvents(apiParams);
   const { data: summary, refetch: refetchSummary } = useTriageSummary();
+  const { data: coverage, refetch: refetchCoverage } = useMaterialCoverage();
 
   const rows = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -336,6 +344,7 @@ export default function RiskEventsTriagePage() {
   // from its own select while the filtered list omits it.
   const [sourceOptions, setSourceOptions] = useState<string[]>([]);
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
+  const [materialOptions, setMaterialOptions] = useState<string[]>([]);
   useEffect(() => {
     const items = data?.items ?? [];
     const merge = (prev: string[], next: Array<string | null>) => {
@@ -346,7 +355,36 @@ export default function RiskEventsTriagePage() {
     };
     setSourceOptions((prev) => merge(prev, items.map((e) => e.source_system)));
     setTypeOptions((prev) => merge(prev, items.map((e) => e.event_type)));
+    /* The backend matches `material` on canonical_name exactly, so this has to
+       be a closed list — a free-text box would return nothing for any spelling
+       the corpus does not use. Seeded from the launch list below, then widened
+       with whatever the loaded rows actually link to. */
+    setMaterialOptions((prev) =>
+      merge(prev, items.flatMap((e) => e.links.map((l) => l.label))),
+    );
   }, [data]);
+
+  // Launch-list materials, fetched once, so the material facet is useful before
+  // a page happens to contain a link to the material you care about.
+  useEffect(() => {
+    let live = true;
+    getMaterials(api, { page: 1, limit: 100, is_launch_list: true })
+      .then((res) => {
+        if (!live) return;
+        setMaterialOptions((prev) => {
+          const set = new Set(prev);
+          for (const m of res.data ?? []) set.add(m.canonical_name);
+          const merged = [...set].sort();
+          return merged.length === prev.length ? prev : merged;
+        });
+      })
+      .catch(() => {
+        // Non-fatal: the facet still fills in from loaded rows.
+      });
+    return () => {
+      live = false;
+    };
+  }, [api]);
 
   // Ref mirror of the open drawer event id, so refreshAfterMutation can stay
   // identity-stable while still knowing whether the drawer copy needs a
@@ -358,7 +396,10 @@ export default function RiskEventsTriagePage() {
 
   const refreshAfterMutation = useCallback(
     async (eventId?: number) => {
-      await Promise.all([refetchList(), refetchSummary()]);
+      // Coverage refetches alongside the list: confirming or rejecting a link
+      // is exactly the mutation that moves an event between the tracker's
+      // hatched (pending) and solid (confirmed) segments.
+      await Promise.all([refetchList(), refetchSummary(), refetchCoverage()]);
       if (eventId != null && openEventIdRef.current === eventId) {
         try {
           const fresh = await getTriageEvent(api, eventId);
@@ -368,7 +409,7 @@ export default function RiskEventsTriagePage() {
         }
       }
     },
-    [api, refetchList, refetchSummary],
+    [api, refetchList, refetchSummary, refetchCoverage],
   );
 
   const runMutation = useCallback(
@@ -449,35 +490,62 @@ export default function RiskEventsTriagePage() {
               }}
             >
               <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-                <span style={{ fontWeight: 500, textWrap: "pretty" }}>
+                <span
+                  title={e.title}
+                  style={{
+                    fontWeight: 500,
+                    textWrap: "pretty",
+                    ...clampLines(2),
+                  }}
+                >
                   {e.title}
                 </span>
-                {e.verified && (
+                {/* The wireframe marks rows that need attention, not rows that
+                    are fine. A verified check said "approved" — which the
+                    Decision column already says, in words, on the same row —
+                    while an open data-quality note, the one thing that should
+                    pull an eye across the table, rendered nowhere. */}
+                {e.flags.length > 0 && (
                   <span
-                    title="Verified — approval marked this event verified in the same write"
+                    title={
+                      e.flags.length +
+                      " open data-quality note" +
+                      (e.flags.length === 1 ? "" : "s")
+                    }
                     style={{
                       display: "inline-flex",
                       flexShrink: 0,
                       marginTop: 2,
-                      color: "var(--p-risk-low)",
+                      color: "var(--p-risk-crit)",
                     }}
                   >
-                    <CheckCircle2 size={13} strokeWidth={2.25} />
+                    <Flag size={13} strokeWidth={2.25} />
                   </span>
                 )}
               </div>
               {e.summary && (
                 <span
+                  title={e.summary}
                   style={{
                     fontSize: "var(--p-text-xs, 12px)",
                     lineHeight: 1.45,
                     color: "var(--p-text-muted)",
                     textWrap: "pretty",
+                    ...clampLines(2),
                   }}
                 >
                   {e.summary}
                 </span>
               )}
+              {/* Source and geography ride in the title cell rather than in a
+                  column of their own, as in the wireframe — they are context
+                  for the headline, not a facet you scan down. That buys back
+                  the width the Type column needs. */}
+              <span style={{ fontSize: 10, color: "var(--p-text-faint)" }}>
+                {[e.source_system || "uncredited", e.geography_primary]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
               <QualityDefectChips defects={e.quality_defects} />
             </div>
           );
@@ -494,32 +562,25 @@ export default function RiskEventsTriagePage() {
         cell: ({ row }) => <LinksCell links={row.original.links} />,
       },
       {
-        accessorKey: "source_system",
-        header: "Source",
+        accessorKey: "event_type",
+        header: "Type",
         enableSorting: false,
         cell: ({ row }) => {
-          const e = row.original;
-          return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              {e.source_system ? (
-                <Badge variant="outline">{e.source_system}</Badge>
-              ) : (
-                <span
-                  style={{
-                    fontSize: "var(--p-text-xs, 12px)",
-                    fontStyle: "italic",
-                    color: "var(--p-text-faint)",
-                  }}
-                >
-                  uncredited
-                </span>
-              )}
-              {e.geography_primary && (
-                <span style={{ fontSize: 10, color: "var(--p-text-faint)" }}>
-                  {e.geography_primary}
-                </span>
-              )}
-            </div>
+          const t = row.original.event_type;
+          /* The toolbar has had a Type filter all along with no column to read
+             the result against — you could narrow to a type and not see which
+             type any row was. */
+          return t ? (
+            <Badge variant="outline">{humanize(t)}</Badge>
+          ) : (
+            <span
+              style={{
+                fontSize: "var(--p-text-xs, 12px)",
+                color: "var(--p-text-faint)",
+              }}
+            >
+              —
+            </span>
           );
         },
       },
@@ -530,7 +591,7 @@ export default function RiskEventsTriagePage() {
         meta: { align: "right" },
         cell: ({ row }) => (
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <SeverityScoreChip score={row.original.severity_score} />
+            <SeverityChip score={row.original.severity_score} />
           </div>
         ),
       },
@@ -566,9 +627,19 @@ export default function RiskEventsTriagePage() {
         meta: { align: "right" },
         cell: ({ row }) => {
           const e = row.original;
-          const hasSuggestion =
-            e.suggested_category != null ||
-            e.links.some((l) => l.status === "suggested");
+          /* "Accept all" means "the machine was right, promote it as proposed",
+             so it is only offered where that is actually a legal transition.
+             It used to be gated on having a suggestion alone, which offered it
+             on rows the backend refuses outright: a positive-direction event is
+             excluded from risk arithmetic, and an operational news candidate
+             needs a subtype and severity that only the promote dialog collects.
+             Both returned a 400 into the error banner. */
+          const acceptable =
+            e.triage_status === "pending_triage" &&
+            !e.is_positive &&
+            e.event_type !== "operational_news_candidate" &&
+            (e.suggested_category != null ||
+              e.links.some((l) => l.status === "suggested"));
           return (
             <div
               style={{
@@ -579,7 +650,7 @@ export default function RiskEventsTriagePage() {
               }}
               onClick={(ev) => ev.stopPropagation()}
             >
-              {e.triage_status === "pending_triage" && hasSuggestion && (
+              {acceptable && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -594,7 +665,7 @@ export default function RiskEventsTriagePage() {
                 status={e.triage_status}
                 size="sm"
                 pending={pendingId === e.id}
-                disallow={isPositiveDirection(e) ? ["scoring"] : undefined}
+                disallow={e.is_positive ? ["scoring"] : undefined}
                 disallowReason="Positive-direction event — excluded from risk arithmetic, so approving would have no effect"
                 onChange={(next) => handleStatus(e, next)}
               />
@@ -621,17 +692,48 @@ export default function RiskEventsTriagePage() {
         subtitle="Triage queue. The ingest engine proposes a pillar and entity links; nothing scores until an analyst confirms, corrects, or dismisses it."
       />
 
-      {summary && (
-        <QueueSummaryCard
-          summary={summary}
-          active={filters.status}
-          onFilter={(s) => {
-            setFilters({ ...INITIAL_FILTERS, status: s });
-            setLocalSearch("");
-            setPage(1);
-          }}
-        />
-      )}
+      {/* Coverage sits beside the queue on purpose: "which materials are
+          thin" is only answerable next to "what is still unreviewed". The
+          grid collapses to the queue card alone while coverage loads (or if
+          the endpoint errors) — the queue is the work surface, coverage is
+          the map, and the map is not worth a blocked page. */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: coverage ? "1fr 1.35fr" : "1fr",
+          gap: 16,
+          alignItems: "start",
+        }}
+      >
+        {summary && (
+          <QueueSummaryCard
+            summary={summary}
+            active={filters.status}
+            onFilter={(s) => {
+              setFilters({ ...INITIAL_FILTERS, status: s });
+              setLocalSearch("");
+              setPage(1);
+            }}
+          />
+        )}
+        {coverage && (
+          <MaterialCoverageCard
+            coverage={coverage}
+            selectedName={filters.material}
+            onSelect={(m) => {
+              // Row click filters the queue to that material — mirroring the
+              // material facet select, and toggling off on a second click.
+              setFilters({
+                ...INITIAL_FILTERS,
+                status: "",
+                material: filters.material === m.name ? "" : m.name,
+              });
+              setLocalSearch("");
+              setPage(1);
+            }}
+          />
+        )}
+      </div>
 
       <DataTableToolbar
         actions={
@@ -686,6 +788,14 @@ export default function RiskEventsTriagePage() {
           }))}
         />
         <FacetSelect
+          ariaLabel="Material"
+          allLabel="All materials"
+          width={155}
+          value={filters.material}
+          onChange={(v) => setFilter({ material: v })}
+          options={materialOptions.map((m) => ({ value: m, label: m }))}
+        />
+        <FacetSelect
           ariaLabel="Direction"
           allLabel="All directions"
           width={140}
@@ -725,6 +835,29 @@ export default function RiskEventsTriagePage() {
           onChange={(v) => setFilter({ defect: v })}
           options={DEFECT_OPTIONS}
         />
+        {/* Two toggles the wireframe carries and the page did not. "Has
+            defects" is not the same question as the defect select beside it —
+            that one names a single code, this one asks "show me everything the
+            ingest pipeline is unsure about". "Flagged" is the only way to find
+            the events a human has already written a note against. */}
+        <Button
+          variant={filters.hasDefects ? "default" : "outline"}
+          size="sm"
+          aria-pressed={filters.hasDefects}
+          title="Only events carrying at least one quality defect"
+          onClick={() => setFilter({ hasDefects: !filters.hasDefects })}
+        >
+          Has defects
+        </Button>
+        <Button
+          variant={filters.flagged ? "default" : "outline"}
+          size="sm"
+          aria-pressed={filters.flagged}
+          title="Only events with an open data-quality note"
+          onClick={() => setFilter({ flagged: !filters.flagged })}
+        >
+          Flagged
+        </Button>
         {dirty && (
           <Button
             variant="ghost"
@@ -798,7 +931,7 @@ export default function RiskEventsTriagePage() {
         }
         emptyDescription={
           filters.status === "pending_triage"
-            ? "Every event in this filter set has been triaged. Switch to All to review past decisions."
+            ? "Every event in this filter set has been triaged. Switch to All active to review past decisions."
             : "Try widening the severity threshold or clearing filters."
         }
       />
@@ -818,7 +951,7 @@ export default function RiskEventsTriagePage() {
         open={drawerOpen}
         event={openEvent}
         pending={openEvent != null && pendingId === openEvent.id}
-        disallowScoring={openEvent != null && isPositiveDirection(openEvent)}
+        disallowScoring={openEvent?.is_positive ?? false}
         onClose={() => setDrawerOpen(false)}
         onStatus={(id, next) => {
           const ev =

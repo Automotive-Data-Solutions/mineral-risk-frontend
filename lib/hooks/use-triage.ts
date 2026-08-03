@@ -13,8 +13,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { createApiClient, type ApiClient } from "@/lib/api/client";
 import {
+  getMaterialCoverage,
   getTriageEvents,
   getTriageSummary,
+  type MaterialCoverage,
   type TriageEventList,
   type TriageListParams,
   type TriageSummary,
@@ -50,6 +52,38 @@ export function useTriageSummary(): AsyncState<TriageSummary> & {
     setState((s) => ({ ...s, isFetching: true, isLoading: s.data == null }));
     try {
       const data = await getTriageSummary(client);
+      if (seq !== requestSeq.current) return;
+      setState({ data, isLoading: false, isFetching: false, error: null });
+    } catch (error) {
+      if (seq !== requestSeq.current) return;
+      setState((s) => ({ ...s, isLoading: false, isFetching: false, error }));
+    }
+  }, [client]);
+
+  useEffect(() => {
+    void refetch();
+  }, [refetch]);
+
+  return { ...state, refetch };
+}
+
+export function useMaterialCoverage(): AsyncState<MaterialCoverage> & {
+  refetch: () => Promise<void>;
+} {
+  const client = useTriageApi();
+  const [state, setState] = useState<AsyncState<MaterialCoverage>>({
+    data: null,
+    isLoading: true,
+    isFetching: true,
+    error: null,
+  });
+  const requestSeq = useRef(0);
+
+  const refetch = useCallback(async () => {
+    const seq = ++requestSeq.current;
+    setState((s) => ({ ...s, isFetching: true, isLoading: s.data == null }));
+    try {
+      const data = await getMaterialCoverage(client);
       if (seq !== requestSeq.current) return;
       setState({ data, isLoading: false, isFetching: false, error: null });
     } catch (error) {
