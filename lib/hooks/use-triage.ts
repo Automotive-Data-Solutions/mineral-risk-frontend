@@ -1,17 +1,27 @@
 "use client";
 
 /**
- * Data hooks for the triage queue.
+ * Data hooks for the triage queue — React Query edition.
  *
- * The triage surface is a write-heavy work queue: every mutation is followed
- * by an explicit refetch of the list and the summary, so these hooks expose
- * `refetch` prominently and keep previous data visible while re-fetching
- * (no skeleton flash between a decision and its confirmed result).
+ * Migrated 2026-08-05 from hand-rolled useState/useEffect hooks; this was the
+ * last hand-rolled hook file in the app (every other lib/hooks module already
+ * used React Query). What the migration deletes rather than reimplements:
+ * the manual request-sequence guards against out-of-order responses (query
+ * keys make stale responses unlandable), the page-level refetch chain after
+ * every mutation (one `invalidateQueries` on the `triage` key family), and
+ * duplicate uncoordinated fetches when multiple components need the same
+ * data (RQ dedupes by key).
+ *
+ * The queue is a write-heavy work surface, so these queries deliberately keep
+ * the global 30s staleTime — freshness after a decision comes from mutation
+ * invalidation, not from short staleness. `placeholderData: prev` preserves
+ * the old hooks' no-skeleton-flash behaviour between a decision and its
+ * confirmed result.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { createApiClient, type ApiClient } from "@/lib/api/client";
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { useApiClient } from "./use-api-client";
+import type { ApiClient } from "@/lib/api/client";
 import {
   getMaterialCoverage,
   getTriageEvents,
@@ -22,118 +32,59 @@ import {
   type TriageSummary,
 } from "@/lib/api/triage";
 
-/** Authenticated API client for triage calls (Clerk token attached per request). */
+/**
+ * Kept for existing call sites (drawer, promote dialog); the house client
+ * hook is the implementation. New code should import useApiClient directly.
+ */
 export function useTriageApi(): ApiClient {
-  const { getToken } = useAuth();
-  return useMemo(() => createApiClient(getToken), [getToken]);
+  return useApiClient();
 }
 
-interface AsyncState<T> {
-  data: T | null;
-  isLoading: boolean;
-  isFetching: boolean;
-  error: unknown;
-}
+export const triageQueryKeys = {
+  /** Invalidate this to refresh every triage surface after a mutation. */
+  all: ["triage"] as const,
+  events: (params: TriageListParams) =>
+    [...triageQueryKeys.all, "events", params] as const,
+  summary: () => [...triageQueryKeys.all, "summary"] as const,
+  coverage: () => [...triageQueryKeys.all, "coverage"] as const,
+};
 
-export function useTriageSummary(): AsyncState<TriageSummary> & {
-  refetch: () => Promise<void>;
-} {
-  const client = useTriageApi();
-  const [state, setState] = useState<AsyncState<TriageSummary>>({
-    data: null,
-    isLoading: true,
-    isFetching: true,
-    error: null,
+export function useTriageSummary(
+  options?: Omit<UseQueryOptions<TriageSummary>, "queryKey" | "queryFn">,
+) {
+  const client = useApiClient();
+  return useQuery<TriageSummary>({
+    queryKey: triageQueryKeys.summary(),
+    queryFn: () => getTriageSummary(client),
+    placeholderData: (prev) => prev,
+    ...options,
   });
-  const requestSeq = useRef(0);
-
-  const refetch = useCallback(async () => {
-    const seq = ++requestSeq.current;
-    setState((s) => ({ ...s, isFetching: true, isLoading: s.data == null }));
-    try {
-      const data = await getTriageSummary(client);
-      if (seq !== requestSeq.current) return;
-      setState({ data, isLoading: false, isFetching: false, error: null });
-    } catch (error) {
-      if (seq !== requestSeq.current) return;
-      setState((s) => ({ ...s, isLoading: false, isFetching: false, error }));
-    }
-  }, [client]);
-
-  useEffect(() => {
-    void refetch();
-  }, [refetch]);
-
-  return { ...state, refetch };
 }
 
-export function useMaterialCoverage(): AsyncState<MaterialCoverage> & {
-  refetch: () => Promise<void>;
-} {
-  const client = useTriageApi();
-  const [state, setState] = useState<AsyncState<MaterialCoverage>>({
-    data: null,
-    isLoading: true,
-    isFetching: true,
-    error: null,
+export function useTriageEvents(
+  params: TriageListParams,
+  options?: Omit<UseQueryOptions<TriageEventList>, "queryKey" | "queryFn">,
+) {
+  const client = useApiClient();
+  return useQuery<TriageEventList>({
+    // Params are part of the key, so filter/page changes fetch their own
+    // entry and out-of-order responses can never land on the wrong view —
+    // the job the old hand-rolled requestSeq guard existed to do.
+    queryKey: triageQueryKeys.events(params),
+    queryFn: () => getTriageEvents(client, params),
+    placeholderData: (prev) => prev,
+    ...options,
   });
-  const requestSeq = useRef(0);
-
-  const refetch = useCallback(async () => {
-    const seq = ++requestSeq.current;
-    setState((s) => ({ ...s, isFetching: true, isLoading: s.data == null }));
-    try {
-      const data = await getMaterialCoverage(client);
-      if (seq !== requestSeq.current) return;
-      setState({ data, isLoading: false, isFetching: false, error: null });
-    } catch (error) {
-      if (seq !== requestSeq.current) return;
-      setState((s) => ({ ...s, isLoading: false, isFetching: false, error }));
-    }
-  }, [client]);
-
-  useEffect(() => {
-    void refetch();
-  }, [refetch]);
-
-  return { ...state, refetch };
 }
 
-export function useTriageEvents(params: TriageListParams): AsyncState<TriageEventList> & {
-  refetch: () => Promise<void>;
-} {
-  const client = useTriageApi();
-  const [state, setState] = useState<AsyncState<TriageEventList>>({
-    data: null,
-    isLoading: true,
-    isFetching: true,
-    error: null,
+export function useMaterialCoverage(
+  options?: Omit<UseQueryOptions<MaterialCoverage>, "queryKey" | "queryFn">,
+) {
+  const client = useApiClient();
+  return useQuery<MaterialCoverage>({
+    queryKey: triageQueryKeys.coverage(),
+    queryFn: () => getMaterialCoverage(client),
+    placeholderData: (prev) => prev,
+    ...options,
   });
-  const requestSeq = useRef(0);
-
-  // Track the latest params in a ref so `refetch` stays identity-stable
-  // across filter changes and always fetches the current filter set.
-  const paramsRef = useRef(params);
-  paramsRef.current = params;
-  const paramsKey = JSON.stringify(params);
-
-  const refetch = useCallback(async () => {
-    const seq = ++requestSeq.current;
-    setState((s) => ({ ...s, isFetching: true, isLoading: s.data == null }));
-    try {
-      const data = await getTriageEvents(client, paramsRef.current);
-      if (seq !== requestSeq.current) return;
-      setState({ data, isLoading: false, isFetching: false, error: null });
-    } catch (error) {
-      if (seq !== requestSeq.current) return;
-      setState((s) => ({ ...s, isLoading: false, isFetching: false, error }));
-    }
-  }, [client]);
-
-  useEffect(() => {
-    void refetch();
-    // paramsKey is the serialized filter set; refetch is stable.
-  }, [refetch, paramsKey]);
-
-  return { ...state, refetch };
 }

@@ -149,6 +149,8 @@ export interface TriageListParams {
   event_type?: string;
   severity_min?: number;
   material?: string;
+  /** Geography code (countries.iso2); matches primary and secondary alike. */
+  country?: string;
   /** Exactly one defect code. */
   defect?: string;
   /** Any defect at all — orthogonal to ``defect``, both may be sent. */

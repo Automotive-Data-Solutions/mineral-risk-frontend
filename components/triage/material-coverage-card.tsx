@@ -389,10 +389,11 @@ export function MaterialCoverageCard({
             color: "var(--p-text-muted)",
           }}
         >
-          Counts confirmed, direct links on non-duplicate events in the last{" "}
-          {windowDays} days. Hatched bar segments are events awaiting triage —
-          present, but contributing nothing to the count. Only launch-list gaps
-          (★) are launch blockers.
+          Counts confirmed, direct links on scoring events in the last{" "}
+          {windowDays} days (non-duplicate). Hatched bar segments are events
+          still awaiting triage — present, but contributing nothing until
+          promoted. Display-only events count toward neither. Only launch-list
+          gaps (★) are launch blockers.
         </p>
       </div>
     </div>

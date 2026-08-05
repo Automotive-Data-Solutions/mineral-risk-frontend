@@ -58,11 +58,13 @@ import {
 } from "@/lib/api/triage";
 import { getMaterials } from "@/lib/api/materials";
 import {
+  triageQueryKeys,
   useMaterialCoverage,
   useTriageApi,
   useTriageEvents,
   useTriageSummary,
 } from "@/lib/hooks/use-triage";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatDate, humanize } from "@/lib/utils/format";
 
 const DEFAULT_LIMIT = 25;
@@ -141,6 +143,8 @@ interface Filters {
   severityMin: string;
   defect: string;
   material: string;
+  /** Geography code (countries.iso2); matches primary and secondary alike. */
+  country: string;
   /** Any defect at all. Orthogonal to `defect`, which names exactly one. */
   hasDefects: boolean;
   /** Carries at least one open data-quality note. */
@@ -157,6 +161,7 @@ const INITIAL_FILTERS: Filters = {
   severityMin: "",
   defect: "",
   material: "",
+  country: "",
   hasDefects: false,
   flagged: false,
 };
@@ -316,6 +321,7 @@ export default function RiskEventsTriagePage() {
       event_type: filters.eventType || undefined,
       severity_min: filters.severityMin ? Number(filters.severityMin) : undefined,
       material: filters.material || undefined,
+      country: filters.country || undefined,
       defect: filters.defect || undefined,
       // Sent only when true: the backend treats these as plain booleans, and a
       // `false` still forces the slower Python-side filter path.
@@ -334,8 +340,9 @@ export default function RiskEventsTriagePage() {
     error,
     refetch: refetchList,
   } = useTriageEvents(apiParams);
-  const { data: summary, refetch: refetchSummary } = useTriageSummary();
-  const { data: coverage, refetch: refetchCoverage } = useMaterialCoverage();
+  const { data: summary } = useTriageSummary();
+  const { data: coverage } = useMaterialCoverage();
+  const queryClient = useQueryClient();
 
   const rows = data?.items ?? [];
   const total = data?.total ?? 0;
@@ -345,6 +352,13 @@ export default function RiskEventsTriagePage() {
   const [sourceOptions, setSourceOptions] = useState<string[]>([]);
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [materialOptions, setMaterialOptions] = useState<string[]>([]);
+  /* code → display name. Accumulated like the other facets, but as a map:
+     the filter value is the code (what the backend matches on) while the
+     label wants the resolved name, and a later page may supply a name for a
+     code an earlier page carried bare. */
+  const [countryOptions, setCountryOptions] = useState<Record<string, string>>(
+    {},
+  );
   useEffect(() => {
     const items = data?.items ?? [];
     const merge = (prev: string[], next: Array<string | null>) => {
@@ -362,6 +376,20 @@ export default function RiskEventsTriagePage() {
     setMaterialOptions((prev) =>
       merge(prev, items.flatMap((e) => e.links.map((l) => l.label))),
     );
+    setCountryOptions((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const e of items) {
+        for (const c of e.geography_codes) {
+          const name = e.geography_names?.[c] ?? "";
+          if (!(c in next) || (name && next[c] !== name)) {
+            next[c] = name || next[c] || "";
+            changed = true;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
   }, [data]);
 
   // Launch-list materials, fetched once, so the material facet is useful before
@@ -396,10 +424,12 @@ export default function RiskEventsTriagePage() {
 
   const refreshAfterMutation = useCallback(
     async (eventId?: number) => {
-      // Coverage refetches alongside the list: confirming or rejecting a link
-      // is exactly the mutation that moves an event between the tracker's
-      // hatched (pending) and solid (confirmed) segments.
-      await Promise.all([refetchList(), refetchSummary(), refetchCoverage()]);
+      // One invalidation covers every triage surface — list, summary, AND the
+      // coverage tracker (confirming or rejecting a link is exactly the
+      // mutation that moves an event between the tracker's hatched and solid
+      // segments). Replaces the old three-way refetch chain; invalidation
+      // awaits the refetch of whichever of those queries is mounted.
+      await queryClient.invalidateQueries({ queryKey: triageQueryKeys.all });
       if (eventId != null && openEventIdRef.current === eventId) {
         try {
           const fresh = await getTriageEvent(api, eventId);
@@ -409,7 +439,7 @@ export default function RiskEventsTriagePage() {
         }
       }
     },
-    [api, refetchList, refetchSummary, refetchCoverage],
+    [api, queryClient],
   );
 
   const runMutation = useCallback(
@@ -794,6 +824,19 @@ export default function RiskEventsTriagePage() {
           value={filters.material}
           onChange={(v) => setFilter({ material: v })}
           options={materialOptions.map((m) => ({ value: m, label: m }))}
+        />
+        <FacetSelect
+          ariaLabel="Country"
+          allLabel="All countries"
+          width={165}
+          value={filters.country}
+          onChange={(v) => setFilter({ country: v })}
+          options={Object.entries(countryOptions)
+            .map(([code, name]) => ({
+              value: code,
+              label: name ? `${name} (${code})` : code,
+            }))
+            .sort((a, b) => a.label.localeCompare(b.label))}
         />
         <FacetSelect
           ariaLabel="Direction"
